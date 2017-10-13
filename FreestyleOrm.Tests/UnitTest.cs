@@ -471,7 +471,7 @@ namespace FreestyleOrm.Tests
                     })
                     .Table("PurchaseItem")
                     .RelationId("PurchaseOrderId", x => x)
-                    .OptimisticLock("RecordVersion", x => x.RecordVersion == null ? 1 : x.RecordVersion + 1);
+                    .OptimisticLock("RecordVersion", x => x.RecordVersion + 1);
 
                 m.ToOne(x => x.PurchaseItems.First().Product)
                     .UniqueKeys("ProductId");
@@ -496,7 +496,7 @@ namespace FreestyleOrm.Tests
                         row[nameof(entity.Customer.CustomerId)] = entity.Customer.CustomerId;
                     })
                     .AutoId(true)
-                    .OptimisticLock("RecordVersion", x => x.RecordVersion == null ? 1 : x.RecordVersion + 1);
+                    .OptimisticLock("RecordVersion", x => x.RecordVersion + 1);
 
                 m.ToOne(x => x.Customer)
                     .UniqueKeys("CustomerId");
@@ -511,7 +511,7 @@ namespace FreestyleOrm.Tests
                         row[nameof(entity.Product.ProductId)] = entity.Product.ProductId;
                     })
                     .RelationId("PurchaseOrderId", x => x)
-                    .OptimisticLock("RecordVersion", x => x.RecordVersion == null ? 1 : x.RecordVersion + 1);
+                    .OptimisticLock("RecordVersion", x => x.RecordVersion + 1);
 
                 m.ToOne(x => x.PurchaseItems.First().Product)
                     .UniqueKeys("ProductId");
@@ -542,7 +542,7 @@ namespace FreestyleOrm.Tests
 
             public string CustomerName { get; set; }
 
-            public int? RecordVersion { get; set; }
+            public int RecordVersion { get; set; }
         }
 
         public class Product
@@ -566,7 +566,7 @@ namespace FreestyleOrm.Tests
 
             public string ProductName { get; set; }
 
-            public int? RecordVersion { get; set; }
+            public int RecordVersion { get; set; }
         }
 
         public partial class PurchaseOrder
@@ -606,7 +606,7 @@ namespace FreestyleOrm.Tests
                 }
             }
 
-            public int? RecordVersion { get; set; }
+            public int RecordVersion { get; set; }
 
             public int GetNewItemNo()
             {
@@ -653,7 +653,7 @@ namespace FreestyleOrm.Tests
 
             public int Number { get; set; }
 
-            public int? RecordVersion { get; set; }
+            public int RecordVersion { get; set; }
         }
 
     }
