@@ -46,14 +46,14 @@ namespace FreestyleOrm
 
     public class Page<TRootEntity>
     {
-        internal Page(int count, IEnumerable<TRootEntity> list)
+        internal Page(IEnumerable<TRootEntity> list, int count)
         {
-            Count = count;
             Lines = list;
+            Count = count;            
         }
 
-        public int Count { get; }
         public IEnumerable<TRootEntity> Lines { get; }
+        public int Count { get; }        
     }
 
     public enum Refer

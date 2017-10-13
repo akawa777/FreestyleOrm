@@ -49,7 +49,7 @@ namespace FreestyleOrm.Core
             List<TRootEntity> list = new List<TRootEntity>();
             foreach (var rootEntity in Fetch(page, size, outCount)) list.Add(rootEntity);
 
-            return new Page<TRootEntity>(outCount.Value, list);
+            return new Page<TRootEntity>(list, outCount.Value);
         }
 
         private IEnumerable<TRootEntity> Fetch(int page, int size, Count outCount)
