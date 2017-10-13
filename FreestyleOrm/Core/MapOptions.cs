@@ -16,7 +16,7 @@ namespace FreestyleOrm.Core
         {
             _queryDefine = queryDefine;
 
-            ExpressionPath = expressionPath;
+            ExpressionPath = expressionPath == null ? string.Empty : expressionPath;
             EntityType = property == null ? rootEntityType : entityType;
             IsToMany = isToMany;
             IncludePrefix = queryDefine.GetIncludePrefix(rootEntityType, entityType, property);

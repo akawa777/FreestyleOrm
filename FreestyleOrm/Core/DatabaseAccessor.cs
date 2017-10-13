@@ -335,7 +335,7 @@ namespace FreestyleOrm.Core
             outComplexParameters.Clear();
             List<IDbDataParameter> dbParameters = new List<IDbDataParameter>();
             Dictionary<string, object> parameters = new Dictionary<string, object>();
-            queryOptions.SetParameters(parameters);
+            queryOptions.SetParams(parameters);
 
             foreach (var param in parameters)
             {                

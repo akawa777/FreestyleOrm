@@ -23,9 +23,11 @@ namespace FreestyleOrm.Core
             {
                 MapOptions mapOptions = _mapOptionsList.FirstOrDefault(x => string.IsNullOrEmpty(x.ExpressionPath));
 
-                if (mapOptions != null) return mapOptions;
+                if (mapOptions == null && _mapOptionsList.Count() > 0) throw new InvalidOperationException("root map is not setted.");
+                if (mapOptions != null) return mapOptions;                
 
                 mapOptions = new MapOptions(_queryDefine, typeof(TRootEntity));
+                mapOptions.Refer = Refer.Write;
 
                 _mapOptionsList.Insert(0, mapOptions);
 
@@ -97,7 +99,7 @@ namespace FreestyleOrm.Core
 
         public IMapOptions<TRootEntity, TEntity> ToMany<TEntity>(Expression<Func<TRootEntity, IEnumerable<TEntity>>> target) where TEntity : class
         {
-            if (target == null) throw new ArgumentException($"[Expression<Func<{typeof(TRootEntity).Name}, IEnumerable<{typeof(TRootEntity).Name}>>>] traget is null.");
+            if (target == null) throw new ArgumentException($"[Expression<Func<{typeof(TRootEntity).Name}, IEnumerable<{typeof(TRootEntity).Name}>>>] {nameof(target)} is null.");
 
             MapOptions<TRootEntity, TEntity> mapOptions = new MapOptions<TRootEntity, TEntity>(_queryDefine, target);
 
@@ -108,7 +110,7 @@ namespace FreestyleOrm.Core
 
         public IMapOptions<TRootEntity, TEntity> ToOne<TEntity>(Expression<Func<TRootEntity, TEntity>> target) where TEntity : class
         {
-            if (target == null) throw new ArgumentException($"[Expression<Func<{typeof(TRootEntity).Name}, {typeof(TRootEntity).Name}>>>] traget is null.");
+            if (target == null) throw new ArgumentException($"[Expression<Func<{typeof(TRootEntity).Name}, {typeof(TRootEntity).Name}>>>] {nameof(target)} is null.");
 
             MapOptions<TRootEntity, TEntity> mapOptions = new MapOptions<TRootEntity, TEntity>(_queryDefine, target);
 
@@ -143,7 +145,7 @@ namespace FreestyleOrm.Core
 
         public IMapOptions<TRootEntity, TEntity> GetEntity(Func<IRow, TRootEntity, TEntity> getEntity)
         {
-            if (getEntity == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(GetEntity)} is null.");
+            if (getEntity == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(getEntity)} is null.");
 
             _mapOptions.GetEntity = (row, rootEntity) => getEntity(row, rootEntity as TRootEntity);
 
@@ -152,7 +154,7 @@ namespace FreestyleOrm.Core
 
         public IMapOptions<TRootEntity, TEntity> FormatPropertyName(Func<string, string> formatPropertyName)
         {
-            if (formatPropertyName == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(FormatPropertyName)} is null.");
+            if (formatPropertyName == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(formatPropertyName)} is null.");
 
             _mapOptions.FormatPropertyName = formatPropertyName;
 
@@ -175,7 +177,7 @@ namespace FreestyleOrm.Core
 
         public IMapOptions<TRootEntity, TEntity> SetRow(Action<TEntity, TRootEntity, IRow> setRow)
         {
-            if (setRow == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(SetRow)} is null.");
+            if (setRow == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(setRow)} is null.");
 
             _mapOptions.SetRow = (entity, rootEntity, row) => setRow(entity as TEntity, rootEntity as TRootEntity, row);
 
@@ -184,7 +186,7 @@ namespace FreestyleOrm.Core
 
         public IMapOptions<TRootEntity, TEntity> Table(string table)
         {
-            if (string.IsNullOrEmpty(table)) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(Table)} is null or empty.");
+            if (string.IsNullOrEmpty(table)) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(table)} is null or empty.");
 
             _mapOptions.Table = table;
 
@@ -193,9 +195,9 @@ namespace FreestyleOrm.Core
 
         public IMapOptions<TRootEntity, TEntity> RelationId<TRelationEntity>(string relationIdColumn, Expression<Func<TRootEntity, TRelationEntity>> relationEntity) where TRelationEntity : class
         {
-            if (_mapOptions.IsRootOptions) throw new InvalidOperationException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] root entity can not set {nameof(RelationId)}.");
-            if (string.IsNullOrEmpty(relationIdColumn)) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(RelationId)}.{nameof(relationIdColumn)} is null or empty.");
-            if (relationEntity == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(RelationId)}.{nameof(relationEntity)} is null.");            
+            if (_mapOptions.IsRootOptions) throw new InvalidOperationException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] root entity can not set {nameof(relationIdColumn)}.");
+            if (string.IsNullOrEmpty(relationIdColumn)) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(relationIdColumn)} is null or empty.");
+            if (relationEntity == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(relationEntity)} is null.");            
 
             _mapOptions.RelationIdColumn = relationIdColumn;
             _mapOptions.RelationEntityPath = relationEntity.GetExpressionPath();
@@ -205,7 +207,7 @@ namespace FreestyleOrm.Core
 
         public IMapOptions<TRootEntity, TEntity> UniqueKeys(string columns)
         {
-            if (string.IsNullOrEmpty(columns)) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(UniqueKeys)} is null or empty.");
+            if (string.IsNullOrEmpty(columns)) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(columns)} is null or empty.");
 
             _mapOptions.UniqueKeys = columns;
 
@@ -214,8 +216,8 @@ namespace FreestyleOrm.Core
 
         public IMapOptions<TRootEntity, TEntity> OptimisticLock<TRowVersion>(string rowVersionColumn, Func<TEntity, TRowVersion> newRowVersion = null)
         {
-            if (string.IsNullOrEmpty(rowVersionColumn)) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(OptimisticLock)}.{nameof(rowVersionColumn)} is null or empty.");
-            if (newRowVersion == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(OptimisticLock)}.{nameof(newRowVersion)} is null.");
+            if (string.IsNullOrEmpty(rowVersionColumn)) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(rowVersionColumn)} is null or empty.");
+            if (newRowVersion == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(newRowVersion)} is null.");
 
             _mapOptions.RowVersionColumn = rowVersionColumn;
             if (newRowVersion != null) _mapOptions.NewRowVersion = entity => newRowVersion(entity as TEntity);

@@ -21,7 +21,7 @@ namespace FreestyleOrm.Core
         public IDbConnection Connection { get; set; }
         public IDbTransaction Transaction { get; set; }
         public string Sql { get; set; }
-        public Action<Dictionary<string, object>> SetParameters { get; set; } =pt => { };
+        public Action<Dictionary<string, object>> SetParams { get; set; } = p => { };
         public Action<Dictionary<string, object>> SetFormats
         {
             get

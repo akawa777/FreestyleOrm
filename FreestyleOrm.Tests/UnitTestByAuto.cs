@@ -64,7 +64,7 @@ namespace FreestyleOrm.Tests
 
                 query
                     .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId not in (@PurchaseOrderIds)")
-                    .Parametes(p => p["@PurchaseOrderIds"] = new object[] { _purchaseOrderNo + 1, _purchaseOrderNo + 2 });
+                    .Params(p => p["@PurchaseOrderIds"] = new object[] { _purchaseOrderNo + 1, _purchaseOrderNo + 2 });
 
                 var ordersByManual = query.Fetch().ToList();
 

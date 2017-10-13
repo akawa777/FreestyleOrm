@@ -10,7 +10,7 @@ namespace FreestyleOrm
     public interface IQuery<TRootEntity> where TRootEntity : class
     {
         IQuery<TRootEntity> Map(Action<IMap<TRootEntity>> setMap);
-        IQuery<TRootEntity> Parametes(Action<Dictionary<string, object>> setParameters);
+        IQuery<TRootEntity> Params(Action<Dictionary<string, object>> setParams);
         IQuery<TRootEntity> Formats(Action<Dictionary<string, object>> setFormats);
         IQuery<TRootEntity> TempTables(Action<Dictionary<string, TempTable>> setTempTables);
         IQuery<TRootEntity> Connection(IDbConnection connection);
@@ -21,7 +21,6 @@ namespace FreestyleOrm
         void Insert(TRootEntity rootEntity);
         void Update(TRootEntity rootEntity);
         void Delete(TRootEntity rootEntity);
-
     }
 
     public interface IMap<TRootEntity> where TRootEntity : class

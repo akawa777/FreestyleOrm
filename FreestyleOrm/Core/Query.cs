@@ -30,11 +30,6 @@ namespace FreestyleOrm.Core
             Delete
         }
 
-        public void Delete(TRootEntity rootEntity)
-        {
-            Save(rootEntity, out object lastId, SaveMode.Delete);
-        }
-
         public IEnumerable<TRootEntity> Fetch()
         {
             Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
@@ -167,11 +162,16 @@ namespace FreestyleOrm.Core
 
         public IEnumerable<TRootEntity> Fetch(int page, int size)
         {
+            if (page < 1) throw new AggregateException($"{page} is less than 1.");
+            if (size < 1) throw new AggregateException($"{size} is less than 1.");
+
             return Fetch().Skip((page - 1) * size).Take(size);
         }
 
         public IQuery<TRootEntity> Formats(Action<Dictionary<string, object>> setFormats)
         {
+            if (setFormats == null) throw new AggregateException($"{setFormats} is null.");
+
             _queryOptions.SetFormats = setFormats;
 
             return this;
@@ -179,14 +179,18 @@ namespace FreestyleOrm.Core
 
         public IQuery<TRootEntity> Map(Action<IMap<TRootEntity>> setMap)
         {
+            if (setMap == null) throw new AggregateException($"{setMap} is null.");
+
             _setMap = setMap;
 
             return this;
         }
 
-        public IQuery<TRootEntity> Parametes(Action<Dictionary<string, object>> setParameters)
+        public IQuery<TRootEntity> Params(Action<Dictionary<string, object>> setParams)
         {
-            _queryOptions.SetParameters = setParameters;
+            if (setParams == null) throw new AggregateException($"{setParams} is null.");
+
+            _queryOptions.SetParams = setParams;
 
             return this;
         }
@@ -204,6 +208,11 @@ namespace FreestyleOrm.Core
         public void Update(TRootEntity rootEntity)
         {
             Save(rootEntity, out object lastId, SaveMode.Update);
+        }
+
+        public void Delete(TRootEntity rootEntity)
+        {
+            Save(rootEntity, out object lastId, SaveMode.Delete);
         }
 
         private void Save<TId>(TRootEntity rootEntity, out TId lastId, SaveMode saveMode)
@@ -278,6 +287,8 @@ namespace FreestyleOrm.Core
 
         public IQuery<TRootEntity> TempTables(Action<Dictionary<string, TempTable>> setTempTables)
         {
+            if (setTempTables == null) throw new AggregateException($"{setTempTables} is null.");
+
             _queryOptions.SetTempTables = setTempTables;
 
             return this;
@@ -369,6 +380,8 @@ namespace FreestyleOrm.Core
 
         public IQuery<TRootEntity> Connection(IDbConnection connection)
         {
+            if (connection == null) throw new AggregateException("connection is null.");
+
             _queryOptions.Connection = connection;
 
             return this;

@@ -159,23 +159,15 @@ namespace FreestyleOrm.Tests
                 _transaction = _connection.BeginTransaction();
 
                 var query = _connection
-                    .Query<Customer>("select * from Customer where CustomerId = @CustomerId")
-                    .Map(m =>
-                    {
-                        m.To()
-                            .UniqueKeys("CustomerId")
-                            .Refer(Refer.Write)
-                            .OptimisticLock("RecordVersion", x => x.RecordVersion + 1);
-                     })                        
+                    .Query<Customer>("select * from Customer where CustomerId = @CustomerId")                    
                     .Transaction(_transaction);
-
 
                 var customer = Customer.Create(11);
                 customer.CustomerName = $"{nameof(customer.CustomerName)}_{11}";
 
                 query.Insert(customer);
 
-                query = query.Parametes(p => p["@CustomerId"] = customer.CustomerId);
+                query = query.Params(p => p["@CustomerId"] = customer.CustomerId);
 
                 var insertedCustomer = query.Fetch().Single();
 
@@ -282,7 +274,7 @@ namespace FreestyleOrm.Tests
 
                 query
                     .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId = @PurchaseOrderId")
-                    .Parametes(p => p["@PurchaseOrderId"] = 1);
+                    .Params(p => p["@PurchaseOrderId"] = 1);
 
                 var order = query.Fetch().Single();
 
@@ -311,7 +303,7 @@ namespace FreestyleOrm.Tests
 
                 query
                     .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId = @PurchaseOrderId")
-                    .Parametes(p => p["@PurchaseOrderId"] = 1);
+                    .Params(p => p["@PurchaseOrderId"] = 1);
 
                 var order = query.Fetch().Single();
 
