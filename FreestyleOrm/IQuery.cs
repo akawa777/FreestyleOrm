@@ -16,7 +16,7 @@ namespace FreestyleOrm
         IQuery<TRootEntity> Connection(IDbConnection connection);
         IQuery<TRootEntity> Transaction(IDbTransaction transaction);
         IEnumerable<TRootEntity> Fetch();
-        IEnumerable<TRootEntity> Fetch(int page, int size);
+        Page<TRootEntity> Page(int no, int size);
         void Insert<TId>(TRootEntity rootEntity, out TId lastId);
         void Insert(TRootEntity rootEntity);
         void Update(TRootEntity rootEntity);
@@ -42,6 +42,18 @@ namespace FreestyleOrm
         IMapOptions<TRootEntity, TEntity> FormatPropertyName(Func<string, string> formatPropertyName);
         IMapOptions<TRootEntity, TEntity> AutoId(bool autoId);                
         IMapOptions<TRootEntity, TEntity> OptimisticLock<TRowVersion>(string rowVersionColumn, Func<TEntity, TRowVersion> newRowVersion = null);
+    }
+
+    public class Page<TRootEntity>
+    {
+        internal Page(int count, IEnumerable<TRootEntity> list)
+        {
+            Count = count;
+            Lines = list;
+        }
+
+        public int Count { get; }
+        public IEnumerable<TRootEntity> Lines { get; }
     }
 
     public enum Refer

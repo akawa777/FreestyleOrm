@@ -223,12 +223,12 @@ namespace FreestyleOrm.Tests
                     .Formats(f => f["where"] = string.Empty);
 
                 int size = 5;
-                int page = _purchaseOrderNo / size;
+                int no = _purchaseOrderNo / size;
 
-                var orders = query.Fetch(page, size).ToList();
+                var page = query.Page(no, size);
 
-                Assert.AreEqual(size, orders.Count);
-                Assert.AreEqual(size * page, orders.Last().PurchaseOrderId);
+                Assert.AreEqual(size, page.Lines.Count());
+                Assert.AreEqual(size * no, page.Lines.Last().PurchaseOrderId);
 
                 _connection.Close();
             }            

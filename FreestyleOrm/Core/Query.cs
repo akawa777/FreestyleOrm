@@ -30,8 +30,32 @@ namespace FreestyleOrm.Core
             Delete
         }
 
+        private class Count
+        {
+            public int Value { get; set; }
+        }
+
         public IEnumerable<TRootEntity> Fetch()
         {
+            return Fetch(1, int.MaxValue, new Count());
+        }        
+
+        public Page<TRootEntity> Page(int no, int size)
+        {
+            if (page < 1) throw new AggregateException($"{no} is less than 1.");
+            if (size < 1) throw new AggregateException($"{size} is less than 1.");
+
+            Count outCount = new Count();
+            List<TRootEntity> list = new List<TRootEntity>();
+            foreach (var rootEntity in Fetch(page, size, outCount)) list.Add(rootEntity);
+
+            return new Page<TRootEntity>(outCount.Value, list);
+        }
+
+        private IEnumerable<TRootEntity> Fetch(int page, int size, Count outCount)
+        {
+            outCount.Value = 0;
+
             Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
 
             _setMap(map);
@@ -40,6 +64,8 @@ namespace FreestyleOrm.Core
             {
                 TRootEntity rootEntity = null;
                 Row prevRow = null;
+                int currentPage = 0;
+                int currentSize = 0;
 
                 while (reader.Read())
                 {
@@ -49,17 +75,26 @@ namespace FreestyleOrm.Core
 
                     List<string> uniqueKeys = new List<string>();
 
-                    if (rootMapOptions == null || currentRow.CanCreate(prevRow, uniqueKeys))
+                    if (currentRow.CanCreate(prevRow, uniqueKeys))
                     {
                         if (rootEntity != null) yield return rootEntity;
-
                         rootEntity = null;
-                        rootEntity = rootMapOptions.GetEntity(currentRow, rootEntity) as TRootEntity;                        
-                    }
 
-                    uniqueKeys.AddRange(currentRow.UniqueKeys);
+                        if (currentPage == 0 || currentSize % size == 0)
+                        {
+                            currentPage++;
+                            currentSize = 0;
+                        }
 
-                    if (rootMapOptions == null) continue;
+                        outCount.Value++;
+                        currentSize++;
+
+                        if (currentPage != page) continue;
+                        
+                        rootEntity = rootMapOptions.GetEntity(currentRow, rootEntity) as TRootEntity;                         
+                    }                    
+
+                    uniqueKeys.AddRange(currentRow.UniqueKeys);                    
 
                     foreach(var mapOptions in map.MapOptionsListWithoutRoot)
                     {
@@ -158,14 +193,6 @@ namespace FreestyleOrm.Core
                 reader.Close();
                 dispose();
             }
-        }
-
-        public IEnumerable<TRootEntity> Fetch(int page, int size)
-        {
-            if (page < 1) throw new AggregateException($"{page} is less than 1.");
-            if (size < 1) throw new AggregateException($"{size} is less than 1.");
-
-            return Fetch().Skip((page - 1) * size).Take(size);
         }
 
         public IQuery<TRootEntity> Formats(Action<Dictionary<string, object>> setFormats)
