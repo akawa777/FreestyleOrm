@@ -54,6 +54,7 @@ namespace FreestyleOrm.Core
 
         private IQueryDefine _queryDefine;
 
+        public bool IsRootOptions => string.IsNullOrEmpty(ExpressionPath);
         public string ExpressionPath { get; set; }
         public Type EntityType { get; set; }
         public PropertyInfo Property { get; set; }

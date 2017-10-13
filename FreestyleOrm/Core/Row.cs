@@ -167,6 +167,6 @@ namespace FreestyleOrm.Core
 
         public object NewRowVersion => _mapOptions.NewRowVersion(_entity);
 
-        public bool IsRootRow => string.IsNullOrEmpty(_mapOptions.ExpressionPath);
+        public bool IsRootRow => _mapOptions.IsRootOptions;
     }
 }

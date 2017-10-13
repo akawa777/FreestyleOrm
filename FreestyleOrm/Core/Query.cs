@@ -39,7 +39,7 @@ namespace FreestyleOrm.Core
         {
             Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
 
-            _setMap(map);            
+            _setMap(map);
 
             using (var reader = _databaseAccessor.CreateFetchReader(_queryOptions, out Action dispose))
             {
@@ -267,6 +267,8 @@ namespace FreestyleOrm.Core
             }
             else
             {
+                if (currentRows.Count != updateRows.Count) throw new InvalidOperationException("not match current rows count.");
+
                 foreach (var updateRow in updateRows)
                 {
                     _databaseAccessor.Delete(updateRow, _queryOptions);

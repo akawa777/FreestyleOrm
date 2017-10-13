@@ -10,6 +10,9 @@ namespace FreestyleOrm
     {
         public static IQuery<TRootEntity> Query<TRootEntity>(this IDbConnection connection, string sql, IQueryDefine queryDefine = null) where TRootEntity : class
         {
+            if (connection == null) throw new AggregateException("connection is null.");
+            if (string.IsNullOrEmpty(sql)) throw new AggregateException("sql is null or empty.");            
+
             IDatabaseAccessor databaseAccessor = new DatabaseAccessor();
 
             if (queryDefine == null) queryDefine = new QueryDefine();

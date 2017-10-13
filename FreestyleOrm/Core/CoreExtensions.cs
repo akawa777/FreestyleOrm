@@ -212,13 +212,12 @@ namespace FreestyleOrm.Core
 
             Dictionary<string, PropertyInfo> propertyMap = typeof(TRoot).GetPropertyMap(BindingFlags.Public, PropertyTypeFilters.All);
 
-            foreach (var section in sections)
+            for (var i = 0; i < sections.Length; i++)
             {
-                var targetSection = section;
+                var targetSection = sections[i];
 
                 int arrayHolderIndex = targetSection.IndexOf("[");
                 if (arrayHolderIndex != -1) targetSection = targetSection.Substring(0, arrayHolderIndex + 1);
-
 
                 if (propertyMap.TryGetValue(targetSection, out property))
                 {
@@ -236,6 +235,10 @@ namespace FreestyleOrm.Core
                     }
 
                     propertyMap = type.GetPropertyMap(BindingFlags.Public, PropertyTypeFilters.All);
+                }
+                else if (sections.Length > 1 && i == sections.Length - 1)
+                {
+                    throw new ArgumentException($"[{expression.ToString()}] expression is not class property.");
                 }
             }
 

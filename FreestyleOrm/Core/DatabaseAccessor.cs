@@ -95,10 +95,10 @@ namespace FreestyleOrm.Core
                         || row[row.RelationIdColumn] == null
                         || row[row.RelationIdColumn].ToString() == string.Empty
                         || (decimal.TryParse(row[row.RelationIdColumn].ToString(), out decimal result) && result == 0)
-                    )
-                    && _lastIdMap.TryGetValue(row.RelationEntityPath, out object id))
+                    ))
                 {
-                    parameters[row.RelationIdColumn].Value = id;
+                    if (_lastIdMap.TryGetValue(row.RelationEntityPath, out object id)) parameters[row.RelationIdColumn].Value = id;
+                    else throw new InvalidOperationException($"[{row.ExpressionPath}] RelationEntityPath is invalid.");                    
                 }
 
                 string columnNames = string.Join(", ", parameters.Keys);
@@ -146,7 +146,7 @@ namespace FreestyleOrm.Core
 
                 _lastIdMap.Remove(row.ExpressionPath);
 
-                if (!string.IsNullOrEmpty(row.RowVersionColumn) && row.IsRootRow && rtn == 0) throw new InvalidOperationException("Concurrency is invalid.");
+                if (rtn == 0) throw new DBConcurrencyException($"{row.Table} table.");
 
                 return rtn;
             }
@@ -174,7 +174,7 @@ namespace FreestyleOrm.Core
 
                 _lastIdMap.Remove(row.ExpressionPath);
 
-                if (!string.IsNullOrEmpty(row.RowVersionColumn) && row.IsRootRow && rtn == 0) throw new InvalidOperationException("Concurrency is invalid.");
+                if (rtn == 0) throw new DBConcurrencyException($"{row.Table} table.");
 
                 return rtn;
             }
@@ -272,6 +272,10 @@ namespace FreestyleOrm.Core
 
                 foreach (var entry in tempTables)
                 {
+                    if (entry.Value == null) throw new InvalidOperationException("TempTable is null.");
+                    if (entry.Value.Columns == null) throw new InvalidOperationException("TempTable.Columns is null.");
+                    if (entry.Value.Values == null) throw new InvalidOperationException("TempTable.Values is null.");
+
                     string sql = $"if object_id(N'tempdb..{entry.Key}', N'U') IS NOT NULL begin drop table {entry.Key} end";
 
                     command.CommandText = sql;
@@ -285,14 +289,17 @@ namespace FreestyleOrm.Core
                     command.ExecuteNonQuery();
 
                     int indexNo = 0;
-                    foreach (var index in entry.Value.IndexSet)
+                    if (entry.Value.IndexSet != null)
                     {
-                        indexNo++;
+                        foreach (var index in entry.Value.IndexSet)
+                        {
+                            indexNo++;
 
-                        sql = $@"create index idx_{indexNo} on {entry.Key} ({index})";
+                            sql = $@"create index idx_{indexNo} on {entry.Key} ({index})";
 
-                        command.CommandText = sql;
-                        command.ExecuteNonQuery();
+                            command.CommandText = sql;
+                            command.ExecuteNonQuery();
+                        }
                     }
 
                     foreach (var value in entry.Value.Values)
