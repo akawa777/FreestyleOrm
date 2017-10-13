@@ -23,8 +23,16 @@ namespace FreestyleOrm.Core
             {
                 MapOptions mapOptions = _mapOptionsList.FirstOrDefault(x => string.IsNullOrEmpty(x.ExpressionPath));
 
-                if (mapOptions == null && _mapOptionsList.Count() > 0) throw new InvalidOperationException("root map is not setted.");
-                if (mapOptions != null) return mapOptions;                
+                if ((mapOptions == null) && _mapOptionsList.Count() > 0)
+                {
+                    throw new InvalidOperationException("root map is not setted.");
+                }
+
+                if (mapOptions != null)
+                {
+                    if (_mapOptionsList.Count() > 1 && string.IsNullOrEmpty(mapOptions.UniqueKeys)) throw new InvalidOperationException("root map UniqueKeys is not setted.");
+                    return mapOptions;
+                }
 
                 mapOptions = new MapOptions(_queryDefine, typeof(TRootEntity));
                 mapOptions.Refer = Refer.Write;
@@ -81,6 +89,8 @@ namespace FreestyleOrm.Core
 
                     prevLevel = level;
                     prevPrefixPath = prefixPath;
+
+                    if (string.IsNullOrEmpty(mapOptions.UniqueKeys)) throw new InvalidOperationException($"[{mapOptions.ExpressionPath}] map UniqueKeys is not setted.");                    
 
                     yield return mapOptions;
                 }
