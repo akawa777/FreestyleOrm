@@ -55,23 +55,25 @@ namespace FreestyleOrm.Tests
         [TestInitialize]
         public void Init()
         {
-            _connection = CreateConnection();
-            _connection.Open();
-            _transaction = _connection.BeginTransaction();
+            using (_connection = CreateConnection())
+            {
+                _connection.Open();
+                _transaction = _connection.BeginTransaction();
 
-            CreateTable(_connection);
-            InsertCustomers(CreateCustomers(10));
-            InsertProducts(CreateProducts(10));
-            InsertPurchaseOrders(CreatePurchaseOrders(PurchaseOrderNo, 10, 10, 10));
+                CreateTable(_connection);
+                InsertCustomers(CreateCustomers(10));
+                InsertProducts(CreateProducts(10));
+                InsertPurchaseOrders(CreatePurchaseOrders(PurchaseOrderNo, 10, 10, 10));
+
+                _transaction.Commit();
+                _connection.Close();
+            }
         }
 
         [TestCleanup]
         public void Cleanup()
         {
-            _transaction.Commit();
-            _transaction.Dispose();
-            _connection.Close();
-            _connection.Dispose();
+            
         }
 
 
@@ -84,151 +86,192 @@ namespace FreestyleOrm.Tests
         [TestMethod]
         public void Test_FetchList()
         {
-            var query = CreatePurchaseOrderQuery();
+            using (_connection = CreateConnection())
+            {
+                var query = CreatePurchaseOrderQuery();
 
-            query
-                .Formats(f => f["where"] = string.Empty);                
+                query
+                    .Formats(f => f["where"] = string.Empty);
 
-            var orders = query.Fetch().ToList();
+                var orders = query.Fetch().ToList();
+
+                _connection.Close();
+            }   
         }
 
         [TestMethod]
         public void Test_FlatFetch()
         {
-            var customers = _connection.Query<Customer>("select * from Customer").Transaction(_transaction).Fetch().ToList();
+            using (_connection = CreateConnection())
+            {
+                var customers = _connection.Query<Customer>("select * from Customer").Transaction(_transaction).Fetch().ToList();
 
-            Assert.AreEqual(10, customers.Count);        }
+                Assert.AreEqual(10, customers.Count);    
+
+                _connection.Close();    
+            }
+        }
 
         [TestMethod]
         public void Test_Fetch()
         {
-            var query = CreatePurchaseOrderQueryByManual();
+            using (_connection = CreateConnection())
+            {
+                var query = CreatePurchaseOrderQueryByManual();
 
-            query
-                .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId not in (@PurchaseOrderIds)")
-                .Parametes(p => p["@PurchaseOrderIds"] = new object[] { PurchaseOrderNo + 1, PurchaseOrderNo + 2 });
+                query
+                    .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId not in (@PurchaseOrderIds)")
+                    .Parametes(p => p["@PurchaseOrderIds"] = new object[] { PurchaseOrderNo + 1, PurchaseOrderNo + 2 });
 
-            var ordersByManual = query.Fetch().ToList();
+                var ordersByManual = query.Fetch().ToList();
 
-            query = CreatePurchaseOrderQueryByAuto();
+                query = CreatePurchaseOrderQueryByAuto();
 
-            query
-                .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId not in (select OrderId from #OrderIds)")
-                .TempTables(t =>
-                {
-                    t["#OrderIds"] = new TempTable
+                query
+                    .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId not in (select OrderId from #OrderIds)")
+                    .TempTables(t =>
                     {
-                        Columns = "OrderId int, KeyWord nvarchar(100)",
-                        IndexSet = new string[] { "OrderId", "OrderId, KeyWord" },
-                        Values = new object[] 
+                        t["#OrderIds"] = new TempTable
                         {
-                            new { OrderId = PurchaseOrderNo + 1, KeyWord = "xxx" },
-                            new { OrderId = PurchaseOrderNo + 2, KeyWord = "yyy" }
-                        }
-                    };
-                });
+                            Columns = "OrderId int, KeyWord nvarchar(100)",
+                            IndexSet = new string[] { "OrderId", "OrderId, KeyWord" },
+                            Values = new object[] 
+                            {
+                                new { OrderId = PurchaseOrderNo + 1, KeyWord = "xxx" },
+                                new { OrderId = PurchaseOrderNo + 2, KeyWord = "yyy" }
+                            }
+                        };
+                    });
 
-            var ordersByAuto = query.Fetch().ToList();
+                var ordersByAuto = query.Fetch().ToList();
 
-            Assert.AreEqual(PurchaseOrderNo, ordersByManual.Count);
-            for (int i = 0; i < ordersByManual.Count; i++) AssertEqualPurchaseOrder(ordersByManual[i], ordersByAuto[i], false);
+                Assert.AreEqual(PurchaseOrderNo, ordersByManual.Count);
+                for (int i = 0; i < ordersByManual.Count; i++) AssertEqualPurchaseOrder(ordersByManual[i], ordersByAuto[i], false);
+
+                _connection.Close();
+            }
         }
 
         [TestMethod]
         public void Test_Page()
         {
-            var query = CreatePurchaseOrderQuery();
+            using (_connection = CreateConnection())
+            {
+                var query = CreatePurchaseOrderQuery();
 
-            query
-                .Formats(f => f["where"] = string.Empty);
+                query
+                    .Formats(f => f["where"] = string.Empty);
 
-            int size = 5;
-            int page = PurchaseOrderNo / size;            
+                int size = 5;
+                int page = PurchaseOrderNo / size;
 
-            var orders = query.Fetch(page, size).ToList();
+                var orders = query.Fetch(page, size).ToList();
 
-            Assert.AreEqual(size, orders.Count);
-            Assert.AreEqual(size * page, orders.Last().PurchaseOrderId);
+                Assert.AreEqual(size, orders.Count);
+                Assert.AreEqual(size * page, orders.Last().PurchaseOrderId);
+
+                _connection.Close();
+            }            
         }
 
         [TestMethod]
         public void Test_Skip()
         {
-            var query = CreatePurchaseOrderQuery();
+            using (_connection = CreateConnection())
+            {
+                var query = CreatePurchaseOrderQuery();
 
-            query
-                .Formats(f => f["where"] = string.Empty);
+                query
+                    .Formats(f => f["where"] = string.Empty);
 
-            var orders = query.Fetch();
+                var orders = query.Fetch();
 
-            var ordersByTake = orders.Take(PurchaseOrderNo / 2);
-            var orderListByTake = ordersByTake.ToList();
+                var ordersByTake = orders.Take(PurchaseOrderNo / 2);
+                var orderListByTake = ordersByTake.ToList();
 
-            var ordersBySkip = orders.Skip(PurchaseOrderNo / 2);
-            var ordersBySkipList = ordersBySkip.ToList();
+                var ordersBySkip = orders.Skip(PurchaseOrderNo / 2);
+                var ordersBySkipList = ordersBySkip.ToList();
 
-            var ordersList = query.Fetch().Skip(PurchaseOrderNo / 2).ToList();
-            
-            for (int i = 0; i < ordersList.Count; i++) AssertEqualPurchaseOrder(ordersList[i], ordersBySkipList[i], false);
+                var ordersList = query.Fetch().Skip(PurchaseOrderNo / 2).ToList();
+
+                for (int i = 0; i < ordersList.Count; i++) AssertEqualPurchaseOrder(ordersList[i], ordersBySkipList[i], false);
+
+                _connection.Close();
+            }            
         }
 
         [TestMethod]
         public void Test_Update()
         {
-            var query = CreatePurchaseOrderQuery();
+            using (_connection = CreateConnection())
+            {
+                var query = CreatePurchaseOrderQuery();
 
-            query
-                .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId = @PurchaseOrderId")
-                .Parametes(p => p["@PurchaseOrderId"] = 1);
+                query
+                    .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId = @PurchaseOrderId")
+                    .Parametes(p => p["@PurchaseOrderId"] = 1);
 
-            var order = query.Fetch().Single();
+                var order = query.Fetch().Single();
 
-            EditPurchaseOrder(order);
+                EditPurchaseOrder(order);
 
-            query.Update(order);
+                query.Update(order);
 
-            var updatedOrder = query.Fetch().Single();
+                var updatedOrder = query.Fetch().Single();
 
-            AssertEqualPurchaseOrder(order, updatedOrder, true);
+                AssertEqualPurchaseOrder(order, updatedOrder, true);
+
+                _connection.Close();
+            }            
         }
 
         [TestMethod]
         public void Test_Delete()
         {
-            var query = CreatePurchaseOrderQuery();
+            using (_connection = CreateConnection())
+            {
+                var query = CreatePurchaseOrderQuery();
 
-            query
-                .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId = @PurchaseOrderId")
-                .Parametes(p => p["@PurchaseOrderId"] = 1);
+                query
+                    .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId = @PurchaseOrderId")
+                    .Parametes(p => p["@PurchaseOrderId"] = 1);
 
-            var order = query.Fetch().Single();
+                var order = query.Fetch().Single();
 
-            query.Delete(order);
+                query.Delete(order);
 
-            var count = query.Fetch().Count();
+                var count = query.Fetch().Count();
 
-            Assert.AreEqual(0, count);
+                Assert.AreEqual(0, count);
+
+                _connection.Close();
+            }            
         }
 
         private void EditPurchaseOrder(PurchaseOrder order)
         {
-            order.Title += "_update";
-            order.Customer = Customer.Create(10);            
-
-            foreach (var item in order.PurchaseItems)
+            using (_connection = CreateConnection())
             {
-                item.Number *= 10;
-                item.Product = Product.Create(10);                
-            }
+                order.Title += "_update";
+                order.Customer = Customer.Create(10);
 
-            var newItem = PurchaseItem.Create(order.GetNewItemNo());
-            var firstItem = order.PurchaseItems.First();
+                foreach (var item in order.PurchaseItems)
+                {
+                    item.Number *= 10;
+                    item.Product = Product.Create(10);
+                }
 
-            newItem.Number = firstItem.Number;
-            newItem.Product = firstItem.Product;
+                var newItem = PurchaseItem.Create(order.GetNewItemNo());
+                var firstItem = order.PurchaseItems.First();
 
-            order.AddItem(newItem);
-            order.RemoveItem(firstItem);
+                newItem.Number = firstItem.Number;
+                newItem.Product = firstItem.Product;
+
+                order.AddItem(newItem);
+                order.RemoveItem(firstItem);
+
+                _connection.Close();
+            }            
         }
 
         private void AssertEqualPurchaseOrder(PurchaseOrder srcOrder, PurchaseOrder destOrder, bool updated)
@@ -444,7 +487,7 @@ namespace FreestyleOrm.Tests
                     })
                     .Table("PurchaseOrder")
                     .AutoId(true)
-                    .OptimisticLock("RecordVersion", x => x.RecordVersion == null ? 1 : x.RecordVersion + 1);
+                    .OptimisticLock("RecordVersion", x => x.RecordVersion + 1);
 
                 m.ToOne(x => x.Customer)
                     .UniqueKeys("CustomerId");
