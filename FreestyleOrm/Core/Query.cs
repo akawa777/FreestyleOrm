@@ -42,12 +42,12 @@ namespace FreestyleOrm.Core
 
         public Page<TRootEntity> Page(int no, int size)
         {
-            if (page < 1) throw new AggregateException($"{no} is less than 1.");
+            if (no < 1) throw new AggregateException($"{no} is less than 1.");
             if (size < 1) throw new AggregateException($"{size} is less than 1.");
 
             Count outCount = new Count();
             List<TRootEntity> list = new List<TRootEntity>();
-            foreach (var rootEntity in Fetch(page, size, outCount)) list.Add(rootEntity);
+            foreach (var rootEntity in Fetch(no, size, outCount)) list.Add(rootEntity);
 
             return new Page<TRootEntity>(list, outCount.Value);
         }

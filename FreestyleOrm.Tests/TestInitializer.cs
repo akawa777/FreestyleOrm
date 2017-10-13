@@ -108,7 +108,7 @@ namespace FreestyleOrm.Tests
         {
             var query = _connection
                 .Query<Customer>("select * from Customer")
-                .Map(m => m.To().UniqueKeys("CustomerId").Refer(Refer.Write).OptimisticLock("RecordVersion", x => x.RecordVersion == null ? 1 : x.RecordVersion + 1))
+                .Map(m => m.To().UniqueKeys("CustomerId").Refer(Refer.Write).OptimisticLock("RecordVersion", x => x.RecordVersion + 1))
                 .Transaction(_transaction);
 
             foreach (var model in models) query.Insert(model);
@@ -118,7 +118,7 @@ namespace FreestyleOrm.Tests
         {
             var query = _connection
                 .Query<Product>("select * from Product")
-                .Map(m => m.To().UniqueKeys("ProductId").Refer(Refer.Write).OptimisticLock("RecordVersion", x => x.RecordVersion == null ? 1 : x.RecordVersion + 1))
+                .Map(m => m.To().UniqueKeys("ProductId").Refer(Refer.Write).OptimisticLock("RecordVersion", x => x.RecordVersion + 1))
                 .Transaction(_transaction);
 
             foreach (var model in models) query.Insert(model);
