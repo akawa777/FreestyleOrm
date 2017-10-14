@@ -2,23 +2,98 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Data;
+using System.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 
 namespace FreestyleOrm.Tests
 {
-    public class TestInitializer
+    public class TestInitializer: IDisposable
     {
-        public TestInitializer(IDbConnection connection, IDbTransaction transaction, IQuery<PurchaseOrder> purchaseOrderQuery)
+        public TestInitializer(DatabaseKinds databaseKind, Func<IDbConnection, IDbTransaction, IQuery<PurchaseOrder>> createPurchaseOrderQuery, int purchaseOrderNo)
         {
-            _connection = connection;
-            _transaction = transaction;
-            _purchaseOrderQuery = purchaseOrderQuery;
+            _databaseKind = databaseKind;            
+
+            using (_connection = CreateConnection())
+            {            
+                _connection.Open();
+                _transaction = _connection.BeginTransaction();
+                _purchaseOrderQuery = createPurchaseOrderQuery(_connection, _transaction);
+                
+                Init(purchaseOrderNo);
+
+                _transaction.Commit();
+                _connection.Close();
+            }            
         }
 
         private IDbConnection _connection;
         private IDbTransaction _transaction;
         private IQuery<PurchaseOrder> _purchaseOrderQuery;
 
-        public void Init(int purchaseOrderNo)
+        public enum DatabaseKinds
+        {
+            SqlServer,
+            Sqlite
+        }
+
+        private DatabaseKinds _databaseKind;
+
+        private class SqliteDatabaseContext : DbContext
+        {
+            protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+            {
+                if (System.IO.File.Exists(_databaseFile))
+                {
+                    System.IO.File.Delete(_databaseFile);
+                }
+
+                optionsBuilder.UseSqlite($"Filename={_databaseFile}");
+            }
+
+            private string _databaseFile = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "database.sqlite");
+
+            public string GetConnectionString()
+            {
+                SqliteConnectionStringBuilder builder = new SqliteConnectionStringBuilder();
+
+                builder.DataSource = _databaseFile;
+                builder.Mode = SqliteOpenMode.ReadWrite;
+
+                return builder.ConnectionString;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_sqliteDatabaseContext != null) _sqliteDatabaseContext.Dispose();
+        }
+
+        private SqliteDatabaseContext _sqliteDatabaseContext;
+
+        public IDbConnection CreateConnection()
+        {
+            if (_databaseKind == DatabaseKinds.SqlServer)
+            {
+                return new SqlConnection(@"Data Source=akawawin8\sqlserver2016;Initial Catalog=cplan_demo;Integrated Security=True");
+            }
+            else
+            {
+                IDbConnection connection;
+
+                if (_sqliteDatabaseContext == null)
+                {
+                    _sqliteDatabaseContext = new SqliteDatabaseContext();
+                    _sqliteDatabaseContext.Database.EnsureCreated();                    
+                }
+
+                connection = new SqliteConnection(_sqliteDatabaseContext.GetConnectionString());
+
+                return connection;
+            }            
+        }
+
+        private void Init(int purchaseOrderNo)
         {
             CreateTable();
             InsertCustomers(CreateCustomers(10));
@@ -26,7 +101,7 @@ namespace FreestyleOrm.Tests
             InsertPurchaseOrders(CreatePurchaseOrders(purchaseOrderNo, 10, 10, 10));
         }
 
-        public void CreateTable()
+        private void CreateTable()
         {
             var command = _connection.CreateCommand();
             command.Transaction = _transaction;
@@ -57,50 +132,48 @@ namespace FreestyleOrm.Tests
 
         private string GetCreateTableSql()
         {
-            return @"
-				CREATE TABLE [dbo].[Customer](
-	                [CustomerId] [int] NOT NULL,
-	                [CustomerName] [nvarchar](100) NULL,
-	                [RecordVersion] [int] NULL,
-                PRIMARY KEY CLUSTERED 
-                (
-	                [CustomerId] ASC
-                )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-                ) ON [PRIMARY]
+            string identity = _databaseKind == DatabaseKinds.Sqlite ? "integer" : "int identity";
 
-                CREATE TABLE [dbo].[Product](
-	                [ProductId] [int] NOT NULL,
-	                [ProductName] [nvarchar](100) NULL,
-	                [RecordVersion] [int] NULL,
-                PRIMARY KEY CLUSTERED 
+            return $@"
+				CREATE TABLE Customer(
+	                CustomerId int NOT NULL,
+	                CustomerName text NULL,
+	                RecordVersion int NULL,
+                PRIMARY KEY
                 (
-	                [ProductId] ASC
-                )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-                ) ON [PRIMARY]
+	                CustomerId
+                ));
 
-                CREATE TABLE [dbo].[PurchaseOrder](
-	                [PurchaseOrderId] [int] IDENTITY(1,1) NOT NULL,
-	                [Title] [nvarchar](100) NULL,
-	                [CustomerId] [int] NULL,
-	                [RecordVersion] [int] NULL,
-                PRIMARY KEY CLUSTERED 
+                CREATE TABLE Product(
+	                ProductId int NOT NULL,
+	                ProductName text NULL,
+	                RecordVersion int NULL,
+                PRIMARY KEY
                 (
-	                [PurchaseOrderId] ASC
-                )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-                ) ON [PRIMARY]
+	                ProductId
+                ));
 
-                CREATE TABLE [dbo].[PurchaseItem](
-	                [PurchaseOrderId] [int] NOT NULL,
-	                [PurchaseItemNo] [int] NOT NULL,
-	                [ProductId] [int] NULL,
-	                [Number] [int] NULL,
-	                [RecordVersion] [int] NULL,
-                PRIMARY KEY CLUSTERED 
+                CREATE TABLE PurchaseOrder(
+	                PurchaseOrderId {identity} NOT NULL,
+	                Title text NULL,
+	                CustomerId int NULL,
+	                RecordVersion int NULL,
+                PRIMARY KEY
                 (
-	                [PurchaseOrderId] ASC,
-	                [PurchaseItemNo] ASC
-                )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
-                ) ON [PRIMARY]
+	                PurchaseOrderId
+                ));
+
+                CREATE TABLE PurchaseItem(
+	                PurchaseOrderId int NOT NULL,
+	                PurchaseItemNo int NOT NULL,
+	                ProductId int NULL,
+	                Number int NULL,
+	                RecordVersion int NULL,
+                PRIMARY KEY
+                (
+	                PurchaseOrderId,
+	                PurchaseItemNo
+                ));
             ";
         }
 

@@ -30,14 +30,14 @@ namespace FreestyleOrm.Core
             Delete
         }
 
-        private class Count
+        private class PageCount
         {
             public int Value { get; set; }
         }
 
         public IEnumerable<TRootEntity> Fetch()
         {
-            return Fetch(1, int.MaxValue, new Count());
+            return Fetch(1, int.MaxValue, new PageCount());
         }        
 
         public Page<TRootEntity> Page(int no, int size)
@@ -45,16 +45,16 @@ namespace FreestyleOrm.Core
             if (no < 1) throw new AggregateException($"{no} is less than 1.");
             if (size < 1) throw new AggregateException($"{size} is less than 1.");
 
-            Count outCount = new Count();
+            PageCount pageCount = new PageCount();
             List<TRootEntity> list = new List<TRootEntity>();
-            foreach (var rootEntity in Fetch(no, size, outCount)) list.Add(rootEntity);
+            foreach (var rootEntity in Fetch(no, size, pageCount)) list.Add(rootEntity);
 
-            return new Page<TRootEntity>(list, outCount.Value);
+            return new Page<TRootEntity>(no, list, pageCount.Value);
         }
 
-        private IEnumerable<TRootEntity> Fetch(int page, int size, Count outCount)
+        private IEnumerable<TRootEntity> Fetch(int page, int size, PageCount outPageCount)
         {
-            outCount.Value = 0;
+            outPageCount.Value = 0;
 
             Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
 
@@ -85,14 +85,20 @@ namespace FreestyleOrm.Core
                             currentPage++;
                             currentSize = 0;
                         }
-
-                        outCount.Value++;
+                        
                         currentSize++;
 
-                        if (currentPage != page) continue;
-                        
-                        rootEntity = rootMapOptions.GetEntity(currentRow, rootEntity) as TRootEntity;                         
-                    }                    
+                        if (currentPage == page)
+                        {
+                            rootEntity = rootMapOptions.GetEntity(currentRow, rootEntity) as TRootEntity;                            
+                        }
+                    }
+
+                    if (rootEntity == null)
+                    {
+                        prevRow = currentRow;
+                        continue;
+                    }
 
                     uniqueKeys.AddRange(currentRow.UniqueKeys);                    
 
@@ -189,6 +195,8 @@ namespace FreestyleOrm.Core
                 }
 
                 if (rootEntity != null) yield return rootEntity;
+
+                outPageCount.Value = currentPage;
 
                 reader.Close();
                 dispose();

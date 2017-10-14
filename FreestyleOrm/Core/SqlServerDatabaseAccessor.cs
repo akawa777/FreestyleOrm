@@ -17,6 +17,8 @@ namespace FreestyleOrm.Core
         int Delete(Row row, QueryOptions queryOptions);        
         IDataReader CreateTableReader(QueryOptions queryOptions, MapOptions mapOptions, out string[] primaryKeys);
         IDataReader CreateFetchReader(QueryOptions queryOptions, out Action dispose);
+        string[] GetPrimaryKeys(QueryOptions queryOptions, MapOptions mapOptions);
+        void CreateTempTable(QueryOptions queryOptions, List<string> outDorpTempTableSqls);
     }
 
     internal enum ParameterFilter
@@ -27,7 +29,7 @@ namespace FreestyleOrm.Core
         RowVersion
     }
 
-    internal class DatabaseAccessor : IDatabaseAccessor
+    internal class SqlServerDatabaseAccessor : IDatabaseAccessor
     {
         private Dictionary<string, object> _lastIdMap = new Dictionary<string, object>();
 
@@ -50,11 +52,11 @@ namespace FreestyleOrm.Core
             return command.ExecuteReader();
         }
 
-        private string[] GetPrimaryKeys(QueryOptions queryOptions, MapOptions mapOptions)
+        public virtual string[] GetPrimaryKeys(QueryOptions queryOptions, MapOptions mapOptions)
         {
             using (var command = queryOptions.Connection.CreateCommand())
             {
-                command.Transaction = queryOptions.Transaction;
+                command.Transaction = queryOptions.Transaction;               
 
                 string table = mapOptions.Table.Split('.').Length == 1 ? mapOptions.Table.Split('.')[0] : mapOptions.Table.Split('.')[1];
                 string schema = mapOptions.Table.Split('.').Length == 1 ? string.Empty : $"AND TABLE_SCHEMA = '{mapOptions.Table.Split('.')[0]}'";
@@ -203,21 +205,21 @@ namespace FreestyleOrm.Core
 
                 if (!isTargetColumn) continue;
 
-                IDbDataParameter parameter;
+                IDbDataParameter parameter = null;
 
                 if (parameterFilter != ParameterFilter.PrimaryKeys
                     && !string.IsNullOrEmpty(row.RowVersionColumn)
                     && row.NewRowVersion != null
                     && column == row.RowVersionColumn)
                 {
-                    parameter = CreateParameter(command, $"new_{column}", row.NewRowVersion, false);
+                    if (row.NewRowVersion != null) parameter = CreateParameter(command, $"new_{column}", row.NewRowVersion, false);
                 }
                 else
                 {
                     parameter = CreateParameter(command, column, row[column], false);
                 }
 
-                parameters[column] = parameter;
+                if (parameter != null) parameters[column] = parameter;
             }
 
             return parameters;
@@ -232,13 +234,13 @@ namespace FreestyleOrm.Core
             return parameter;
         }
 
-        public object GetLastId(Row row, QueryOptions queryOptions)
+        public virtual object GetLastId(Row row, QueryOptions queryOptions)
         {
             using (var command = queryOptions.Connection.CreateCommand())
             {
                 command.Transaction = queryOptions.Transaction;
 
-                string sql = $"select @@IDENTITY Id";
+                string sql = $"select @@IDENTITY";
 
                 command.CommandText = sql;
 
@@ -259,7 +261,7 @@ namespace FreestyleOrm.Core
             return formatedSql;
         }
 
-        public void CreateTempTable(QueryOptions queryOptions, List<string> outDorpTempTableSqls)
+        public virtual void CreateTempTable(QueryOptions queryOptions, List<string> outDorpTempTableSqls)
         {
             outDorpTempTableSqls.Clear();
 

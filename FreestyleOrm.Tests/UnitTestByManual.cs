@@ -16,32 +16,23 @@ namespace FreestyleOrm.Tests
         [TestInitialize]
         public void Init()
         {
-            using (_connection = CreateConnection())
-            {
-                _connection.Open();
-                _transaction = _connection.BeginTransaction();
-
-                var testInitializer = new TestInitializer(_connection, _transaction, CreatePurchaseOrderQuery());
-                testInitializer.Init(_purchaseOrderNo);
-
-                _transaction.Commit();
-                _transaction = null;
-                _connection.Close();
-            }
+            _databaseKind = TestInitializer.DatabaseKinds.Sqlite;
+            _testInitializer = new TestInitializer(_databaseKind, CreatePurchaseOrderQuery, _purchaseOrderNo);
         }
 
-        protected IDbConnection _connection;
-        protected IDbTransaction _transaction;
-        protected int _purchaseOrderNo = 10;
-        
-        protected IDbConnection CreateConnection()
+        [TestCleanup]
+        public void Cleanup()
         {
-            return new SqlConnection(@"Data Source=akawawin8\sqlserver2016;Initial Catalog=cplan_demo;Integrated Security=True");
+            _testInitializer.Dispose();
         }
 
-        protected virtual IQuery<PurchaseOrder> CreatePurchaseOrderQuery()
+        protected TestInitializer.DatabaseKinds _databaseKind;
+        protected int _purchaseOrderNo = 1000;
+        protected TestInitializer _testInitializer;
+
+        protected virtual IQuery<PurchaseOrder> CreatePurchaseOrderQuery(IDbConnection connection, IDbTransaction transaction = null)
         {
-            IQuery<PurchaseOrder> query = _connection.Query<PurchaseOrder>(
+            IQuery<PurchaseOrder> query = connection.Query<PurchaseOrder>(
                 @"
                     select
                         PurchaseOrder.*,
@@ -84,9 +75,9 @@ namespace FreestyleOrm.Tests
                         .Refer(Refer.Write)
                         .GetEntity((row, rootEntity) =>
                         {
-                            PurchaseOrder entity = PurchaseOrder.Create((int)row[nameof(entity.PurchaseOrderId)]);
-                            entity.Title = (string)row[nameof(entity.Title)];
-                            entity.RecordVersion = (int)row[nameof(entity.RecordVersion)];
+                            PurchaseOrder entity = PurchaseOrder.Create(row.Get<int>(nameof(entity.PurchaseOrderId)));
+                            entity.Title = row.Get<string>(nameof(entity.Title));
+                            entity.RecordVersion = row.Get<int>(nameof(entity.RecordVersion));
                             return entity;
                         })
                         .SetRow((entity, root, row) =>
@@ -110,9 +101,9 @@ namespace FreestyleOrm.Tests
                         .Refer(Refer.Write)
                         .GetEntity((row, rootEntity) =>
                         {
-                            PurchaseItem entity = PurchaseItem.Create((int)row[nameof(entity.PurchaseItemNo)]);
-                            entity.Number = (int)row[nameof(entity.Number)];
-                            entity.RecordVersion = (int)row[$"PurchaseItems_{nameof(entity.RecordVersion)}"];
+                            PurchaseItem entity = PurchaseItem.Create(row.Get<int>(nameof(entity.PurchaseItemNo)));
+                            entity.Number = row.Get<int>(nameof(entity.Number));
+                            entity.RecordVersion = row.Get<int>($"PurchaseItems_{nameof(entity.RecordVersion)}");
                             return entity;
                         })
                         .SetRow((entity, root, row) =>
@@ -130,7 +121,7 @@ namespace FreestyleOrm.Tests
                     m.ToOne(x => x.PurchaseItems.First().Product)
                         .UniqueKeys("ProductId");
                 })
-                .Transaction(_transaction);
+                .Transaction(transaction);
 
             return query;
         }
@@ -138,29 +129,29 @@ namespace FreestyleOrm.Tests
         [TestMethod]
         public virtual void Test_Fetch()
         {
-            using (_connection = CreateConnection())
+            using (var connection = _testInitializer.CreateConnection())
             {
-                _connection.Open();                
+                connection.Open();                
 
-                var customers = _connection.Query<Customer>("select * from Customer").Fetch().ToList();
+                var customers = connection.Query<Customer>("select * from Customer").Fetch().ToList();
 
                 Assert.AreEqual(10, customers.Count);
                 
-                _connection.Close();
+                connection.Close();
             }
         }
 
         [TestMethod]
         public void Test_Edit()
         {
-            using (_connection = CreateConnection())
+            using (var connection = _testInitializer.CreateConnection())
             {
-                _connection.Open();
-                _transaction = _connection.BeginTransaction();
+                connection.Open();
+                var transaction = connection.BeginTransaction();
 
-                var query = _connection
+                var query = connection
                     .Query<Customer>("select * from Customer where CustomerId = @CustomerId")                    
-                    .Transaction(_transaction);
+                    .Transaction(transaction);
 
                 var customer = Customer.Create(11);
                 customer.CustomerName = $"{nameof(customer.CustomerName)}_{11}";
@@ -185,19 +176,19 @@ namespace FreestyleOrm.Tests
 
                 Assert.AreEqual(null, updatedCustomer);
 
-                _transaction.Commit();
-                _connection.Close();
+                transaction.Commit();
+                connection.Close();
             }
         }
 
         [TestMethod]
         public void Test_FetchList()
         {
-            using (_connection = CreateConnection())
+            using (var connection = _testInitializer.CreateConnection())
             {
-                _connection.Open();
+                connection.Open();
 
-                var query = CreatePurchaseOrderQuery();
+                var query = CreatePurchaseOrderQuery(connection);
 
                 query
                     .Formats(f => f["where"] = string.Empty);
@@ -206,19 +197,18 @@ namespace FreestyleOrm.Tests
 
                 Assert.AreEqual(_purchaseOrderNo, orders.Count);
 
-                _connection.Close();
+                connection.Close();
             }   
         }        
 
         [TestMethod]
         public void Test_Page()
         {
-            using (_connection = CreateConnection())
+            using (var connection = _testInitializer.CreateConnection())
             {
-                _connection.Open();
+                connection.Open();
 
-                var query = CreatePurchaseOrderQuery();
-
+                var query = CreatePurchaseOrderQuery(connection);
                 query
                     .Formats(f => f["where"] = string.Empty);
 
@@ -227,21 +217,23 @@ namespace FreestyleOrm.Tests
 
                 var page = query.Page(no, size);
 
+                Assert.AreEqual(no, page.No);
                 Assert.AreEqual(size, page.Lines.Count());
                 Assert.AreEqual(size * no, page.Lines.Last().PurchaseOrderId);
+                Assert.AreEqual(no, page.Total);
 
-                _connection.Close();
+                connection.Close();
             }            
         }
 
         [TestMethod]
         public void Test_Skip()
         {
-            using (_connection = CreateConnection())
+            using (var connection = _testInitializer.CreateConnection())
             {
-                _connection.Open();
+                connection.Open();                
 
-                var query = CreatePurchaseOrderQuery();
+                var query = CreatePurchaseOrderQuery(connection);
 
                 query
                     .Formats(f => f["where"] = string.Empty);
@@ -258,19 +250,19 @@ namespace FreestyleOrm.Tests
 
                 for (int i = 0; i < ordersList.Count; i++) AssertEqualPurchaseOrder(ordersList[i], ordersBySkipList[i], false);
 
-                _connection.Close();
+                connection.Close();
             }            
         }
 
         [TestMethod]
         public void Test_Update()
         {
-            using (_connection = CreateConnection())
+            using (var connection = _testInitializer.CreateConnection())
             {
-                _connection.Open();
-                _transaction = _connection.BeginTransaction();
+                connection.Open();
+                var transaction = connection.BeginTransaction();
 
-                var query = CreatePurchaseOrderQuery();
+                var query = CreatePurchaseOrderQuery(connection, transaction);
 
                 query
                     .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId = @PurchaseOrderId")
@@ -286,20 +278,20 @@ namespace FreestyleOrm.Tests
 
                 AssertEqualPurchaseOrder(order, updatedOrder, true);
 
-                _transaction.Commit();
-                _connection.Close();
+                transaction.Commit();
+                connection.Close();
             }            
         }
 
         [TestMethod]
         public void Test_Delete()
         {
-            using (_connection = CreateConnection())
+            using (var connection = _testInitializer.CreateConnection())
             {
-                _connection.Open();
-                _transaction = _connection.BeginTransaction();
+                connection.Open();
+                var transaction = connection.BeginTransaction();
 
-                var query = CreatePurchaseOrderQuery();
+                var query = CreatePurchaseOrderQuery(connection, transaction);
 
                 query
                     .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId = @PurchaseOrderId")
@@ -313,37 +305,30 @@ namespace FreestyleOrm.Tests
 
                 Assert.AreEqual(0, count);
 
-                _transaction.Commit();
-                _connection.Close();
+                transaction.Commit();
+                connection.Close();
             }            
         }
 
         protected void EditPurchaseOrder(PurchaseOrder order)
         {
-            using (_connection = CreateConnection())
+            order.Title += "_update";
+            order.Customer = Customer.Create(10);
+
+            foreach (var item in order.PurchaseItems)
             {
-                _connection.Open();
+                item.Number *= 10;
+                item.Product = Product.Create(10);
+            }
 
-                order.Title += "_update";
-                order.Customer = Customer.Create(10);
+            var newItem = PurchaseItem.Create(order.GetNewItemNo());
+            var firstItem = order.PurchaseItems.First();
 
-                foreach (var item in order.PurchaseItems)
-                {
-                    item.Number *= 10;
-                    item.Product = Product.Create(10);
-                }
+            newItem.Number = firstItem.Number;
+            newItem.Product = firstItem.Product;
 
-                var newItem = PurchaseItem.Create(order.GetNewItemNo());
-                var firstItem = order.PurchaseItems.First();
-
-                newItem.Number = firstItem.Number;
-                newItem.Product = firstItem.Product;
-
-                order.AddItem(newItem);
-                order.RemoveItem(firstItem);
-
-                _connection.Close();
-            }            
+            order.AddItem(newItem);
+            order.RemoveItem(firstItem);
         }
 
         protected void AssertEqualPurchaseOrder(PurchaseOrder srcOrder, PurchaseOrder destOrder, bool updated)

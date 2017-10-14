@@ -46,14 +46,16 @@ namespace FreestyleOrm
 
     public class Page<TRootEntity>
     {
-        internal Page(IEnumerable<TRootEntity> list, int count)
+        internal Page(int no, IEnumerable<TRootEntity> list, int total)
         {
+            No = no;
             Lines = list;
-            Count = count;            
+            Total = total;            
         }
 
-        public IEnumerable<TRootEntity> Lines { get; }
-        public int Count { get; }        
+        public int No { get; }
+        public IEnumerable<TRootEntity> Lines { get; }        
+        public int Total { get; }        
     }
 
     public enum Refer
@@ -67,6 +69,7 @@ namespace FreestyleOrm
         object this[string column] { get; set; }
         void BindEntity(object entity);
         void BindRow(object entity);
-        IEnumerable<string> Columns { get; }                        
+        IEnumerable<string> Columns { get; }
+        TValue Get<TValue>(string column);
     }
 }

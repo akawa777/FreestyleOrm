@@ -168,5 +168,10 @@ namespace FreestyleOrm.Core
         public object NewRowVersion => _mapOptions.NewRowVersion(_entity);
 
         public bool IsRootRow => _mapOptions.IsRootOptions;
+
+        public TValue Get<TValue>(string column)
+        {
+            return (TValue)Convert.ChangeType(this[column], typeof(TValue));
+        }
     }
 }

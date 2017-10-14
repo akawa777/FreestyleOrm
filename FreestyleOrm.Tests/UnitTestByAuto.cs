@@ -13,9 +13,9 @@ namespace FreestyleOrm.Tests
     [TestClass]
     public class UnitTestByAuto : UnitTestByManual
     {
-        protected override IQuery<PurchaseOrder> CreatePurchaseOrderQuery()
+        protected override IQuery<PurchaseOrder> CreatePurchaseOrderQuery(IDbConnection connection, IDbTransaction  transaction = null)
         {
-            IQuery<PurchaseOrder> query = base.CreatePurchaseOrderQuery();
+            IQuery<PurchaseOrder> query = base.CreatePurchaseOrderQuery(connection, transaction);
 
             query.Map(m =>
             {
@@ -48,7 +48,7 @@ namespace FreestyleOrm.Tests
                 m.ToOne(x => x.PurchaseItems.First().Product)
                     .UniqueKeys("ProductId");
             })
-            .Transaction(_transaction);
+            .Transaction(transaction);
 
             return query;
         }
@@ -56,11 +56,11 @@ namespace FreestyleOrm.Tests
         [TestMethod]
         public override void Test_Fetch()
         {
-            using (_connection = CreateConnection())
+            using (var connection = _testInitializer.CreateConnection())
             {
-                _connection.Open();
+                connection.Open();
 
-                var query = base.CreatePurchaseOrderQuery();
+                var query = base.CreatePurchaseOrderQuery(connection);
 
                 query
                     .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId not in (@PurchaseOrderIds)")
@@ -68,15 +68,17 @@ namespace FreestyleOrm.Tests
 
                 var ordersByManual = query.Fetch().ToList();
 
-                query = this.CreatePurchaseOrderQuery();
+                query = this.CreatePurchaseOrderQuery(connection);
+
+                string tempTable = _databaseKind == TestInitializer.DatabaseKinds.Sqlite ? "OrderIds" : "#OrderIds";
 
                 query
-                    .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId not in (select OrderId from #OrderIds)")
+                    .Formats(f => f["where"] = $"where PurchaseOrder.PurchaseOrderId not in (select OrderId from {tempTable})")
                     .TempTables(t =>
                     {
-                        t["#OrderIds"] = new TempTable
+                        t[$"{tempTable}"] = new TempTable
                         {
-                            Columns = "OrderId int, KeyWord nvarchar(100)",
+                            Columns = "OrderId int, KeyWord text",
                             IndexSet = new string[] { "OrderId", "OrderId, KeyWord" },
                             Values = new object[]
                             {
@@ -91,7 +93,7 @@ namespace FreestyleOrm.Tests
                 Assert.AreEqual(_purchaseOrderNo, ordersByManual.Count);
                 for (int i = 0; i < ordersByManual.Count; i++) AssertEqualPurchaseOrder(ordersByManual[i], ordersByAuto[i], false);
 
-                _connection.Close();
+                connection.Close();
             }
         }
     }
