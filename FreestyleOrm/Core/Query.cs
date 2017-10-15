@@ -318,7 +318,7 @@ namespace FreestyleOrm.Core
             }
         }
 
-        public IQuery<TRootEntity> TempTables(Action<Dictionary<string, TempTable>> setTempTables)
+        public IQuery<TRootEntity> TempTables(Action<ITempTableSet> setTempTables)
         {
             if (setTempTables == null) throw new AggregateException($"{setTempTables} is null.");
 

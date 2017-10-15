@@ -76,16 +76,12 @@ namespace FreestyleOrm.Tests
                     .Formats(f => f["where"] = $"where PurchaseOrder.PurchaseOrderId not in (select OrderId from {tempTable})")
                     .TempTables(t =>
                     {
-                        t[$"{tempTable}"] = new TempTable
-                        {
-                            Columns = "OrderId int, KeyWord text",
-                            IndexSet = new string[] { "OrderId", "OrderId, KeyWord" },
-                            Values = new object[]
-                            {
+                        t.Table($"{tempTable}", "OrderId int, KeyWord text")
+                            .Indexes("OrderId", "OrderId, KeyWord")
+                            .Values(
                                 new { OrderId = _purchaseOrderNo + 1, KeyWord = "xxx" },
                                 new { OrderId = _purchaseOrderNo + 2, KeyWord = "yyy" }
-                            }
-                        };
+                            );
                     });
 
                 var ordersByAuto = query.Fetch().ToList();

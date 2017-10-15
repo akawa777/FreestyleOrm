@@ -62,12 +62,12 @@ namespace FreestyleOrm
 
         }
 
-        public void SetOptimisticLock(Type rootEntityType, Type entityType, OptimisticLock optimisticLock)
+        public virtual void SetOptimisticLock(Type rootEntityType, Type entityType, OptimisticLock optimisticLock)
         {
             
         }
 
-        public string GetIncludePrefix(Type rootEntityType, Type entityType, PropertyInfo property)
+        public virtual string GetIncludePrefix(Type rootEntityType, Type entityType, PropertyInfo property)
         {
             if (property == null) return null;
             return property.Name + "_";

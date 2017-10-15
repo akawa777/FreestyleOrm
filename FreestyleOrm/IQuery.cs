@@ -12,7 +12,7 @@ namespace FreestyleOrm
         IQuery<TRootEntity> Map(Action<IMap<TRootEntity>> setMap);
         IQuery<TRootEntity> Params(Action<Dictionary<string, object>> setParams);
         IQuery<TRootEntity> Formats(Action<Dictionary<string, object>> setFormats);
-        IQuery<TRootEntity> TempTables(Action<Dictionary<string, TempTable>> setTempTables);
+        IQuery<TRootEntity> TempTables(Action<ITempTableSet> setTempTables);
         IQuery<TRootEntity> Connection(IDbConnection connection);
         IQuery<TRootEntity> Transaction(IDbTransaction transaction);
         IEnumerable<TRootEntity> Fetch();
@@ -71,5 +71,16 @@ namespace FreestyleOrm
         void BindRow(object entity);
         IEnumerable<string> Columns { get; }
         TValue Get<TValue>(string column);
+    }
+
+    public interface ITempTableSet
+    {
+        ITempTable Table(string table, string columns);
+    }
+
+    public interface ITempTable
+    {
+        ITempTable Indexes(params string[] indexes);
+        ITempTable Values(params object[] values);
     }
 }

@@ -37,6 +37,6 @@ namespace FreestyleOrm.Core
                 };
             }
         }
-        public Action<Dictionary<string, TempTable>> SetTempTables { get; set; } = t => { };
+        public Action<ITempTableSet> SetTempTables { get; set; } = t => { };
     }
 }

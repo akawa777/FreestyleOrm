@@ -60,45 +60,38 @@ namespace FreestyleOrm.Core
             {
                 command.Transaction = queryOptions.Transaction;
 
-                Dictionary<string, TempTable> tempTables = new Dictionary<string, TempTable>();
-                queryOptions.SetTempTables(tempTables);
+                TempTableSet tempTableSet = new TempTableSet();
+                queryOptions.SetTempTables(tempTableSet);
 
-                foreach (var entry in tempTables)
+                foreach (var tempTable in tempTableSet.TempTableList)
                 {
-                    if (entry.Value == null) throw new InvalidOperationException("TempTable is null.");
-                    if (entry.Value.Columns == null) throw new InvalidOperationException("TempTable.Columns is null.");
-                    if (entry.Value.Values == null) throw new InvalidOperationException("TempTable.Values is null.");
-
-                    string sql = $"drop table if exists {entry.Key}";
+                    string sql = $"drop table if exists {tempTable.Table}";
 
                     command.CommandText = sql;
                     command.ExecuteNonQuery();
 
                     outDorpTempTableSqls.Add(sql);
 
-                    sql = $"create temporary table {entry.Key} ({entry.Value.Columns})";
+                    sql = $"create temporary table {tempTable.Table} ({tempTable.Columns})";
 
                     command.CommandText = sql;
                     command.ExecuteNonQuery();
 
                     int indexNo = 0;
-                    if (entry.Value.IndexSet != null)
+                    foreach (var index in tempTable.IndexList)
                     {
-                        foreach (var index in entry.Value.IndexSet)
-                        {
-                            indexNo++;
+                        indexNo++;
 
-                            sql = $@"create index idx_{indexNo} on {entry.Key} ({index})";
+                        sql = $@"create index idx_{indexNo} on {tempTable.Table} ({index})";
 
-                            command.CommandText = sql;
-                            command.ExecuteNonQuery();
-                        }
+                        command.CommandText = sql;
+                        command.ExecuteNonQuery();
                     }
 
-                    foreach (var value in entry.Value.Values)
+                    foreach (var value in tempTable.ValueList)
                     {
                         command.Parameters.Clear();
-
+                        
                         List<string> parameterNames = new List<string>();
                         List<IDbDataParameter> parameters = new List<IDbDataParameter>();
 
@@ -112,7 +105,7 @@ namespace FreestyleOrm.Core
                         string columnNames = string.Join(", ", parameterNames.Select(x => x));
                         string paramNames = string.Join(", ", parameters.Select(x => x.ParameterName));
 
-                        sql = $"insert into {entry.Key} ({columnNames}) values({paramNames})";
+                        sql = $"insert into {tempTable.Table} ({columnNames}) values({paramNames})";
 
                         command.CommandText = sql;
                         foreach (var param in parameters) command.Parameters.Add(param);
