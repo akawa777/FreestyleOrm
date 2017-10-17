@@ -15,9 +15,9 @@ namespace FreestyleOrm.Core
         int Insert(Row row, QueryOptions queryOptions, out object lastId);
         int Update(Row row, QueryOptions queryOptions);
         int Delete(Row row, QueryOptions queryOptions);        
-        IDataReader CreateTableReader(QueryOptions queryOptions, MapOptions mapOptions, out string[] primaryKeys);
+        IDataReader CreateTableReader(QueryOptions queryOptions, MapRule mapRule, out string[] primaryKeys);
         IDataReader CreateFetchReader(QueryOptions queryOptions, out Action dispose);
-        string[] GetPrimaryKeys(QueryOptions queryOptions, MapOptions mapOptions);
+        string[] GetPrimaryKeys(QueryOptions queryOptions, MapRule mapRule);
         void CreateTempTable(QueryOptions queryOptions, List<string> outDorpTempTableSqls);
     }
 
@@ -38,28 +38,28 @@ namespace FreestyleOrm.Core
             _lastIdMap.Clear();
         }
 
-        public IDataReader CreateTableReader(QueryOptions queryOptions, MapOptions mapOptions, out string[] primaryKeys)
+        public IDataReader CreateTableReader(QueryOptions queryOptions, MapRule mapRule, out string[] primaryKeys)
         {
-            primaryKeys = GetPrimaryKeys(queryOptions, mapOptions);
+            primaryKeys = GetPrimaryKeys(queryOptions, mapRule);
 
             IDbCommand command = queryOptions.Connection.CreateCommand();
             command.Transaction = queryOptions.Transaction;
 
-            string sql = $"select * from {mapOptions.Table} where 1 = 0";
+            string sql = $"select * from {mapRule.Table} where 1 = 0";
 
             command.CommandText = sql;
 
             return command.ExecuteReader();
         }
 
-        public virtual string[] GetPrimaryKeys(QueryOptions queryOptions, MapOptions mapOptions)
+        public virtual string[] GetPrimaryKeys(QueryOptions queryOptions, MapRule mapRule)
         {
             using (var command = queryOptions.Connection.CreateCommand())
             {
                 command.Transaction = queryOptions.Transaction;               
 
-                string table = mapOptions.Table.Split('.').Length == 1 ? mapOptions.Table.Split('.')[0] : mapOptions.Table.Split('.')[1];
-                string schema = mapOptions.Table.Split('.').Length == 1 ? string.Empty : $"AND TABLE_SCHEMA = '{mapOptions.Table.Split('.')[0]}'";
+                string table = mapRule.Table.Split('.').Length == 1 ? mapRule.Table.Split('.')[0] : mapRule.Table.Split('.')[1];
+                string schema = mapRule.Table.Split('.').Length == 1 ? string.Empty : $"AND TABLE_SCHEMA = '{mapRule.Table.Split('.')[0]}'";
 
                 string sql = $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + QUOTENAME(CONSTRAINT_NAME)), 'IsPrimaryKey') = 1 AND TABLE_NAME = '{table}' {schema}";
 

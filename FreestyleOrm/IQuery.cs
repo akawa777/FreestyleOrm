@@ -26,23 +26,23 @@ namespace FreestyleOrm
 
     public interface IMap<TRootEntity> where TRootEntity : class
     {
-        IMapOptions<TRootEntity, TRootEntity> To();
-        IMapOptions<TRootEntity, TEntity> ToOne<TEntity>(Expression<Func<TRootEntity, TEntity>> target) where TEntity : class;
-        IMapOptions<TRootEntity, TEntity> ToMany<TEntity>(Expression<Func<TRootEntity, IEnumerable<TEntity>>> target) where TEntity : class;
+        IMapRule<TRootEntity, TRootEntity> To();
+        IMapRule<TRootEntity, TEntity> ToOne<TEntity>(Expression<Func<TRootEntity, TEntity>> target) where TEntity : class;
+        IMapRule<TRootEntity, TEntity> ToMany<TEntity>(Expression<Func<TRootEntity, IEnumerable<TEntity>>> target) where TEntity : class;
     }
 
-    public interface IMapOptions<TRootEntity, TEntity> where TEntity :class where TRootEntity : class
+    public interface IMapRule<TRootEntity, TEntity> where TEntity :class where TRootEntity : class
     {
-        IMapOptions<TRootEntity, TEntity> UniqueKeys(string columns);
-        IMapOptions<TRootEntity, TEntity> IncludePrefix(string prefix);
-        IMapOptions<TRootEntity, TEntity> Refer(Refer refer);
-        IMapOptions<TRootEntity, TEntity> GetEntity(Func<IRow, TRootEntity, TEntity> getEntity);
-        IMapOptions<TRootEntity, TEntity> SetRow(Action<TEntity, TRootEntity, IRow> setRow);
-        IMapOptions<TRootEntity, TEntity> Table(string table);
-        IMapOptions<TRootEntity, TEntity> RelationId<TRelationEntity>(string relationIdColumn, Expression<Func<TRootEntity, TRelationEntity>> relationEntity) where TRelationEntity : class;
-        IMapOptions<TRootEntity, TEntity> FormatPropertyName(Func<string, string> formatPropertyName);
-        IMapOptions<TRootEntity, TEntity> AutoId(bool autoId);                
-        IMapOptions<TRootEntity, TEntity> OptimisticLock<TRowVersion>(string rowVersionColumn, Func<TEntity, TRowVersion> newRowVersion = null);
+        IMapRule<TRootEntity, TEntity> UniqueKeys(string columns);
+        IMapRule<TRootEntity, TEntity> IncludePrefix(string prefix);
+        IMapRule<TRootEntity, TEntity> Refer(Refer refer);
+        IMapRule<TRootEntity, TEntity> GetEntity(Func<IRow, TRootEntity, TEntity> getEntity);
+        IMapRule<TRootEntity, TEntity> SetRow(Action<TEntity, TRootEntity, IRow> setRow);
+        IMapRule<TRootEntity, TEntity> Table(string table);
+        IMapRule<TRootEntity, TEntity> RelationId<TRelationEntity>(string relationIdColumn, Expression<Func<TRootEntity, TRelationEntity>> relationEntity) where TRelationEntity : class;
+        IMapRule<TRootEntity, TEntity> FormatPropertyName(Func<string, string> formatPropertyName);
+        IMapRule<TRootEntity, TEntity> AutoId(bool autoId);                
+        IMapRule<TRootEntity, TEntity> OptimisticLock<TRowVersion>(string rowVersionColumn, Func<TEntity, TRowVersion> newRowVersion = null);
     }
 
     public class Page<TRootEntity>
@@ -86,7 +86,7 @@ namespace FreestyleOrm
     }
 
 
-    public interface IMapOptions
+    public interface IMapRule
     {
         string ExpressionPath { get; }
         Type EntityType { get; }

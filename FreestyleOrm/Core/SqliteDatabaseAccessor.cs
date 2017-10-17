@@ -11,13 +11,13 @@ namespace FreestyleOrm.Core
 {
     internal class SqliteDatabaseAccessor : SqlServerDatabaseAccessor
     {
-        public override string[] GetPrimaryKeys(QueryOptions queryOptions, MapOptions mapOptions)
+        public override string[] GetPrimaryKeys(QueryOptions queryOptions, MapRule mapRule)
         {
             using (var command = queryOptions.Connection.CreateCommand())
             {
                 command.Transaction = queryOptions.Transaction;            
 
-                string sql = $"pragma table_info({mapOptions.Table})";
+                string sql = $"pragma table_info({mapRule.Table})";
 
                 command.CommandText = sql;
 

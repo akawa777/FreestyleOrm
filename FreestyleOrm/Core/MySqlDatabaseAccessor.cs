@@ -11,13 +11,13 @@ namespace FreestyleOrm.Core
 {
     internal class MySqlDatabaseAccessor : SqliteDatabaseAccessor
     {
-        public override string[] GetPrimaryKeys(QueryOptions queryOptions, MapOptions mapOptions)
+        public override string[] GetPrimaryKeys(QueryOptions queryOptions, MapRule mapRule)
         {
             using (var command = queryOptions.Connection.CreateCommand())
             {
                 command.Transaction = queryOptions.Transaction;            
 
-                string sql = $"show keys from {mapOptions.Table} where Key_name = 'PRIMARY'";
+                string sql = $"show keys from {mapRule.Table} where Key_name = 'PRIMARY'";
 
                 command.CommandText = sql;
 

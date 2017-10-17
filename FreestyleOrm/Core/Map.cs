@@ -15,35 +15,35 @@ namespace FreestyleOrm.Core
         }
 
         private IQueryDefine _queryDefine;
-        private List<MapOptions> _mapOptionsList = new List<MapOptions>();     
+        private List<MapRule> _mapRuleList = new List<MapRule>();     
 
-        public MapOptions RootMapOptions
+        public MapRule RootMapRule
         {
             get
             {
-                MapOptions mapOptions = _mapOptionsList.FirstOrDefault(x => string.IsNullOrEmpty(x.ExpressionPath));
+                MapRule mapRule = _mapRuleList.FirstOrDefault(x => string.IsNullOrEmpty(x.ExpressionPath));
 
-                if ((mapOptions == null) && _mapOptionsList.Count() > 0)
+                if ((mapRule == null) && _mapRuleList.Count() > 0)
                 {
                     throw new InvalidOperationException("root map is not setted.");
                 }
 
-                if (mapOptions != null)
+                if (mapRule != null)
                 {
-                    if (_mapOptionsList.Count() > 1 && string.IsNullOrEmpty(mapOptions.UniqueKeys)) throw new InvalidOperationException("root map UniqueKeys is not setted.");
-                    return mapOptions;
+                    if (_mapRuleList.Count() > 1 && string.IsNullOrEmpty(mapRule.UniqueKeys)) throw new InvalidOperationException("root map UniqueKeys is not setted.");
+                    return mapRule;
                 }
 
-                mapOptions = new MapOptions(_queryDefine, typeof(TRootEntity));
-                mapOptions.Refer = Refer.Write;
+                mapRule = new MapRule(_queryDefine, typeof(TRootEntity));
+                mapRule.Refer = Refer.Write;
 
-                _mapOptionsList.Insert(0, mapOptions);
+                _mapRuleList.Insert(0, mapRule);
 
-                return _mapOptionsList.FirstOrDefault(x => string.IsNullOrEmpty(x.ExpressionPath));
+                return _mapRuleList.FirstOrDefault(x => string.IsNullOrEmpty(x.ExpressionPath));
             }
         }
 
-        public IEnumerable<MapOptions> MapOptionsListWithoutRoot
+        public IEnumerable<MapRule> MapRuleListWithoutRoot
         {
             get
             {
@@ -51,20 +51,20 @@ namespace FreestyleOrm.Core
                 string prevPrefixPath = string.Empty;
                 List<string> paths = new List<string>();
 
-                foreach (var mapOptions in _mapOptionsList.Where(x => x != RootMapOptions))
+                foreach (var mapRule in _mapRuleList.Where(x => x != RootMapRule))
                 {
                     bool valid = false;
 
-                    int level = mapOptions.ExpressionSections.Length;
+                    int level = mapRule.ExpressionSections.Length;
 
                     string prefixPath;
                     if (level == 1)
                     {
-                        prefixPath = string.Join(".", mapOptions.ExpressionSections);
+                        prefixPath = string.Join(".", mapRule.ExpressionSections);
                     }
                     else
                     {
-                        prefixPath = string.Join(".", mapOptions.ExpressionSections.Take(level - 1));
+                        prefixPath = string.Join(".", mapRule.ExpressionSections.Take(level - 1));
                     }                    
 
                     if (level > prevLevel)
@@ -80,7 +80,7 @@ namespace FreestyleOrm.Core
                         valid = true;
                     }
 
-                    paths.Add(mapOptions.ExpressionPath);
+                    paths.Add(mapRule.ExpressionPath);
 
                     if (!valid)
                     {
@@ -90,147 +90,147 @@ namespace FreestyleOrm.Core
                     prevLevel = level;
                     prevPrefixPath = prefixPath;
 
-                    if (string.IsNullOrEmpty(mapOptions.UniqueKeys)) throw new InvalidOperationException($"[{mapOptions.ExpressionPath}] map UniqueKeys is not setted.");                    
+                    if (string.IsNullOrEmpty(mapRule.UniqueKeys)) throw new InvalidOperationException($"[{mapRule.ExpressionPath}] map UniqueKeys is not setted.");                    
 
-                    yield return mapOptions;
+                    yield return mapRule;
                 }
             }
         }
         
 
-        public IMapOptions<TRootEntity, TRootEntity> To()
+        public IMapRule<TRootEntity, TRootEntity> To()
         {
-            MapOptions<TRootEntity, TRootEntity> mapOptions = new MapOptions<TRootEntity, TRootEntity>(_queryDefine, x => x);
+            MapRule<TRootEntity, TRootEntity> mapRule = new MapRule<TRootEntity, TRootEntity>(_queryDefine, x => x);
 
-            _mapOptionsList.Add(mapOptions.GetMapOptions());
+            _mapRuleList.Add(mapRule.GetMapRule());
 
-            return mapOptions;
+            return mapRule;
         }
 
-        public IMapOptions<TRootEntity, TEntity> ToMany<TEntity>(Expression<Func<TRootEntity, IEnumerable<TEntity>>> target) where TEntity : class
+        public IMapRule<TRootEntity, TEntity> ToMany<TEntity>(Expression<Func<TRootEntity, IEnumerable<TEntity>>> target) where TEntity : class
         {
             if (target == null) throw new ArgumentException($"[Expression<Func<{typeof(TRootEntity).Name}, IEnumerable<{typeof(TRootEntity).Name}>>>] {nameof(target)} is null.");
 
-            MapOptions<TRootEntity, TEntity> mapOptions = new MapOptions<TRootEntity, TEntity>(_queryDefine, target);
+            MapRule<TRootEntity, TEntity> mapRule = new MapRule<TRootEntity, TEntity>(_queryDefine, target);
 
-            _mapOptionsList.Add(mapOptions.GetMapOptions());
+            _mapRuleList.Add(mapRule.GetMapRule());
 
-            return mapOptions;
+            return mapRule;
         }
 
-        public IMapOptions<TRootEntity, TEntity> ToOne<TEntity>(Expression<Func<TRootEntity, TEntity>> target) where TEntity : class
+        public IMapRule<TRootEntity, TEntity> ToOne<TEntity>(Expression<Func<TRootEntity, TEntity>> target) where TEntity : class
         {
             if (target == null) throw new ArgumentException($"[Expression<Func<{typeof(TRootEntity).Name}, {typeof(TRootEntity).Name}>>>] {nameof(target)} is null.");
 
-            MapOptions<TRootEntity, TEntity> mapOptions = new MapOptions<TRootEntity, TEntity>(_queryDefine, target);
+            MapRule<TRootEntity, TEntity> mapRule = new MapRule<TRootEntity, TEntity>(_queryDefine, target);
 
-            _mapOptionsList.Add(mapOptions.GetMapOptions());
+            _mapRuleList.Add(mapRule.GetMapRule());
 
-            return mapOptions;
+            return mapRule;
         }
     }
 
-    internal class MapOptions<TRootEntity, TEntity> : IMapOptions<TRootEntity, TEntity> where TRootEntity : class where TEntity : class
+    internal class MapRule<TRootEntity, TEntity> : IMapRule<TRootEntity, TEntity> where TRootEntity : class where TEntity : class
     {
-        public MapOptions(IQueryDefine queryDefine, Expression<Func<TRootEntity, TEntity>> target)
+        public MapRule(IQueryDefine queryDefine, Expression<Func<TRootEntity, TEntity>> target)
         {   
-            _mapOptions = new MapOptions(queryDefine, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property), property, false);
+            _mapRule = new MapRule(queryDefine, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property), property, false);
         }
 
-        public MapOptions(IQueryDefine queryDefine, Expression<Func<TRootEntity, IEnumerable<TEntity>>> target)
+        public MapRule(IQueryDefine queryDefine, Expression<Func<TRootEntity, IEnumerable<TEntity>>> target)
         {
-            _mapOptions = new MapOptions(queryDefine, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property), property, true);
+            _mapRule = new MapRule(queryDefine, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property), property, true);
         }
 
-        private MapOptions _mapOptions;
+        private MapRule _mapRule;
 
-        public MapOptions GetMapOptions() => _mapOptions;
+        public MapRule GetMapRule() => _mapRule;
 
-        public IMapOptions<TRootEntity, TEntity> AutoId(bool autoId)
+        public IMapRule<TRootEntity, TEntity> AutoId(bool autoId)
         {
-            _mapOptions.AutoId = autoId;
+            _mapRule.AutoId = autoId;
 
             return this;
         }
 
-        public IMapOptions<TRootEntity, TEntity> GetEntity(Func<IRow, TRootEntity, TEntity> getEntity)
+        public IMapRule<TRootEntity, TEntity> GetEntity(Func<IRow, TRootEntity, TEntity> getEntity)
         {
-            if (getEntity == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(getEntity)} is null.");
+            if (getEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(getEntity)} is null.");
 
-            _mapOptions.GetEntity = (row, rootEntity) => getEntity(row, rootEntity as TRootEntity);
+            _mapRule.GetEntity = (row, rootEntity) => getEntity(row, rootEntity as TRootEntity);
 
             return this;
         }
 
-        public IMapOptions<TRootEntity, TEntity> FormatPropertyName(Func<string, string> formatPropertyName)
+        public IMapRule<TRootEntity, TEntity> FormatPropertyName(Func<string, string> formatPropertyName)
         {
-            if (formatPropertyName == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(formatPropertyName)} is null.");
+            if (formatPropertyName == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(formatPropertyName)} is null.");
 
-            _mapOptions.FormatPropertyName = formatPropertyName;
+            _mapRule.FormatPropertyName = formatPropertyName;
 
             return this;
         }
 
-        public IMapOptions<TRootEntity, TEntity> IncludePrefix(string prefix)
+        public IMapRule<TRootEntity, TEntity> IncludePrefix(string prefix)
         {
-            _mapOptions.IncludePrefix = prefix;
+            _mapRule.IncludePrefix = prefix;
 
             return this;
         }
 
-        public IMapOptions<TRootEntity, TEntity> Refer(Refer refer)
+        public IMapRule<TRootEntity, TEntity> Refer(Refer refer)
         {
-            _mapOptions.Refer = refer;
+            _mapRule.Refer = refer;
 
             return this;
         }
 
-        public IMapOptions<TRootEntity, TEntity> SetRow(Action<TEntity, TRootEntity, IRow> setRow)
+        public IMapRule<TRootEntity, TEntity> SetRow(Action<TEntity, TRootEntity, IRow> setRow)
         {
-            if (setRow == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(setRow)} is null.");
+            if (setRow == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(setRow)} is null.");
 
-            _mapOptions.SetRow = (entity, rootEntity, row) => setRow(entity as TEntity, rootEntity as TRootEntity, row);
+            _mapRule.SetRow = (entity, rootEntity, row) => setRow(entity as TEntity, rootEntity as TRootEntity, row);
 
             return this;
         }
 
-        public IMapOptions<TRootEntity, TEntity> Table(string table)
+        public IMapRule<TRootEntity, TEntity> Table(string table)
         {
-            if (string.IsNullOrEmpty(table)) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(table)} is null or empty.");
+            if (string.IsNullOrEmpty(table)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(table)} is null or empty.");
 
-            _mapOptions.Table = table;
+            _mapRule.Table = table;
 
             return this;
         }
 
-        public IMapOptions<TRootEntity, TEntity> RelationId<TRelationEntity>(string relationIdColumn, Expression<Func<TRootEntity, TRelationEntity>> relationEntity) where TRelationEntity : class
+        public IMapRule<TRootEntity, TEntity> RelationId<TRelationEntity>(string relationIdColumn, Expression<Func<TRootEntity, TRelationEntity>> relationEntity) where TRelationEntity : class
         {
-            if (_mapOptions.IsRootOptions) throw new InvalidOperationException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] root entity can not set {nameof(relationIdColumn)}.");
-            if (string.IsNullOrEmpty(relationIdColumn)) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(relationIdColumn)} is null or empty.");
-            if (relationEntity == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(relationEntity)} is null.");            
+            if (_mapRule.IsRootOptions) throw new InvalidOperationException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] root entity can not set {nameof(relationIdColumn)}.");
+            if (string.IsNullOrEmpty(relationIdColumn)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(relationIdColumn)} is null or empty.");
+            if (relationEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(relationEntity)} is null.");            
 
-            _mapOptions.RelationIdColumn = relationIdColumn;
-            _mapOptions.RelationEntityPath = relationEntity.GetExpressionPath();
+            _mapRule.RelationIdColumn = relationIdColumn;
+            _mapRule.RelationEntityPath = relationEntity.GetExpressionPath();
 
             return this;
         }
 
-        public IMapOptions<TRootEntity, TEntity> UniqueKeys(string columns)
+        public IMapRule<TRootEntity, TEntity> UniqueKeys(string columns)
         {
-            if (string.IsNullOrEmpty(columns)) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(columns)} is null or empty.");
+            if (string.IsNullOrEmpty(columns)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(columns)} is null or empty.");
 
-            _mapOptions.UniqueKeys = columns;
+            _mapRule.UniqueKeys = columns;
 
             return this;
         }
 
-        public IMapOptions<TRootEntity, TEntity> OptimisticLock<TRowVersion>(string rowVersionColumn, Func<TEntity, TRowVersion> newRowVersion = null)
+        public IMapRule<TRootEntity, TEntity> OptimisticLock<TRowVersion>(string rowVersionColumn, Func<TEntity, TRowVersion> newRowVersion = null)
         {
-            if (string.IsNullOrEmpty(rowVersionColumn)) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(rowVersionColumn)} is null or empty.");
-            if (newRowVersion == null) throw new ArgumentException($"[IMapOptions<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(newRowVersion)} is null.");
+            if (string.IsNullOrEmpty(rowVersionColumn)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(rowVersionColumn)} is null or empty.");
+            if (newRowVersion == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(newRowVersion)} is null.");
 
-            _mapOptions.RowVersionColumn = rowVersionColumn;
-            if (newRowVersion != null) _mapOptions.NewRowVersion = entity => newRowVersion(entity as TEntity);
+            _mapRule.RowVersionColumn = rowVersionColumn;
+            if (newRowVersion != null) _mapRule.NewRowVersion = entity => newRowVersion(entity as TEntity);
 
             return this;
         }

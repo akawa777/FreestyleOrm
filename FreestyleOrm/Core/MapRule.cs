@@ -5,14 +5,14 @@ using System.Reflection;
 
 namespace FreestyleOrm.Core
 {
-    internal class MapOptions : IMapOptions
+    internal class MapRule : IMapRule
     {
-        public MapOptions(IQueryDefine queryDefine, Type rootEntityType): this(queryDefine, rootEntityType, rootEntityType, null, null, false)
+        public MapRule(IQueryDefine queryDefine, Type rootEntityType): this(queryDefine, rootEntityType, rootEntityType, null, null, false)
         {
             
         }
 
-        public MapOptions(IQueryDefine queryDefine, Type rootEntityType, Type entityType, string expressionPath, PropertyInfo property, bool isToMany)
+        public MapRule(IQueryDefine queryDefine, Type rootEntityType, Type entityType, string expressionPath, PropertyInfo property, bool isToMany)
         {
             _queryDefine = queryDefine;
 
