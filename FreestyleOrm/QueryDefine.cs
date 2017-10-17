@@ -12,7 +12,7 @@ namespace FreestyleOrm
         void SetRelationId(Type rootEntityType, IMapRule mapRule, RelationId relationId);
         bool GetAutoId(Type rootEntityType, IMapRule mapRule);
         string GetFormatPropertyName(Type rootEntityType, IMapRule mapRule, string column);
-        object CreateEntity(Type rootEntityType, IMapRule mapRulee);
+        object CreateEntity(Type rootEntityType, IMapRule mapRule);
         void SetOptimisticLock(Type rootEntityType, IMapRule mapRule, OptimisticLock optimisticLock);
         string GetIncludePrefix(Type rootEntityType, IMapRule mapRule);
     }
