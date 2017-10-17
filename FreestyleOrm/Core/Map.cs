@@ -39,7 +39,7 @@ namespace FreestyleOrm.Core
 
                 _mapRuleList.Insert(0, mapRule);
 
-                return _mapRuleList.FirstOrDefault(x => string.IsNullOrEmpty(x.ExpressionPath));
+                return RootMapRule;
             }
         }
 
