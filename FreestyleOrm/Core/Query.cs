@@ -264,7 +264,7 @@ namespace FreestyleOrm.Core
             {
                 _databaseAccessor.Insert(updateRows.First(), _queryOptions, out object lastIdObj);
 
-                if (lastIdObj != null) lastId = (TId)lastIdObj;
+                if (lastIdObj != null) lastId = (TId)Convert.ChangeType(lastIdObj, typeof(TId));
 
                 foreach (var updateRow in updateRows.Skip(1))
                 {
