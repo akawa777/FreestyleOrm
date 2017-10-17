@@ -76,7 +76,7 @@ namespace FreestyleOrm.Tests
                     .Formats(f => f["where"] = $"where PurchaseOrder.PurchaseOrderId not in (select OrderId from {tempTable})")
                     .TempTables(t =>
                     {
-                        t.Table($"{tempTable}", "OrderId int, KeyWord text")
+                        t.Table($"{tempTable}", "OrderId int, KeyWord nvarchar(100)")
                             .Indexes("OrderId", "OrderId, KeyWord")
                             .Values(
                                 new { OrderId = _purchaseOrderNo + 1, KeyWord = "xxx" },

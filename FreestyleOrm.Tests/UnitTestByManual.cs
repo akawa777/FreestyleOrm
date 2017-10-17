@@ -27,7 +27,7 @@ namespace FreestyleOrm.Tests
         }
 
         protected TestInitializer.DatabaseKinds _databaseKind;
-        protected int _purchaseOrderNo = 1000;
+        protected int _purchaseOrderNo = 100;
         protected TestInitializer _testInitializer;
 
         protected virtual IQuery<PurchaseOrder> CreatePurchaseOrderQuery(IDbConnection connection, IDbTransaction transaction = null)

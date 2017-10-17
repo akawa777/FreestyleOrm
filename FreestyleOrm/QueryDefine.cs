@@ -8,13 +8,13 @@ namespace FreestyleOrm
     public interface IQueryDefine
     {
         void SetFormats(Type rootEntityType, Dictionary<string, object> formats);
-        string GetTable(Type rootEntityType, Type entityType);
-        void SetRelationId(Type rootEntityType, Type entityType, RelationId relationId);
-        bool GetAutoId(Type rootEntityType, Type entityType);
-        string GetFormatPropertyName(Type rootEntityType, Type entityTypee, string column);
-        object CreateEntity(Type rootEntityType, Type entityType);
-        void SetOptimisticLock(Type rootEntityType, Type entityType, OptimisticLock optimisticLock);
-        string GetIncludePrefix(Type rootEntityType, Type entityType, PropertyInfo property);
+        string GetTable(Type rootEntityType, IMapOptions mapOptions);
+        void SetRelationId(Type rootEntityType, IMapOptions mapOptions, RelationId relationId);
+        bool GetAutoId(Type rootEntityType, IMapOptions mapOptions);
+        string GetFormatPropertyName(Type rootEntityType, IMapOptions mapOptions, string column);
+        object CreateEntity(Type rootEntityType, IMapOptions mapOptionse);
+        void SetOptimisticLock(Type rootEntityType, IMapOptions mapOptions, OptimisticLock optimisticLock);
+        string GetIncludePrefix(Type rootEntityType, IMapOptions mapOptions);
     }
 
     public class OptimisticLock
@@ -37,40 +37,40 @@ namespace FreestyleOrm
 
         }
 
-        public virtual object CreateEntity(Type rootEntityType, Type entityType)
+        public virtual object CreateEntity(Type rootEntityType, IMapOptions mapOptions)
         {
-            return Activator.CreateInstance(entityType, true);
+            return Activator.CreateInstance(mapOptions.EntityType, true);
         }
 
-        public virtual bool GetAutoId(Type rootEntityType, Type entityType)
+        public virtual bool GetAutoId(Type rootEntityType, IMapOptions mapOptions)
         {
             return false;
         }
 
-        public virtual string GetFormatPropertyName(Type rootEntityType, Type entityType, string column)
+        public virtual string GetFormatPropertyName(Type rootEntityType, IMapOptions mapOptions, string column)
         {
             return column;
         }
 
-        public virtual string GetTable(Type rootEntityType, Type entityType)
+        public virtual string GetTable(Type rootEntityType, IMapOptions mapOptions)
         {
-            return entityType.Name;
+            return mapOptions.EntityType.Name;
         }
 
-        public virtual void SetRelationId(Type rootEntityType, Type entityType, RelationId relationId)
+        public virtual void SetRelationId(Type rootEntityType, IMapOptions mapOptions, RelationId relationId)
         {
 
         }
 
-        public virtual void SetOptimisticLock(Type rootEntityType, Type entityType, OptimisticLock optimisticLock)
+        public virtual void SetOptimisticLock(Type rootEntityType, IMapOptions mapOptions, OptimisticLock optimisticLock)
         {
             
         }
 
-        public virtual string GetIncludePrefix(Type rootEntityType, Type entityType, PropertyInfo property)
+        public virtual string GetIncludePrefix(Type rootEntityType, IMapOptions mapOptions)
         {
-            if (property == null) return null;
-            return property.Name + "_";
+            if (mapOptions.Property == null) return null;
+            return mapOptions.Property.Name + "_";
         }
     }
 }

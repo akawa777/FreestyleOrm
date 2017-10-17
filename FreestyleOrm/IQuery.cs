@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Data;
+using System.Reflection;
 using FreestyleOrm.Core;
 
 namespace FreestyleOrm
@@ -82,5 +83,14 @@ namespace FreestyleOrm
     {
         ITempTable Indexes(params string[] indexes);
         ITempTable Values(params object[] values);
+    }
+
+
+    public interface IMapOptions
+    {
+        string ExpressionPath { get; }
+        Type EntityType { get; }
+        PropertyInfo Property { get; }
+        string Table { get; }
     }
 }

@@ -137,7 +137,7 @@ namespace FreestyleOrm.Tests
             return $@"
 				CREATE TABLE Customer(
 	                CustomerId int NOT NULL,
-	                CustomerName text NULL,
+	                CustomerName nvarchar(100) NULL,
 	                RecordVersion int NULL,
                 PRIMARY KEY
                 (
@@ -146,7 +146,7 @@ namespace FreestyleOrm.Tests
 
                 CREATE TABLE Product(
 	                ProductId int NOT NULL,
-	                ProductName text NULL,
+	                ProductName nvarchar(100) NULL,
 	                RecordVersion int NULL,
                 PRIMARY KEY
                 (
@@ -155,7 +155,7 @@ namespace FreestyleOrm.Tests
 
                 CREATE TABLE PurchaseOrder(
 	                PurchaseOrderId {identity} NOT NULL,
-	                Title text NULL,
+	                Title nvarchar(100) NULL,
 	                CustomerId int NULL,
 	                RecordVersion int NULL,
                 PRIMARY KEY

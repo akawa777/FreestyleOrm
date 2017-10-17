@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace FreestyleOrm.Core
 {
-    internal class MapOptions
+    internal class MapOptions : IMapOptions
     {
         public MapOptions(IQueryDefine queryDefine, Type rootEntityType): this(queryDefine, rootEntityType, rootEntityType, null, null, false)
         {
@@ -18,20 +18,21 @@ namespace FreestyleOrm.Core
 
             ExpressionPath = expressionPath == null ? string.Empty : expressionPath;
             EntityType = property == null ? rootEntityType : entityType;
-            IsToMany = isToMany;
-            IncludePrefix = queryDefine.GetIncludePrefix(rootEntityType, entityType, property);
-            FormatPropertyName = column => _queryDefine.GetFormatPropertyName(rootEntityType, entityType, column);
-            AutoId = _queryDefine.GetAutoId(rootEntityType, entityType);            
-            Table = _queryDefine.GetTable(rootEntityType, entityType);
+            Property = property;
+            IsToMany = isToMany;            
+            IncludePrefix = queryDefine.GetIncludePrefix(rootEntityType, this);
+            FormatPropertyName = column => _queryDefine.GetFormatPropertyName(rootEntityType, this, column);
+            AutoId = _queryDefine.GetAutoId(rootEntityType, this);            
+            Table = _queryDefine.GetTable(rootEntityType, this);
 
             RelationId relationId = new RelationId();
-            queryDefine.SetRelationId(rootEntityType, entityType, relationId);
+            queryDefine.SetRelationId(rootEntityType, this, relationId);
 
             RelationIdColumn = relationId.RelationIdColumn;
             RelationEntityPath = relationId.RelationEntityPath;
 
             OptimisticLock optimisticLock = new OptimisticLock();
-            queryDefine.SetOptimisticLock(rootEntityType, entityType, optimisticLock);
+            queryDefine.SetOptimisticLock(rootEntityType, this, optimisticLock);
 
             RowVersionColumn = optimisticLock.RowVersionColumn;
             NewRowVersion = optimisticLock.NewRowVersion;
@@ -40,7 +41,7 @@ namespace FreestyleOrm.Core
 
             GetEntity = (row, rootEntity) =>
             {
-                object entity = _queryDefine.CreateEntity(rootEntityType, entityType);
+                object entity = _queryDefine.CreateEntity(rootEntityType, this);
                 binder.Bind(row, entity);
 
                 return entity;
