@@ -1,4 +1,4 @@
 # FreestyleOrm
-Simple microORM for .NET.
+MicroORM for .NET.
 
 Works with SQL Server, SQLite.
