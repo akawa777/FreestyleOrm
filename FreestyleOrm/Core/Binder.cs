@@ -65,7 +65,7 @@ namespace FreestyleOrm.Core
                     if (property.PropertyType == typeof(bool))
                     {
                         if ((bool)property.Get(entity) == true) row[formatedPropertyName.Value] = 1;
-                        row[formatedPropertyName.Value] = 0;
+                        else row[formatedPropertyName.Value] = 0;
                     }
                     else
                     {
