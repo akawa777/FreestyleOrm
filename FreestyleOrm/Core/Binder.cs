@@ -60,7 +60,18 @@ namespace FreestyleOrm.Core
 
             foreach (var formatedPropertyName in formatedPropertyNameMap)
             {
-                if (propertyMap.TryGetValue(formatedPropertyName.Key, out PropertyInfo property)) row[formatedPropertyName.Value] = property.Get(entity);
+                if (propertyMap.TryGetValue(formatedPropertyName.Key, out PropertyInfo property))
+                {
+                    if (property.PropertyType == typeof(bool))
+                    {
+                        if ((bool)property.Get(entity) == true) row[formatedPropertyName.Value] = 1;
+                        row[formatedPropertyName.Value] = 0;
+                    }
+                    else
+                    {
+                        row[formatedPropertyName.Value] = property.Get(entity);
+                    }
+                }
             }
         }
     }

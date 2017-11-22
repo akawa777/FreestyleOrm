@@ -74,6 +74,11 @@ namespace FreestyleOrm.Core
                 {
                     setDelegate((TObj)obj, (TValue)value);
                 }
+                else if (property.PropertyType == typeof(bool) && value != null && value is int number && number == 1)
+                {
+                    object trueValue = true;
+                    setDelegate((TObj)obj, (TValue)trueValue);
+                }
                 else if (CanChangeType<TValue>(value))
                 {
                     if (Nullable.GetUnderlyingType(typeof(TValue)) != null)
