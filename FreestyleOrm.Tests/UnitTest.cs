@@ -85,6 +85,11 @@ namespace FreestyleOrm.Tests
             table.COL_ONE = "xxx";
             table.COL_TWO_ONE = "yyy";
 
+            var table2 = new D_TEST_TABLE();
+            table2.ID = 2;
+            table2.COL_ONE = "aaa";
+            table2.COL_TWO_ONE = "bbb";
+
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();    
@@ -92,11 +97,12 @@ namespace FreestyleOrm.Tests
                 using (var tran = connection.BeginTransaction())
                 {
                     var query = connection
-                        .Query<D_TEST_TABLE>("select * from D_TEST_TABLE where Id = @id")
+                        .Query<D_TEST_TABLE>("select * from D_TEST_TABLE where ID = @id")
                         .Params(p => p["@id"] = table.ID)                        
                         .Transaction(tran);
 
                     query.Insert(table);
+                    query.Insert(table2);
 
                     var registerdTable = query.Fetch().Single();   
 
@@ -125,7 +131,7 @@ namespace FreestyleOrm.Tests
                 using (var tran = connection.BeginTransaction())
                 {
                     var query = connection
-                        .Query<TestTable>("select * from D_TEST_TABLE where Id = @id", new MyQueryDefine())
+                        .Query<TestTable>("select * from D_TEST_TABLE where ID = @id", new MyQueryDefine())
                         .Params(p => p["@id"] = table.Id)
                         .Transaction(tran);
 
@@ -138,6 +144,32 @@ namespace FreestyleOrm.Tests
 
                     tran.Commit();
                 }
+                
+                connection.Close();
+            }
+        }
+
+        [TestMethod]
+        public void Test3()
+        {
+            Test1();
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();    
+                
+                var testTables = connection
+                    .Query("select * from D_TEST_TABLE")                         
+                    .Fetch()
+                    .Select(x => new 
+                    { 
+                        Id = x.Get<int>("ID"), 
+                        ColOne = x.Get<string>("COL_ONE"), 
+                        ColTwoOne = x.Get<string>("COL_TWO_ONE") 
+                    })
+                    .ToArray();
+
+                Assert.AreEqual("xxx", testTables[0].ColOne);
+                Assert.AreEqual("yyy", testTables[0].ColTwoOne);
                 
                 connection.Close();
             }

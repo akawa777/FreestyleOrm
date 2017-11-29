@@ -8,9 +8,8 @@ using FreestyleOrm.Core;
 
 namespace FreestyleOrm
 {
-    public interface IQuery<TRootEntity> where TRootEntity : class
+    public interface IQueryBase<TRootEntity> where TRootEntity : class
     {
-        IQuery<TRootEntity> Map(Action<IMap<TRootEntity>> setMap);
         IQuery<TRootEntity> Params(Action<Dictionary<string, object>> setParams);
         IQuery<TRootEntity> Formats(Action<Dictionary<string, object>> setFormats);
         IQuery<TRootEntity> TempTables(Action<ITempTableSet> setTempTables);
@@ -18,6 +17,18 @@ namespace FreestyleOrm
         IQuery<TRootEntity> Transaction(IDbTransaction transaction);
         IEnumerable<TRootEntity> Fetch();
         Page<TRootEntity> Page(int no, int size);
+    }
+    
+    public interface IQuery<TRootEntity> : IQueryBase<TRootEntity> where TRootEntity : class
+    {
+        IQuery<TRootEntity> Map(Action<IMap<TRootEntity>> setMap);
+        // IQuery<TRootEntity> Params(Action<Dictionary<string, object>> setParams);
+        // IQuery<TRootEntity> Formats(Action<Dictionary<string, object>> setFormats);
+        // IQuery<TRootEntity> TempTables(Action<ITempTableSet> setTempTables);
+        // IQuery<TRootEntity> Connection(IDbConnection connection);
+        // IQuery<TRootEntity> Transaction(IDbTransaction transaction);
+        // IEnumerable<TRootEntity> Fetch();
+        // Page<TRootEntity> Page(int no, int size);
         void Insert<TId>(TRootEntity rootEntity, out TId lastId);
         void Insert(TRootEntity rootEntity);
         void Update(TRootEntity rootEntity);
@@ -65,13 +76,20 @@ namespace FreestyleOrm
         Write
     }
 
-    public interface IRow
+    public interface IRowBase
     {        
         object this[string column] { get; set; }
-        void BindEntity(object entity);
-        void BindRow(object entity);
         IEnumerable<string> Columns { get; }
         TValue Get<TValue>(string column);
+    }
+
+    public interface IRow : IRowBase
+    {        
+        // object this[string column] { get; set; }
+        void BindEntity(object entity);
+        void BindRow(object entity);
+        // IEnumerable<string> Columns { get; }
+        // TValue Get<TValue>(string column);
     }
 
     public interface ITempTableSet

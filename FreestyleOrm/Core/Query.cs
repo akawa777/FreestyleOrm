@@ -90,13 +90,25 @@ namespace FreestyleOrm.Core
 
                         if (currentPage == page)
                         {
-                            rootEntity = rootMapRule.GetEntity(currentRow, rootEntity) as TRootEntity;                            
+                            if (typeof(TRootEntity) == typeof(IRowBase))
+                            {
+                                rootEntity = currentRow as TRootEntity;
+                            }
+                            else
+                            {
+                                rootEntity = rootMapRule.GetEntity(currentRow, rootEntity) as TRootEntity;                            
+                            }
                         }
                     }
 
                     if (rootEntity == null)
                     {
                         prevRow = currentRow;
+                        continue;
+                    }
+
+                    if (typeof(TRootEntity) == typeof(IRowBase))
+                    {
                         continue;
                     }
 

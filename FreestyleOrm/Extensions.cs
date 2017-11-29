@@ -32,9 +32,14 @@ namespace FreestyleOrm
 
             QueryOptions queryOptions = new QueryOptions(queryDefine, typeof(TRootEntity));
             queryOptions.Connection = connection;
-            queryOptions.Sql = sql;
+            queryOptions.Sql = sql; 
 
             return new Query<TRootEntity>(databaseAccessor, queryOptions, queryDefine);
+        }
+
+        public static IQueryBase<IRowBase> Query(this IDbConnection connection, string sql, IQueryDefine queryDefine = null) 
+        {
+            return Query<IRowBase>(connection, sql, queryDefine);
         }
     }
 }
