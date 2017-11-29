@@ -127,6 +127,7 @@ namespace FreestyleOrm.Tests
                 drop table Product;
                 drop table PurchaseOrder;                
                 drop table PurchaseItem;
+                drop table TestTable;
             ";
         }
 
@@ -174,6 +175,12 @@ namespace FreestyleOrm.Tests
 	                PurchaseOrderId,
 	                PurchaseItemNo
                 ));
+
+                CREATE TABLE D_TEST_TABLE(
+                    ID int,
+	                COL_ONE nvarchar(100),
+                    COL_TWO_ONE nvarchar(100)
+                );
             ";
         }
 

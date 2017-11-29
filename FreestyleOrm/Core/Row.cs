@@ -27,9 +27,8 @@ namespace FreestyleOrm.Core
                 string name = dataRecord.GetName(i);                
                 _columns.Add(name);
 
-                if (noSetValue) continue;
-
-                _valueMap[name] = dataRecord[i];
+                if (noSetValue) _valueMap[name] = null;
+                else _valueMap[name] = dataRecord[i];
             }
 
             PrimaryKeys = primaryKeys;
@@ -69,7 +68,17 @@ namespace FreestyleOrm.Core
 
         public object this[string column] 
         {
-            get { return _valueMap[column]; }
+            get 
+            { 
+                if (_valueMap.TryGetValue(column, out object value))
+                {
+                    return _valueMap[column]; 
+                }
+                else
+                {
+                    throw new ArgumentException($"{column} column is not exist.");
+                }
+            }
             set { _valueMap[column] = value; }
         }
 

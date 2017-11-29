@@ -214,8 +214,8 @@ namespace FreestyleOrm.Core
                 {
                     if (row.NewRowVersion != null) parameter = CreateParameter(command, $"new_{column}", row.NewRowVersion, false);
                 }
-                else
-                {
+                else if (row.Columns.Contains(column))
+                {                    
                     parameter = CreateParameter(command, column, row[column], false);
                 }
 
