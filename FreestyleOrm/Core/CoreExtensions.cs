@@ -159,7 +159,7 @@ namespace FreestyleOrm.Core
 
                 var defineType = interfaceType.GetGenericTypeDefinition();
 
-                if (defineType != null && (defineType == typeof(List<>) || defineType == typeof(Collection<>)))
+                if (defineType != null && (defineType == typeof(IList<>) || defineType == typeof(ICollection<>)))
                 {
                     elementType = interfaceType.GetGenericArguments()[0];
                     return true;
@@ -221,6 +221,7 @@ namespace FreestyleOrm.Core
             {
                 var targetSection = sections[i];
 
+                if (targetSection.IndexOf("(") != -1) continue;
                 int arrayHolderIndex = targetSection.IndexOf("[");
                 if (arrayHolderIndex != -1) targetSection = targetSection.Substring(0, arrayHolderIndex + 1);
 

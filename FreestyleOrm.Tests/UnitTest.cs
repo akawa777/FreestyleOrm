@@ -174,5 +174,69 @@ namespace FreestyleOrm.Tests
                 connection.Close();
             }
         }
+
+        public class NodeBsae
+        {
+            public int Id { get; set; }
+            public string Name { get; set; }
+            public int Level { get; set; }
+            public int ParentId { get; set; }
+        }
+
+        public class Node : NodeBsae
+        {
+            public List<Node> Chilrdren { get; set; } = new List<Node>();
+        }
+
+        [TestMethod]
+        public void TestTree()
+        {            
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var nodeBases = connection
+                    .Query<NodeBsae>(@"
+                        select *  from Node
+                    ")
+                    .Fetch().ToArray();
+
+                List<Node> nodes = new List<Node>();
+               
+                Dictionary<int, int> parentMap = new Dictionary<int, int>();
+                Dictionary<int, Node> nodeMap = new Dictionary<int, Node>();
+
+                foreach (var nodeBase in nodeBases)
+                {
+                    var node = new Node
+                    {
+                        Id = nodeBase.Id,
+                        Name = nodeBase.Name,
+                        Level = nodeBase.Level,
+                        ParentId = nodeBase.ParentId
+                    };
+
+                    nodeMap[nodeBase.Id] = node;
+                    parentMap[nodeBase.Id] = nodeBase.ParentId;                    
+                }
+
+                foreach(var node in nodeMap.Values)
+                {
+                    int parentId = parentMap[node.Id];
+
+                    if (nodeMap.ContainsKey(parentId))
+                    {
+                        Node parentNode = nodeMap[parentId];
+                        parentNode.Chilrdren.Add(node);
+                    }
+                    else
+                    {
+                        nodes.Add(node);
+                    }
+                }
+
+                connection.Close();
+            }
+        }
     }
 }
