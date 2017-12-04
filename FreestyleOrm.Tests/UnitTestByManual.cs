@@ -72,13 +72,12 @@ namespace FreestyleOrm.Tests
                     m.To()
                         .UniqueKeys("PurchaseOrderId")
                         .FormatPropertyName(x => x)
-                        .Refer(Refer.Write)
-                        .GetEntity((row, rootEntity) =>
-                        {
-                            PurchaseOrder entity = PurchaseOrder.Create(row.Get<int>(nameof(entity.PurchaseOrderId)));
+                        .Refer(Refer.Write)      
+                        .CreateEntity((row, rootEntity) => PurchaseOrder.Create(row.Get<int>("PurchaseOrderId")))                  
+                        .SetEntity((row, rootEntity, entity) =>
+                        {                            
                             entity.Title = row.Get<string>(nameof(entity.Title));
-                            entity.RecordVersion = row.Get<int>(nameof(entity.RecordVersion));
-                            return entity;
+                            entity.RecordVersion = row.Get<int>(nameof(entity.RecordVersion));                            
                         })
                         .SetRow((entity, root, row) =>
                         {
@@ -99,12 +98,11 @@ namespace FreestyleOrm.Tests
                         .FormatPropertyName(x => x)
                         .IncludePrefix("PurchaseItems_")
                         .Refer(Refer.Write)
-                        .GetEntity((row, rootEntity) =>
-                        {
-                            PurchaseItem entity = PurchaseItem.Create(row.Get<int>(nameof(entity.PurchaseItemNo)));
+                        .CreateEntity((row, rootEntity) => PurchaseItem.Create(row.Get<int>("PurchaseItemNo")))                  
+                        .SetEntity((row, rootEntity, entity) =>
+                        {                            
                             entity.Number = row.Get<int>(nameof(entity.Number));
                             entity.RecordVersion = row.Get<int>($"PurchaseItems_{nameof(entity.RecordVersion)}");
-                            return entity;
                         })
                         .SetRow((entity, root, row) =>
                         {

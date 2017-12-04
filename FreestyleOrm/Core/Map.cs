@@ -153,11 +153,29 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        public IMapRule<TRootEntity, TEntity> GetEntity(Func<IRow, TRootEntity, TEntity> getEntity)
+        public IMapRule<TRootEntity, TEntity> CreateEntity(Func<IRow, TRootEntity, TEntity> createEntity)
         {
-            if (getEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(getEntity)} is null.");
+            if (createEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(createEntity)} is null.");
 
-            _mapRule.GetEntity = (row, rootEntity) => getEntity(row, rootEntity as TRootEntity);
+            _mapRule.CreateEntity = (row, rootEntity) => createEntity(row, rootEntity as TRootEntity);
+
+            return this;
+        }
+
+        public IMapRule<TRootEntity, TEntity> SetEntity(Action<IRow, TRootEntity, TEntity> setEntity)
+        {
+            if (setEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(setEntity)} is null.");
+
+            _mapRule.SetEntity = (row, rootEntity, entity) => setEntity(row, rootEntity as TRootEntity, entity as TEntity);
+
+            return this;
+        }
+
+        public IMapRule<TRootEntity, TEntity> SetRow(Action<TEntity, TRootEntity, IRow> setRow)
+        {
+            if (setRow == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(setRow)} is null.");
+
+            _mapRule.SetRow = (entity, rootEntity, row) => setRow(entity as TEntity, rootEntity as TRootEntity, row);
 
             return this;
         }
@@ -181,15 +199,6 @@ namespace FreestyleOrm.Core
         public IMapRule<TRootEntity, TEntity> Refer(Refer refer)
         {
             _mapRule.Refer = refer;
-
-            return this;
-        }
-
-        public IMapRule<TRootEntity, TEntity> SetRow(Action<TEntity, TRootEntity, IRow> setRow)
-        {
-            if (setRow == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(setRow)} is null.");
-
-            _mapRule.SetRow = (entity, rootEntity, row) => setRow(entity as TEntity, rootEntity as TRootEntity, row);
 
             return this;
         }

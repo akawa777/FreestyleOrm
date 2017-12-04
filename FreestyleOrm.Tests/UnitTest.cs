@@ -40,29 +40,29 @@ namespace FreestyleOrm.Tests
                 match => $"_{match.Value.ToUpper()}").ToUpper();
         }
 
-        public override string GetFormatPropertyName(Type rootEntityType, IMapRule mapRule, string column)
+        public override string GetFormatPropertyName(IMapRule mapRule, string column)
         {
-            if (rootEntityType == typeof(TestTable))
+            if (mapRule.EntityType == typeof(TestTable))
             {
                 var pascalColumn = ToPascal(column);
                 return pascalColumn;
             }
             else
             {
-                return base.GetFormatPropertyName(rootEntityType, mapRule, column);
+                return base.GetFormatPropertyName(mapRule, column);
             }
         }
 
-        public override string GetTable(Type rootEntityType, IMapRule mapRule)
+        public override string GetTable(IMapRule mapRule)
         {
-            if (rootEntityType == typeof(TestTable))
+            if (mapRule.EntityType == typeof(TestTable))
             {
-                var snakeTable = ToSnake(rootEntityType.Name);
+                var snakeTable = ToSnake(mapRule.EntityType.Name);
                 return snakeTable;
             }
             else
             {
-                return base.GetTable(rootEntityType, mapRule);
+                return base.GetTable(mapRule);
             }
         }
     }
@@ -160,8 +160,8 @@ namespace FreestyleOrm.Tests
                 var testTables = connection
                     .Query("select * from D_TEST_TABLE")                         
                     .Fetch()
-                    .Select(x => new 
-                    { 
+                    .Select(x => new
+                    {   
                         Id = x.Get<int>("ID"), 
                         ColOne = x.Get<string>("COL_ONE"), 
                         ColTwoOne = x.Get<string>("COL_TWO_ONE") 

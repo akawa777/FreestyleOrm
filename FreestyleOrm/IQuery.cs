@@ -21,14 +21,7 @@ namespace FreestyleOrm
     
     public interface IQuery<TRootEntity> : IQueryBase<TRootEntity> where TRootEntity : class
     {
-        IQuery<TRootEntity> Map(Action<IMap<TRootEntity>> setMap);
-        // IQuery<TRootEntity> Params(Action<Dictionary<string, object>> setParams);
-        // IQuery<TRootEntity> Formats(Action<Dictionary<string, object>> setFormats);
-        // IQuery<TRootEntity> TempTables(Action<ITempTableSet> setTempTables);
-        // IQuery<TRootEntity> Connection(IDbConnection connection);
-        // IQuery<TRootEntity> Transaction(IDbTransaction transaction);
-        // IEnumerable<TRootEntity> Fetch();
-        // Page<TRootEntity> Page(int no, int size);
+        IQuery<TRootEntity> Map(Action<IMap<TRootEntity>> setMap);        
         void Insert<TId>(TRootEntity rootEntity, out TId lastId);
         void Insert(TRootEntity rootEntity);
         void Update(TRootEntity rootEntity);
@@ -47,7 +40,8 @@ namespace FreestyleOrm
         IMapRule<TRootEntity, TEntity> UniqueKeys(string columns);
         IMapRule<TRootEntity, TEntity> IncludePrefix(string prefix);
         IMapRule<TRootEntity, TEntity> Refer(Refer refer);
-        IMapRule<TRootEntity, TEntity> GetEntity(Func<IRow, TRootEntity, TEntity> getEntity);
+        IMapRule<TRootEntity, TEntity> CreateEntity(Func<IRow, TRootEntity, TEntity> createEntity);
+        IMapRule<TRootEntity, TEntity> SetEntity(Action<IRow, TRootEntity, TEntity> setEntity);
         IMapRule<TRootEntity, TEntity> SetRow(Action<TEntity, TRootEntity, IRow> setRow);
         IMapRule<TRootEntity, TEntity> Table(string table);
         IMapRule<TRootEntity, TEntity> RelationId<TRelationEntity>(string relationIdColumn, Expression<Func<TRootEntity, TRelationEntity>> relationEntity) where TRelationEntity : class;
@@ -84,12 +78,9 @@ namespace FreestyleOrm
     }
 
     public interface IRow : IRowBase
-    {        
-        // object this[string column] { get; set; }
+    {   
         void BindEntity(object entity);
         void BindRow(object entity);
-        // IEnumerable<string> Columns { get; }
-        // TValue Get<TValue>(string column);
     }
 
     public interface ITempTableSet
@@ -106,6 +97,7 @@ namespace FreestyleOrm
 
     public interface IMapRule
     {
+        Type RootEntityType { get; }
         string ExpressionPath { get; }
         Type EntityType { get; }
         PropertyInfo Property { get; }

@@ -8,13 +8,15 @@ namespace FreestyleOrm
     public interface IQueryDefine
     {
         void SetFormats(Type rootEntityType, Dictionary<string, object> formats);
-        string GetTable(Type rootEntityType, IMapRule mapRule);
-        void SetRelationId(Type rootEntityType, IMapRule mapRule, RelationId relationId);
-        bool GetAutoId(Type rootEntityType, IMapRule mapRule);
-        string GetFormatPropertyName(Type rootEntityType, IMapRule mapRule, string column);
-        object CreateEntity(Type rootEntityType, IMapRule mapRule);
-        void SetOptimisticLock(Type rootEntityType, IMapRule mapRule, OptimisticLock optimisticLock);
-        string GetIncludePrefix(Type rootEntityType, IMapRule mapRule);
+        string GetTable(IMapRule mapRule);
+        void SetRelationId(IMapRule mapRule, RelationId relationId);
+        bool GetAutoId(IMapRule mapRule);
+        string GetFormatPropertyName(IMapRule mapRule, string column);
+        object CreateEntity(IMapRule mapRule, object rootEntity);
+        void SetEntity(IMapRule mapRule, IRow row, object rootentiy, object entity);
+        void SetRow(IMapRule mapRule, object entity, object rootentiy, IRow row);
+        void SetOptimisticLock(IMapRule mapRule, OptimisticLock optimisticLock);
+        string GetIncludePrefix(IMapRule mapRule);
     }
 
     public class OptimisticLock
@@ -37,37 +39,47 @@ namespace FreestyleOrm
 
         }
 
-        public virtual object CreateEntity(Type rootEntityType, IMapRule mapRule)
+        public virtual object CreateEntity(IMapRule mapRule, object rootEntity)
         {
             return Activator.CreateInstance(mapRule.EntityType, true);
         }
 
-        public virtual bool GetAutoId(Type rootEntityType, IMapRule mapRule)
+        public virtual void SetEntity(IMapRule mapRule, IRow row, object rootEntity, object entity)
+        {
+            row.BindEntity(entity);
+        }
+
+        public virtual void SetRow(IMapRule mapRule, object entity, object rootEntity, IRow row)
+        {
+            row.BindRow(entity);
+        }
+
+        public virtual bool GetAutoId(IMapRule mapRule)
         {
             return false;
         }
 
-        public virtual string GetFormatPropertyName(Type rootEntityType, IMapRule mapRule, string column)
+        public virtual string GetFormatPropertyName(IMapRule mapRule, string column)
         {
             return column;
         }
 
-        public virtual string GetTable(Type rootEntityType, IMapRule mapRule)
+        public virtual string GetTable(IMapRule mapRule)
         {
             return mapRule.EntityType.Name;
         }
 
-        public virtual void SetRelationId(Type rootEntityType, IMapRule mapRule, RelationId relationId)
+        public virtual void SetRelationId(IMapRule mapRule, RelationId relationId)
         {
 
         }
 
-        public virtual void SetOptimisticLock(Type rootEntityType, IMapRule mapRule, OptimisticLock optimisticLock)
+        public virtual void SetOptimisticLock(IMapRule mapRule, OptimisticLock optimisticLock)
         {
             
         }
 
-        public virtual string GetIncludePrefix(Type rootEntityType, IMapRule mapRule)
+        public virtual string GetIncludePrefix(IMapRule mapRule)
         {
             if (mapRule.Property == null) return null;
             return mapRule.Property.Name + "_";
