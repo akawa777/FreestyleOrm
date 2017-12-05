@@ -44,8 +44,8 @@ namespace FreestyleOrm.Core
 
         public bool IsRowVersionColumn(string column)
         {
-            if (string.IsNullOrEmpty(RowVersionColumn)) return false;
-            return RowVersionColumn == column;
+            if (string.IsNullOrEmpty(OptimisticLock.RowVersionColumn)) return false;
+            return OptimisticLock.RowVersionColumn == column;
         }
 
         public bool IsPrimaryKey(string column)
@@ -168,13 +168,9 @@ namespace FreestyleOrm.Core
 
         public string Table => _mapRule.Table;
 
-        public string RelationIdColumn => _mapRule.RelationIdColumn;
+        public RelationId RelationId => _mapRule.RelationId;
 
-        public string RelationEntityPath => _mapRule.RelationEntityPath;
-
-        public string RowVersionColumn => _mapRule.RowVersionColumn;        
-
-        public object NewRowVersion => _mapRule.NewRowVersion(_entity);
+        public OptimisticLock OptimisticLock => _mapRule.OptimisticLock;
 
         public bool IsRootRow => _mapRule.IsRootOptions;
 

@@ -91,15 +91,15 @@ namespace FreestyleOrm.Core
 
                 Dictionary<string, IDbDataParameter> parameters = GetParameters(row, command, row.AutoId ? ParameterFilter.WithoutPrimaryKeys : ParameterFilter.All);
 
-                if (!string.IsNullOrEmpty(row.RelationIdColumn)
+                if (!string.IsNullOrEmpty(row.RelationId.RelationIdColumn)
                     && (
-                        row[row.RelationIdColumn] == DBNull.Value
-                        || row[row.RelationIdColumn] == null
-                        || row[row.RelationIdColumn].ToString() == string.Empty
-                        || (decimal.TryParse(row[row.RelationIdColumn].ToString(), out decimal result) && result == 0)
+                        row[row.RelationId.RelationIdColumn] == DBNull.Value
+                        || row[row.RelationId.RelationIdColumn] == null
+                        || row[row.RelationId.RelationIdColumn].ToString() == string.Empty
+                        || (decimal.TryParse(row[row.RelationId.RelationIdColumn].ToString(), out decimal result) && result == 0)
                     ))
                 {
-                    if (_lastIdMap.TryGetValue(row.RelationEntityPath, out object id)) parameters[row.RelationIdColumn].Value = id;
+                    if (_lastIdMap.TryGetValue(row.RelationId.RelationEntityPath, out object id)) parameters[row.RelationId.RelationIdColumn].Value = id;
                     else throw new InvalidOperationException($"[{row.ExpressionPath}] RelationEntityPath is invalid.");                    
                 }
 
@@ -208,11 +208,11 @@ namespace FreestyleOrm.Core
                 IDbDataParameter parameter = null;
 
                 if (parameterFilter != ParameterFilter.PrimaryKeys
-                    && !string.IsNullOrEmpty(row.RowVersionColumn)
-                    && row.NewRowVersion != null
-                    && column == row.RowVersionColumn)
+                    && !string.IsNullOrEmpty(row.OptimisticLock.RowVersionColumn)
+                    && row.OptimisticLock.NewRowVersion != null
+                    && column == row.OptimisticLock.RowVersionColumn)
                 {
-                    if (row.NewRowVersion != null) parameter = CreateParameter(command, $"new_{column}", row.NewRowVersion, false);
+                    if (row.OptimisticLock.NewRowVersion != null) parameter = CreateParameter(command, $"new_{column}", row.OptimisticLock.NewRowVersion, false);
                 }
                 else if (row.Columns.Contains(column))
                 {                    

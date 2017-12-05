@@ -201,6 +201,16 @@ namespace FreestyleOrm.Tests
                     ")
                     .Fetch().ToArray();
 
+                var nodeBases2 = connection
+                    .Query<Node>(@"
+                        select *  from Node
+                    ")
+                    .Map(m => 
+                    {                        
+                        m.To().ClearRule(x => nameof(x.OptimisticLock));
+                    })
+                    .Fetch().ToArray();
+
                 List<Node> nodes = new List<Node>();
                
                 Dictionary<int, int> parentMap = new Dictionary<int, int>();

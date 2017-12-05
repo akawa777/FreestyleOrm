@@ -48,6 +48,8 @@ namespace FreestyleOrm
         IMapRule<TRootEntity, TEntity> FormatPropertyName(Func<string, string> formatPropertyName);
         IMapRule<TRootEntity, TEntity> AutoId(bool autoId);                
         IMapRule<TRootEntity, TEntity> OptimisticLock<TRowVersion>(string rowVersionColumn, Func<TEntity, TRowVersion> newRowVersion = null);
+        // IMapRule<TRootEntity, TEntity> ReNest<TProperty>(Expression<Func<TEntity, TProperty>> target, string parentColumns);
+        IMapRule<TRootEntity, TEntity> ClearRule(Func<IMapRule<TRootEntity, TEntity>, string> methodName);
     }
 
     public class Page<TRootEntity>

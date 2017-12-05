@@ -218,8 +218,8 @@ namespace FreestyleOrm.Core
             if (string.IsNullOrEmpty(relationIdColumn)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(relationIdColumn)} is null or empty.");
             if (relationEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(relationEntity)} is null.");            
 
-            _mapRule.RelationIdColumn = relationIdColumn;
-            _mapRule.RelationEntityPath = relationEntity.GetExpressionPath();
+            _mapRule.RelationId.RelationIdColumn = relationIdColumn;
+            _mapRule.RelationId.RelationEntityPath = relationEntity.GetExpressionPath();
 
             return this;
         }
@@ -238,11 +238,18 @@ namespace FreestyleOrm.Core
             if (string.IsNullOrEmpty(rowVersionColumn)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(rowVersionColumn)} is null or empty.");
             if (newRowVersion == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(newRowVersion)} is null.");
 
-            _mapRule.RowVersionColumn = rowVersionColumn;
-            if (newRowVersion != null) _mapRule.NewRowVersion = entity => newRowVersion(entity as TEntity);
+            _mapRule.OptimisticLock.RowVersionColumn = rowVersionColumn;
+            if (newRowVersion != null) _mapRule.OptimisticLock.NewRowVersion = entity => newRowVersion(entity as TEntity);
+
+            return this;
+        }        
+
+        public IMapRule<TRootEntity, TEntity> ClearRule(Func<IMapRule<TRootEntity, TEntity>, string> methodName)
+        {
+            string name = methodName(this);
+            _mapRule.InitRule(name);
 
             return this;
         }
-
     }
 }
