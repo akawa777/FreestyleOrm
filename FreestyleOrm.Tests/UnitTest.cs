@@ -164,19 +164,48 @@ namespace FreestyleOrm.Tests
                 connection.Open();    
                 
                 var testTables = connection
-                    .Query("select * from D_TEST_TABLE")                         
+                    .Query<D_TEST_TABLE>("select * from D_TEST_TABLE")                         
+                    .Map(m =>
+                    {
+                        m.To()
+                            .UniqueKeys("ID")
+                            .SetEntity((row, root, entity) => { })
+                            .ClearRule(x => nameof(x.SetEntity))
+                            .SetEntity((row, root, entity) => row.BindEntity(entity));
+                    })
+                    .Fetch()
+                    .ToArray();
+
+                Assert.AreEqual("xxx", testTables[0].COL_ONE);
+                Assert.AreEqual("yyy", testTables[0].COL_TWO_ONE);
+                
+                connection.Close();
+            }
+        }
+
+        [TestMethod]
+        public void Test4()
+        {
+            Test1();
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var testTables = connection
+                    .Query("select * from D_TEST_TABLE")
+                    
                     .Fetch()
                     .Select(x => new
-                    {   
-                        Id = x.Get<int>("ID"), 
-                        ColOne = x.Get<string>("COL_ONE"), 
-                        ColTwoOne = x.Get<string>("COL_TWO_ONE") 
+                    {
+                        Id = x.Get<int>("ID"),
+                        ColOne = x.Get<string>("COL_ONE"),
+                        ColTwoOne = x.Get<string>("COL_TWO_ONE")
                     })
                     .ToArray();
 
                 Assert.AreEqual("xxx", testTables[0].ColOne);
                 Assert.AreEqual("yyy", testTables[0].ColTwoOne);
-                
+
                 connection.Close();
             }
         }
@@ -205,17 +234,7 @@ namespace FreestyleOrm.Tests
                     .Query<NodeBsae>(@"
                         select *  from Node
                     ")
-                    .Fetch().ToArray();
-
-                var nodeBases2 = connection
-                    .Query<Node>(@"
-                        select *  from Node
-                    ")
-                    .Map(m => 
-                    {                        
-                        m.To().ClearRule(x => nameof(x.OptimisticLock));
-                    })
-                    .Fetch().ToArray();
+                    .Fetch().ToArray();                
 
                 List<Node> nodes = new List<Node>();
                
