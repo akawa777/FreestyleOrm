@@ -55,10 +55,11 @@ namespace FreestyleOrm.Tests
 
             public string GetConnectionString()
             {
-                SqliteConnectionStringBuilder builder = new SqliteConnectionStringBuilder();
-
-                builder.DataSource = _databaseFile;
-                builder.Mode = SqliteOpenMode.ReadWrite;
+                SqliteConnectionStringBuilder builder = new SqliteConnectionStringBuilder
+                {
+                    DataSource = _databaseFile,
+                    Mode = SqliteOpenMode.ReadWrite
+                };
 
                 return builder.ConnectionString;
             }
@@ -127,7 +128,7 @@ namespace FreestyleOrm.Tests
                 drop table Product;
                 drop table PurchaseOrder;                
                 drop table PurchaseItem;
-                drop table TestTable;
+                drop table D_TEST_TABLE;
                 drop table Node;
                 drop table NodeTree;
             ";

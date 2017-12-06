@@ -20,8 +20,7 @@ namespace FreestyleOrm.Tests
             query.Map(m =>
             {
                 m.To()
-                    .UniqueKeys("PurchaseOrderId")
-                    .Refer(Refer.Write)
+                    .UniqueKeys("PurchaseOrderId")                    
                     .SetRow((entity, root, row) =>
                     {
                         row.BindRow(entity);
@@ -31,10 +30,10 @@ namespace FreestyleOrm.Tests
                     .OptimisticLock("RecordVersion", x => x.RecordVersion + 1);
 
                 m.ToOne(x => x.Customer)
-                    .UniqueKeys("CustomerId");
+                    .UniqueKeys("CustomerId");                    
 
                 m.ToMany(x => x.PurchaseItems)
-                    .UniqueKeys("PurchaseOrderId, PurchaseItemNo")
+                    .UniqueKeys("PurchaseOrderId, PurchaseItemNo")                    
                     .Refer(Refer.Write)
                     .SetRow((entity, root, row) =>
                     {

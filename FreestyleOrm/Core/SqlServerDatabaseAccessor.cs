@@ -212,7 +212,7 @@ namespace FreestyleOrm.Core
                     && row.OptimisticLock.NewRowVersion != null
                     && column == row.OptimisticLock.RowVersionColumn)
                 {
-                    if (row.OptimisticLock.NewRowVersion != null) parameter = CreateParameter(command, $"new_{column}", row.OptimisticLock.NewRowVersion, false);
+                    if (row.OptimisticLock.NewRowVersion != null) parameter = CreateParameter(command, $"new_{column}", row.OptimisticLock.NewRowVersion(row.Entity), false);
                 }
                 else if (row.Columns.Contains(column))
                 {                    
@@ -229,7 +229,7 @@ namespace FreestyleOrm.Core
         {
             IDbDataParameter parameter = command.CreateParameter();
             parameter.ParameterName = includeParamPrefix ? name : $"@{name}";
-            parameter.Value = value == null ? DBNull.Value : value;
+            parameter.Value = value ?? DBNull.Value;
 
             return parameter;
         }

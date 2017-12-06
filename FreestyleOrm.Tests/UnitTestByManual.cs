@@ -16,7 +16,7 @@ namespace FreestyleOrm.Tests
         [TestInitialize]
         public void Init()
         {
-            _databaseKind = TestInitializer.DatabaseKinds.Sqlite;
+            _databaseKind = TestInitializer.DatabaseKinds.SqlServer;
             _testInitializer = new TestInitializer(_databaseKind, CreatePurchaseOrderQuery, _purchaseOrderNo);
         }
 
@@ -91,7 +91,8 @@ namespace FreestyleOrm.Tests
                         .OptimisticLock("RecordVersion", x => x.RecordVersion + 1);
 
                     m.ToOne(x => x.Customer)
-                        .UniqueKeys("CustomerId");
+                        .UniqueKeys("CustomerId")
+                        .IncludePrefix("Customer_");
 
                     m.ToMany(x => x.PurchaseItems)
                         .UniqueKeys("PurchaseOrderId, PurchaseItemNo")
@@ -117,7 +118,8 @@ namespace FreestyleOrm.Tests
                         .OptimisticLock("RecordVersion", x => x.RecordVersion + 1);
 
                     m.ToOne(x => x.PurchaseItems.First().Product)
-                        .UniqueKeys("ProductId");
+                        .UniqueKeys("ProductId")
+                        .IncludePrefix("Product_");
                 })
                 .Transaction(transaction);
 
@@ -272,11 +274,12 @@ namespace FreestyleOrm.Tests
 
                 query.Update(order);
 
+                transaction.Commit();
+
                 var updatedOrder = query.Fetch().Single();
 
                 AssertEqualPurchaseOrder(order, updatedOrder, true);
-
-                transaction.Commit();
+                
                 connection.Close();
             }            
         }

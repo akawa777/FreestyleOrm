@@ -18,7 +18,7 @@ namespace FreestyleOrm.Core
             _queryDefine = queryDefine;
 
             RootEntityType = rootEntityType;
-            ExpressionPath = expressionPath == null ? string.Empty : expressionPath;
+            ExpressionPath = expressionPath ?? string.Empty;
             EntityType = property == null ? rootEntityType : entityType;
             Property = property;
             IsToMany = isToMany;            
@@ -44,14 +44,14 @@ namespace FreestyleOrm.Core
             BindRow = binder.Bind;
 
             IEnumerable<MethodInfo> initMethods = typeof(MapRule).GetMethods().Where(x => x.Name.StartsWith("Init"));
-            foreach (var methodInfo in initMethods) methodInfo.Invoke(this, new object[0]);
+            foreach (var methodInfo in initMethods) if (methodInfo.Name != nameof(this.InitRule)) methodInfo.Invoke(this, new object[0]);
 
-            // GetEntity = (row, rootEntity) =>
-            // {
-            //     object entity = CreateEntity(row, rootEntity);
-            //     SetEntity(row, rootEntity, entity);
-            //     return entity;
-            // };
+            GetEntity = (row, rootEntity) =>
+            {
+                object entity = CreateEntity(row, rootEntity);
+                SetEntity(row, rootEntity, entity);
+                return entity;
+            };
 
             // CreateEntity = (row, rootEntity) => _queryDefine.CreateEntity(this, rootEntity);
             // SetEntity = (row, rootEntity, entity) => _queryDefine.SetEntity(this, row, rootEntity, entity);                            
@@ -68,9 +68,9 @@ namespace FreestyleOrm.Core
         public string[] ExpressionSections => ExpressionPath.Split('.');
         public bool IsToMany { get; set; }
         public string UniqueKeys { get; set; }
-        public void InitUniqueKeys() => UniqueKeys = string.Empty;
+        public void InitUniqueKeys() => UniqueKeys = _queryDefine.GetUniqueKeys(this);
         public string IncludePrefix { get; set; }
-        public void InitIncludePrefix() => IncludePrefix = string.Empty;
+        public void InitIncludePrefix() => IncludePrefix = _queryDefine.GetIncludePrefix(this);
         public Refer Refer { get; set; }
         public void InitRefer() => Refer = IsRootOptions ? Refer.Write : Refer.Read;
         public Func<Row, object, object> GetEntity { get; set; }

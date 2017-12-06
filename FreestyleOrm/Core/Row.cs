@@ -32,13 +32,13 @@ namespace FreestyleOrm.Core
             }
 
             PrimaryKeys = primaryKeys;
-            _entity = entity;
+            Entity = entity;
         }
         
         private Dictionary<string, object> _valueMap = new Dictionary<string, object>();
         private List<string> _columns = new List<string>();
         private MapRule _mapRule;
-        private object _entity;
+        public object Entity { get; set; }
 
         public bool StartWithPrefix(string column) => string.IsNullOrEmpty(_mapRule.IncludePrefix) ? false : column.StartsWith(_mapRule.IncludePrefix);
 
@@ -131,8 +131,11 @@ namespace FreestyleOrm.Core
         public bool AutoId => _mapRule.AutoId;        
 
         public bool CanCreate(IRow prevRow, IEnumerable<string> prevUniqueKeys)
-        {
-            if (UniqueKeys.Count() == 0) return true;
+        {            
+            if (UniqueKeys.Count() == 0 && IsRootRow)
+            {
+                return true;                
+            }
 
             foreach (var column in prevUniqueKeys.Concat(UniqueKeys))
             {
@@ -170,7 +173,7 @@ namespace FreestyleOrm.Core
 
         public RelationId RelationId => _mapRule.RelationId;
 
-        public OptimisticLock OptimisticLock => _mapRule.OptimisticLock;
+        public  OptimisticLock OptimisticLock => _mapRule.OptimisticLock;
 
         public bool IsRootRow => _mapRule.IsRootOptions;
 

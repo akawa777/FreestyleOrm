@@ -17,6 +17,7 @@ namespace FreestyleOrm
         void SetRow(IMapRule mapRule, object entity, object rootentiy, IRow row);
         void SetOptimisticLock(IMapRule mapRule, OptimisticLock optimisticLock);
         string GetIncludePrefix(IMapRule mapRule);
+        string GetUniqueKeys(IMapRule mapRule);
     }
 
     public class OptimisticLock
@@ -83,6 +84,11 @@ namespace FreestyleOrm
         {
             if (mapRule.Property == null) return null;
             return mapRule.Property.Name + "_";
+        }
+
+        public virtual string GetUniqueKeys(IMapRule mapRule)
+        {            
+            return string.Empty;
         }
     }
 }

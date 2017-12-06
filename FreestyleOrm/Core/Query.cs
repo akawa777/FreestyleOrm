@@ -217,27 +217,21 @@ namespace FreestyleOrm.Core
 
         public IQuery<TRootEntity> Formats(Action<Dictionary<string, object>> setFormats)
         {
-            if (setFormats == null) throw new AggregateException($"{setFormats} is null.");
-
-            _queryOptions.SetFormats = setFormats;
+            _queryOptions.SetFormats = setFormats ?? throw new AggregateException($"{setFormats} is null.");
 
             return this;
         }
 
         public IQuery<TRootEntity> Map(Action<IMap<TRootEntity>> setMap)
         {
-            if (setMap == null) throw new AggregateException($"{setMap} is null.");
-
-            _setMap = setMap;
+            _setMap = setMap ?? throw new AggregateException($"{setMap} is null.");
 
             return this;
         }
 
         public IQuery<TRootEntity> Params(Action<Dictionary<string, object>> setParams)
         {
-            if (setParams == null) throw new AggregateException($"{setParams} is null.");
-
-            _queryOptions.SetParams = setParams;
+            _queryOptions.SetParams = setParams ?? throw new AggregateException($"{setParams} is null.");
 
             return this;
         }
@@ -332,9 +326,7 @@ namespace FreestyleOrm.Core
 
         public IQuery<TRootEntity> TempTables(Action<ITempTableSet> setTempTables)
         {
-            if (setTempTables == null) throw new AggregateException($"{setTempTables} is null.");
-
-            _queryOptions.SetTempTables = setTempTables;
+            _queryOptions.SetTempTables = setTempTables ?? throw new AggregateException($"{setTempTables} is null.");
 
             return this;
         }
@@ -425,9 +417,7 @@ namespace FreestyleOrm.Core
 
         public IQuery<TRootEntity> Connection(IDbConnection connection)
         {
-            if (connection == null) throw new AggregateException("connection is null.");
-
-            _queryOptions.Connection = connection;
+            _queryOptions.Connection = connection ?? throw new AggregateException("connection is null.");
 
             return this;
         }

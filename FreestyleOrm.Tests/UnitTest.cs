@@ -80,15 +80,19 @@ namespace FreestyleOrm.Tests
         [TestMethod]
         public void Test1()
         {
-            var table = new D_TEST_TABLE();
-            table.ID = 1;
-            table.COL_ONE = "xxx";
-            table.COL_TWO_ONE = "yyy";
+            var table = new D_TEST_TABLE
+            {
+                ID = 1,
+                COL_ONE = "xxx",
+                COL_TWO_ONE = "yyy"
+            };
 
-            var table2 = new D_TEST_TABLE();
-            table2.ID = 2;
-            table2.COL_ONE = "aaa";
-            table2.COL_TWO_ONE = "bbb";
+            var table2 = new D_TEST_TABLE
+            {
+                ID = 2,
+                COL_ONE = "aaa",
+                COL_TWO_ONE = "bbb"
+            };
 
             using (var connection = _testInitializer.CreateConnection())
             {
@@ -115,14 +119,16 @@ namespace FreestyleOrm.Tests
                 connection.Close();
             }
         }
-        
+
         [TestMethod]
         public void Test2()
         {
-            var table = new TestTable();
-            table.Id = 1;
-            table.ColOne = "xxx";
-            table.ColTwoOne = "yyy";
+            var table = new TestTable
+            {
+                Id = 1,
+                ColOne = "xxx",
+                ColTwoOne = "yyy"
+            };
 
             using (var connection = _testInitializer.CreateConnection())
             {
