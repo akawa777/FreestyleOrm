@@ -16,7 +16,7 @@ namespace FreestyleOrm
         void SetEntity(IMapRule mapRule, IRow row, object rootentiy, object entity);
         void SetRow(IMapRule mapRule, object entity, object rootentiy, IRow row);
         void SetOptimisticLock(IMapRule mapRule, OptimisticLock optimisticLock);
-        string GetIncludePrefix(IMapRule mapRule);
+        string GetIncludePrefix(IMapRule mapRule);        
         string GetUniqueKeys(IMapRule mapRule);
     }
 
@@ -30,6 +30,14 @@ namespace FreestyleOrm
     {        
         public string RelationIdColumn { get; set; }
         public string RelationEntityPath { get; set; }
+    }
+
+    internal class ReNest
+    {   
+        public string NestEntityPath { get; set; }
+        public string IdProperty { get; set; }
+        public string ParentProperty { get; set; }
+        public bool Should() => !string.IsNullOrEmpty(NestEntityPath);
     }
 
     public class QueryDefine : IQueryDefine

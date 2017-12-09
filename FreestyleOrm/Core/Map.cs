@@ -242,7 +242,21 @@ namespace FreestyleOrm.Core
             if (newRowVersion != null) _mapRule.OptimisticLock.NewRowVersion = entity => newRowVersion(entity as TEntity);
 
             return this;
-        }        
+        }  
+
+        public IMapRule<TRootEntity, TEntity> ReNest<TProperty, TId>(Expression<Func<TEntity, IEnumerable<TProperty>>> nestEntity, Expression<Func<TEntity, TId>> idPropertiy, Expression<Func<TEntity, TId>> parentProperty) where  TProperty : TEntity
+        {
+            if (!_mapRule.IsToMany) throw new InvalidOperationException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(ReNest)} is valid only for ToMany.");    
+            if (nestEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(nestEntity)} is null.");    
+            if (idPropertiy == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(idPropertiy)} is null.");        
+            if (parentProperty == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(parentProperty)} is null.");        
+
+            _mapRule.ReNest.NestEntityPath = nestEntity.GetExpressionPath();
+            _mapRule.ReNest.IdProperty = idPropertiy.GetExpressionPath();
+            _mapRule.ReNest.ParentProperty = parentProperty.GetExpressionPath();
+
+            return this;
+        }    
 
         public IMapRule<TRootEntity, TEntity> ClearRule(Func<IMapRule<TRootEntity, TEntity>, string> methodName)
         {

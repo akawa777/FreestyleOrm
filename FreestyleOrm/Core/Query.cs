@@ -35,9 +35,227 @@ namespace FreestyleOrm.Core
             public int Value { get; set; }
         }
 
+        private IEnumerable<object> CreateNodes(IEnumerable<object> entites, ReNest reNest)
+        {
+            if (entites == null) Enumerable.Empty<object>();
+
+            Dictionary<string, object> nodeMap = new Dictionary<string, object>();               
+            Dictionary<string, List<string>> parentNodeMap = new Dictionary<string, List<string>>();            
+
+            Dictionary<string, PropertyInfo> propertyMap = null;
+
+            foreach (var entity in entites)
+            {
+                if (propertyMap == null) propertyMap = entity.GetType().GetPropertyMap(BindingFlags.Public, PropertyTypeFilters.All);                
+
+                var propertyInfo = propertyMap[reNest.IdProperty];
+                var id = propertyInfo.Get(entity);
+                nodeMap[id.ToString()] = entity;
+
+                propertyInfo = propertyMap[reNest.ParentProperty];
+                var parentId = propertyInfo.Get(entity);  
+
+                if (parentId == null) continue;
+
+                List<string> propertyIdList;
+                if (!parentNodeMap.TryGetValue(id.ToString(), out propertyIdList))          
+                {
+                    propertyIdList = new List<string>();
+                    parentNodeMap[id.ToString()] = propertyIdList;
+                }
+
+                propertyIdList.Add(parentId.ToString());
+            }
+
+            if (nodeMap.Count == 0) return Enumerable.Empty<object>();
+
+            List<object> nodes = new List<object>();
+
+            foreach(var id in nodeMap.Keys)
+            {
+                object node = nodeMap[id];                
+
+                if (!parentNodeMap.ContainsKey(id))
+                {
+                    nodes.Add(node);
+                    continue;
+                }
+
+                foreach (var parentId in parentNodeMap[id])
+                {
+                    if (!nodeMap.ContainsKey(parentId))
+                    {
+                        nodes.Add(node);
+                        continue;
+                    }
+
+                    var property = propertyMap[reNest.NestEntityPath];
+                    
+                    object parentNode = nodeMap[parentId];
+
+                    object list = property.Get(parentNode);
+
+                    if (list == null)
+                    {
+                        if (property.PropertyType.IsArray)
+                        {
+                            list = Array.CreateInstance(node.GetType(), 0);
+                        }
+                        else if (property.PropertyType == typeof(IEnumerable<>).MakeGenericType(node.GetType()))
+                        {
+                            list = typeof(List<>).MakeGenericType(node.GetType()).Create();
+                        }
+                        else
+                        {
+                            list = property.PropertyType.Create();
+                        }
+
+                        property.Set(parentNode, list);
+                    }
+
+                    if (property.PropertyType.IsArray)
+                    {
+                        Array array = (Array)list;
+                        Array newArray = Array.CreateInstance(node.GetType(), array.Length + 1);
+
+                        array.CopyTo(newArray, 0);
+                        newArray.SetValue(node, array.Length);
+
+                        property.Set(parentNode, newArray);
+                    }
+                    else if (property.PropertyType == typeof(IEnumerable<>).MakeGenericType(node.GetType()))
+                    {                                
+                        dynamic dynamicList = typeof(List<>).MakeGenericType(node.GetType()).Create();
+                        dynamicList.AddRange(list as dynamic);
+                        dynamicList.Add(node as dynamic);
+
+                        property.Set(parentNode, dynamicList as object);
+                    }
+                    else
+                    {
+                        dynamic dynamicList = list;
+                        dynamic dynamicEntity = node;
+                        dynamicList.Add(dynamicEntity);
+                    }
+                }
+            }
+
+            return nodes;
+        }
+
+        private void SetReNestNodes(Map<TRootEntity> map, object rootEntity)
+        {
+            foreach(var mapRule in map.MapRuleListWithoutRoot)
+            {
+                if (!mapRule.ReNest.Should()) continue;
+
+                object parentEntity = rootEntity;
+                PropertyInfo property = null;
+
+                foreach (var section in mapRule.ExpressionSections)
+                {
+                    if (property != null && !property.PropertyType.IsList())
+                    {
+                        parentEntity = property.Get(parentEntity);
+                    }
+                    if (property != null && property.PropertyType.IsList())
+                    {
+                        var list = property.Get(parentEntity) as IEnumerable;                                
+                        foreach (var item in list) parentEntity = item;
+                    }
+
+                    Dictionary<string, PropertyInfo> propertyMap = parentEntity.GetType().GetPropertyMap(BindingFlags.GetProperty | BindingFlags.SetProperty, PropertyTypeFilters.OnlyClass);
+
+                    property = propertyMap[section];
+                }                
+
+                IEnumerable<object> entities;
+
+                if (mapRule.IsToMany)
+                {
+                    entities = property.Get(parentEntity) as IEnumerable<object>;
+                }
+                else
+                {
+                    var entity = property.Get(parentEntity);
+                    entities = new object[] { entity };
+                }
+
+                IEnumerable<object> nodes = CreateNodes(entities, mapRule.ReNest);
+
+                if (nodes.Count() > 0)
+                {
+                    property.Set(parentEntity, null);
+                }
+                else if (mapRule.IsToMany)
+                {
+                    object newList;
+
+                    if (property.PropertyType.IsArray)
+                    {
+                        newList = Array.CreateInstance(mapRule.EntityType, 0);
+                    }
+                    else if (property.PropertyType == typeof(IEnumerable<>).MakeGenericType(mapRule.EntityType))
+                    {
+                        newList = typeof(List<>).MakeGenericType(mapRule.EntityType).Create();
+                    }
+                    else
+                    {
+                        newList = property.PropertyType.Create();
+                    }
+
+                    property.Set(parentEntity, newList);
+
+                    foreach (var node in nodes)
+                    {
+                        if (property.PropertyType.IsArray)
+                        {
+                            Array array = (Array)newList;
+                            Array newArray = Array.CreateInstance(mapRule.EntityType, array.Length + 1);
+
+                            array.CopyTo(newArray, 0);
+                            newArray.SetValue(node, array.Length);
+
+                            property.Set(parentEntity, newArray);
+                        }
+                        else if (property.PropertyType == typeof(IEnumerable<>).MakeGenericType(mapRule.EntityType))
+                        {                                
+                            dynamic dynamicList = typeof(List<>).MakeGenericType(mapRule.EntityType).Create();
+                            dynamicList.AddRange(newList as dynamic);
+                            dynamicList.Add(node as dynamic);
+
+                            property.Set(parentEntity, dynamicList as object);
+                        }
+                        else
+                        {
+                            dynamic dynamicList = newList;
+                            dynamic dynamicEntity = node;
+                            dynamicList.Add(dynamicEntity);
+                        }
+                    }
+                }
+                else
+                {
+                    property.Set(parentEntity, nodes.FirstOrDefault());
+                }
+            }
+        }
+
         public IEnumerable<TRootEntity> Fetch()
         {
-            return Fetch(1, int.MaxValue, new PageCount());
+            Map<TRootEntity> map = CreateMap();
+
+            if (map.RootMapRule.ReNest.Should())
+            {
+                var list = Fetch(1, int.MaxValue, new PageCount(), map);
+                var nodes = CreateNodes(list, map.RootMapRule.ReNest);
+
+                return nodes.Select(x => x as TRootEntity);
+            }
+            else
+            {
+                return Fetch(1, int.MaxValue, new PageCount(), map);
+            }
         }        
 
         public Page<TRootEntity> Page(int no, int size)
@@ -45,20 +263,38 @@ namespace FreestyleOrm.Core
             if (no < 1) throw new AggregateException($"{no} is less than 1.");
             if (size < 1) throw new AggregateException($"{size} is less than 1.");
 
+            Map<TRootEntity> map = CreateMap();
+
             PageCount pageCount = new PageCount();
-            List<TRootEntity> list = new List<TRootEntity>();
-            foreach (var rootEntity in Fetch(no, size, pageCount)) list.Add(rootEntity);
+            IEnumerable<TRootEntity> list;
+
+            if (map.RootMapRule.ReNest.Should())
+            {
+                var nodes = Fetch();
+                var pageCnt = (nodes.Count() / size) + 0.5;
+                pageCount.Value = (int)pageCnt;
+                list = Fetch().Skip((no - 1) * size).Take(size);
+            }
+            else
+            {
+                list = Fetch(no, size, pageCount, map).ToList();
+            }
 
             return new Page<TRootEntity>(no, list, pageCount.Value);
         }
 
-        private IEnumerable<TRootEntity> Fetch(int page, int size, PageCount outPageCount)
+        private Map<TRootEntity> CreateMap()
         {
-            outPageCount.Value = 0;
-
             Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
 
             _setMap(map);
+
+            return map;
+        }
+
+        private IEnumerable<TRootEntity> Fetch(int page, int size, PageCount outPageCount, Map<TRootEntity> map)
+        {
+            outPageCount.Value = 0;            
 
             using (var reader = _databaseAccessor.CreateFetchReader(_queryOptions, out Action dispose))
             {
@@ -77,7 +313,12 @@ namespace FreestyleOrm.Core
 
                     if (currentRow.CanCreate(prevRow, uniqueKeys))
                     {
-                        if (rootEntity != null) yield return rootEntity;
+                        if (rootEntity != null) 
+                        {
+                            SetReNestNodes(map, rootEntity);
+                            yield return rootEntity;
+                        }
+
                         rootEntity = null;
 
                         if (currentPage == 0 || currentSize % size == 0)
@@ -206,7 +447,11 @@ namespace FreestyleOrm.Core
                     prevRow = currentRow;
                 }
 
-                if (rootEntity != null) yield return rootEntity;
+                if (rootEntity != null) 
+                {
+                    SetReNestNodes(map, rootEntity);
+                    yield return rootEntity;
+                }
 
                 outPageCount.Value = currentPage;
 

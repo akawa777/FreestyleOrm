@@ -137,17 +137,19 @@ namespace FreestyleOrm.Core
                 return true;                
             }
 
-            foreach (var column in prevUniqueKeys.Concat(UniqueKeys))
-            {
-                if (this[column] == DBNull.Value) return false;
-            }
+            // foreach (var column in prevUniqueKeys.Concat(UniqueKeys))
+            // {
+            //     if (this[column] == DBNull.Value) return false;
+            // }
 
             if (prevRow == null) return true;
             if (UniqueKeys.Count() == 0) return true;
 
             foreach (var column in prevUniqueKeys.Concat(UniqueKeys))
             {
-                if (prevRow[column] == DBNull.Value) continue;
+                if (this[column] == DBNull.Value && prevRow[column] == DBNull.Value) continue;
+                if (this[column] == DBNull.Value && prevRow[column] != DBNull.Value) return true;
+                if (this[column] != DBNull.Value && prevRow[column] == DBNull.Value) return true;
                 if (this[column].ToString() != prevRow[column].ToString()) return true;
             }
 

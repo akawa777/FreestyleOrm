@@ -102,5 +102,6 @@ namespace FreestyleOrm.Core
 
             method.Invoke(this, new object[0]);
         }
+        public ReNest ReNest {  get; set; } = new ReNest();
     }
 }

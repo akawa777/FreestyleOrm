@@ -47,8 +47,8 @@ namespace FreestyleOrm
         IMapRule<TRootEntity, TEntity> RelationId<TRelationEntity>(string relationIdColumn, Expression<Func<TRootEntity, TRelationEntity>> relationEntity) where TRelationEntity : class;
         IMapRule<TRootEntity, TEntity> FormatPropertyName(Func<string, string> formatPropertyName);
         IMapRule<TRootEntity, TEntity> AutoId(bool autoId);                
-        IMapRule<TRootEntity, TEntity> OptimisticLock<TRowVersion>(string rowVersionColumn, Func<TEntity, TRowVersion> newRowVersion = null);
-        // IMapRule<TRootEntity, TEntity> ReNest<TProperty>(Expression<Func<TEntity, TProperty>> target, string parentColumns);
+        IMapRule<TRootEntity, TEntity> OptimisticLock<TRowVersion>(string rowVersionColumn, Func<TEntity, TRowVersion> newRowVersion = null);        
+        IMapRule<TRootEntity, TEntity> ReNest<TProperty, TId>(Expression<Func<TEntity, IEnumerable<TProperty>>> nestEntity, Expression<Func<TEntity, TId>> idPropertiy, Expression<Func<TEntity, TId>> parentProperty) where  TProperty : TEntity;
         IMapRule<TRootEntity, TEntity> ClearRule(Func<IMapRule<TRootEntity, TEntity>, string> methodName);
     }
 

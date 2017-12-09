@@ -130,7 +130,6 @@ namespace FreestyleOrm.Tests
                 drop table PurchaseItem;
                 drop table D_TEST_TABLE;
                 drop table Node;
-                drop table NodeTree;
             ";
         }
 
@@ -191,27 +190,13 @@ namespace FreestyleOrm.Tests
 	                ParentId int
                 );
 
-                create table NodeTree (
-	                Id int,
-	                ParentId int,
-	                Level int
-                );
-
-                insert into Node values(1000, 'node_1000', 0);
+                insert into Node values(1000, 'node_1000', null);
                 insert into Node values(1100, 'node_1100', 1000);
                 insert into Node values(1200, 'node_1200', 1000);
                 insert into Node values(1110, 'node_1110', 1100);
-                insert into Node values(2000, 'node_1000', 0);
-
-                insert into NodeTree values(1000, 1000, 1);
-                insert into NodeTree values(1100, 1000, 2);
-                insert into NodeTree values(1200, 1000, 2);
-                insert into NodeTree values(1110, 1000, 3);
-                insert into NodeTree values(1100, 1100, 2);
-                insert into NodeTree values(1110, 1100, 3);
-                insert into NodeTree values(1200, 1200, 2);
-                insert into NodeTree values(1110, 1110, 3);
-                insert into NodeTree values(2000, 2000, 1);
+                insert into Node values(2000, 'node_2000', null);
+                insert into Node values(2100, 'node_2100', 2000);
+                insert into Node values(2100, 'node_2200', 1110);
             ";
         }
 

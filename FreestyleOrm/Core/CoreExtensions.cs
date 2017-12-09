@@ -212,7 +212,18 @@ namespace FreestyleOrm.Core
         {
             property = null;
 
-            string[] sections = expression.Body.ToString().Split('.');
+            string expressionText;
+            if (expression.Body is UnaryExpression)
+            {
+                UnaryExpression unaryExpression = expression.Body as UnaryExpression;
+                expressionText = unaryExpression.Operand.ToString();
+            }
+            else
+            {
+                expressionText = expression.Body.ToString();
+            }
+
+            string[] sections =  expressionText.Split('.');
             List<string> path = new List<string>();
 
             Dictionary<string, PropertyInfo> propertyMap = typeof(TRoot).GetPropertyMap(BindingFlags.Public, PropertyTypeFilters.All);

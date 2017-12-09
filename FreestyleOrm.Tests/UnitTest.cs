@@ -7,6 +7,7 @@ using Microsoft.Data.Sqlite;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Linq.Expressions;
 
 namespace FreestyleOrm.Tests
 {
@@ -210,17 +211,12 @@ namespace FreestyleOrm.Tests
             }
         }
 
-        public class NodeBsae
+        public class Node
         {
             public int Id { get; set; }
-            public string Name { get; set; }
-            public int Level { get; set; }
-            public int ParentId { get; set; }
-        }
-
-        public class Node : NodeBsae
-        {
-            public List<Node> Chilrdren { get; set; } = new List<Node>();
+            public string Name { get; set; }            
+            public int? ParentId { get; set; }
+            public List<Node> Chilrdren { get; set; }
         }
 
         [TestMethod]
@@ -230,45 +226,79 @@ namespace FreestyleOrm.Tests
             {
                 connection.Open();
 
-                var nodeBases = connection
-                    .Query<NodeBsae>(@"
-                        select *  from Node
+                var nodes = connection
+                    .Query<Node>(@"
+                        select * from Node
                     ")
+                    .Map(m => m.To().UniqueKeys("Id, ParentId").ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId))
                     .Fetch().ToArray();                
 
-                List<Node> nodes = new List<Node>();
-               
-                Dictionary<int, int> parentMap = new Dictionary<int, int>();
-                Dictionary<int, Node> nodeMap = new Dictionary<int, Node>();
+                connection.Close();
+            }
+        }
 
-                foreach (var nodeBase in nodeBases)
-                {
-                    var node = new Node
+        public class Customer
+        {
+            public int CustomerId { get; set; }            
+            public List<Node> Nodes { get; set; }
+        }
+
+        [TestMethod]
+        public void TestTree2()
+        {            
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var customers = connection
+                    .Query<Customer>(@"
+                        select * from Customer, Node
+                    ")
+                    .Map(m => 
                     {
-                        Id = nodeBase.Id,
-                        Name = nodeBase.Name,
-                        Level = nodeBase.Level,
-                        ParentId = nodeBase.ParentId
-                    };
+                        m.To().UniqueKeys("CustomerId");
+                        m.ToMany(x => x.Nodes).UniqueKeys("Id, ParentId").ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId);
+                    })
+                    .Fetch().ToArray();                
 
-                    nodeMap[nodeBase.Id] = node;
-                    parentMap[nodeBase.Id] = nodeBase.ParentId;                    
-                }
+                connection.Close();
+            }
+        }
 
-                foreach(var node in nodeMap.Values)
-                {
-                    int parentId = parentMap[node.Id];
+        public class Product
+        {
+            public int ProductId { get; set; }            
+            public Node Node { get; set; }
+        }
 
-                    if (nodeMap.ContainsKey(parentId))
+        [TestMethod]
+        public void TestTree3()
+        {            
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var customers = connection
+                    .Query<Product>(@"                    
+                        select 
+                            p.*, 
+                            n.*,
+                            n2.Id n2_Id, 
+                            n2.Name n2_Name, 
+                            n2.ParentId n2_ParentId                            
+                        from (select *, 1000 nodeId from Product) p
+                        left join Node n on p.NodeId = n.Id
+                        left join Node n2 on n.Id = n2.ParentId
+                    ")
+                    .Map(m => 
                     {
-                        Node parentNode = nodeMap[parentId];
-                        parentNode.Chilrdren.Add(node);
-                    }
-                    else
-                    {
-                        nodes.Add(node);
-                    }
-                }
+                        m.To().UniqueKeys("ProductId");
+                        m.ToOne(x => x.Node).UniqueKeys("Id");
+                        m.ToMany(x => x.Node.Chilrdren)
+                            .UniqueKeys("n2_Id, n2_ParentId")
+                            .IncludePrefix("n2_").ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId);
+                    })
+                    .Fetch().ToArray();                
 
                 connection.Close();
             }
