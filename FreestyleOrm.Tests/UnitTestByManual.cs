@@ -276,6 +276,8 @@ namespace FreestyleOrm.Tests
 
                 transaction.Commit();
 
+                query.Transaction(null);
+
                 var updatedOrder = query.Fetch().Single();
 
                 AssertEqualPurchaseOrder(order, updatedOrder, true);
