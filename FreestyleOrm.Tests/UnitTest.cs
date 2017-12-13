@@ -373,10 +373,10 @@ namespace FreestyleOrm.Tests
 
                         s.Predicate("filter", x => $"where {x}")
                             .Expression(symbol, "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
-                            .Expression(symbol, "CustomerName like @LikeCustomerName + '%'", p => p["@LikeCustomerName"] = filter.LikeCustomerName);
+                            .Expression(symbol, "CustomerName like 'Customer%'", p => p["@LikeCustomerName"] = filter.LikeCustomerName);
 
                         s.Predicate("sortColumns")
-                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultValue: "CustomerId");                         
+                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultSql: "CustomerId");                         
                     })                    
                     .Fetch().ToArray();
 
@@ -420,7 +420,7 @@ namespace FreestyleOrm.Tests
                             .Expression(symbol, "CustomerName like @LikeCustomerName + '%'", p => p["@LikeCustomerName"] = filter.LikeCustomerName);
 
                         s.Predicate("sortColumns")
-                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultValue: "CustomerId");
+                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultSql: "CustomerId");
                     })
                     .Fetch().ToArray();
 
@@ -471,7 +471,7 @@ namespace FreestyleOrm.Tests
                             });
 
                         s.Predicate("sortColumns")
-                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultValue: "CustomerId");
+                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultSql: "CustomerId");
                     })
                     .Fetch().ToArray();
 

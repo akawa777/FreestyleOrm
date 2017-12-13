@@ -113,9 +113,10 @@ namespace FreestyleOrm.Core
             return true;
         }
 
-        public ISpecPredicate Comma<T>(IEnumerable<T> list, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultValue = null)
+        public ISpecPredicate Comma<T>(IEnumerable<T> list, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null)
         {
             var result = new SpecPredicateResult();
+            
             Func<bool> defaultValidation = () => list != null && list.Count() > 0;
 
             try
@@ -128,18 +129,20 @@ namespace FreestyleOrm.Core
 
                     if (validation == null && !ValidationParams(result.Params))
                     {
-                        if (defaultValue != null) result.Sql = defaultValue;
+                        if (defaultSql != null) result.Sql = defaultSql;
                         else return this;
                     }
                 }
                 else
                 {   
-                    if (defaultValue != null) result.Sql = defaultValue;
+                    if (defaultSql != null) result.Sql = defaultSql;
                 }
             }
             catch(Exception e)
             {
                 if (validation != null) throw e;
+                if (defaultSql != null) result.Sql = defaultSql;
+                
             }
 
             _specPredicateResults.Add(result);
@@ -147,7 +150,7 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        public ISpecPredicate Expression(LogicalSymbol logicalSymbol, string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultValue = null)
+        public ISpecPredicate Expression(LogicalSymbol logicalSymbol, string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null)
         {
             var result = new SpecPredicateResult();
             Func<bool> defaultValidation = () => !string.IsNullOrEmpty(sql);
@@ -162,18 +165,19 @@ namespace FreestyleOrm.Core
 
                     if (validation == null && !ValidationParams(result.Params))
                     {
-                        if (defaultValue != null) result.Sql = defaultValue;
+                        if (defaultSql != null) result.Sql = defaultSql;
                         else return this;
                     }
                 }
                 else
                 {
-                    if (defaultValue != null) result.Sql = defaultValue;
+                    if (defaultSql != null) result.Sql = defaultSql;
                 }
             }
             catch (Exception e)
             {
                 if (validation != null) throw e;
+                if (defaultSql != null) result.Sql = defaultSql;
             }
 
             if (!string.IsNullOrEmpty(result.Sql) && _specPredicateResults.Count > 0)
@@ -221,7 +225,7 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        public ISpecPredicate Sort<T>(IEnumerable<T> list, Func<T, int, bool> isDesc = null, string defaultValue = null, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null)
+        public ISpecPredicate Sort<T>(IEnumerable<T> list, Func<T, int, bool> isDesc = null, string defaultSql = null, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null)
         {
             var result = new SpecPredicateResult();
             Func<bool> defaultValidation = () => list != null && list.Count() > 0;
@@ -247,18 +251,19 @@ namespace FreestyleOrm.Core
 
                     if (validation == null && !ValidationParams(result.Params))
                     {
-                        if (defaultValue != null) result.Sql = defaultValue;
+                        if (defaultSql != null) result.Sql = defaultSql;
                         else return this;
                     }
                 }
                 else
                 {
-                    if (defaultValue != null) result.Sql = defaultValue;
+                    if (defaultSql != null) result.Sql = defaultSql;
                 }
             }
             catch (Exception e)
             {
                 if (validation != null) throw e;
+                if (defaultSql != null) result.Sql = defaultSql;
             }
 
             _specPredicateResults.Add(result);
