@@ -217,10 +217,10 @@ namespace FreestyleOrm.Tests
 
                 var page = query.Page(no, size);
 
-                Assert.AreEqual(no, page.No);
+                Assert.AreEqual(no, page.PageNo);
                 Assert.AreEqual(size, page.Lines.Count());
                 Assert.AreEqual(size * no, page.Lines.Last().PurchaseOrderId);
-                Assert.AreEqual(no, page.Total);
+                Assert.AreEqual(no, page.TotalLinesCount);
 
                 connection.Close();
             }            

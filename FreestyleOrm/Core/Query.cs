@@ -268,9 +268,8 @@ namespace FreestyleOrm.Core
 
             if (map.RootMapRule.ReNest.Should())
             {
-                var nodes = Fetch();
-                var pageCnt = (nodes.Count() / size) + 0.5;
-                pageCount.Value = (int)pageCnt;
+                var nodes = Fetch();                
+                pageCount.Value = nodes.Count();
                 list = Fetch().Skip((no - 1) * size).Take(size);
             }
             else
@@ -278,7 +277,7 @@ namespace FreestyleOrm.Core
                 list = Fetch(no, size, pageCount, map).ToList();
             }
 
-            return new Page<TRootEntity>(no, list, pageCount.Value);
+            return new Page<TRootEntity>(no, size, pageCount.Value, list);
         }
 
         private Map<TRootEntity> CreateMap()
