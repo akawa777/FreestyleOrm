@@ -252,7 +252,7 @@ namespace FreestyleOrm.Core
         {
             string formatedSql = queryOptions.Sql;
 
-            Dictionary<string, object> formats = new Dictionary<string, object>();
+            Dictionary<string, object> formats = new Dictionary<string, object>();            
             queryOptions.SetFormats(formats);
 
             foreach (var format in formats) formatedSql = formatedSql.Replace("{{" + format.Key + "}}", format.Value.ToString());
@@ -329,7 +329,7 @@ namespace FreestyleOrm.Core
         {
             outComplexParameters.Clear();
             List<IDbDataParameter> dbParameters = new List<IDbDataParameter>();
-            Dictionary<string, object> parameters = new Dictionary<string, object>();
+            Dictionary<string, object> parameters = new Dictionary<string, object>();            
             queryOptions.SetParams(parameters);
 
             foreach (var param in parameters)

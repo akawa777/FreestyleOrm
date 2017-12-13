@@ -303,5 +303,146 @@ namespace FreestyleOrm.Tests
                 connection.Close();
             }
         }
+
+        public class CustomerFilter
+        {
+            public bool Any { get; set; }
+            public List<int> CustomerIds { get; set; }
+            public string LikeCustomerName { get; set; }
+            public List<string> SortColumns { get; set; }
+            public bool Desc { get; set; }
+        }
+
+        [TestMethod]
+        public void Test5()
+        {
+            var filter = new CustomerFilter
+            {
+                Any = false,
+                CustomerIds = new List<int> { 1, 2 },
+                LikeCustomerName = "Customer",
+                SortColumns = new List<string> { "CustomerId", "CustomerName " },
+                Desc = false
+            };
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var customers = connection
+                    .Query<Customer>(@"
+                        select 
+                            * 
+                        from 
+                            Customer 
+                        {{filter}} 
+                        order by 
+                            {{sortColumns}}
+                    ")
+                    .Spec(s =>
+                    {
+                        var symbol = filter.Any ? LogicalSymbol.Or : LogicalSymbol.And;
+
+                        s.Predicate("filter", x => $"where {x}")
+                            .Expression(symbol, "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
+                            .Expression(symbol, "CustomerName like @LikeCustomerName + '%'", p => p["@LikeCustomerName"] = filter.LikeCustomerName);
+
+                        s.Predicate("sortColumns")
+                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultValue: "CustomerId");                         
+                    })                    
+                    .Fetch().ToArray();
+
+                connection.Close();
+            }
+        }
+
+        [TestMethod]
+        public void Test6()
+        {
+            var filter = new CustomerFilter
+            {
+                Any = false,                                
+                Desc = false
+            };
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var customers = connection
+                    .Query<Customer>(@"
+                        select 
+                            * 
+                        from 
+                            Customer 
+                        {{filter}} 
+                        order by 
+                            {{sortColumns}}
+                    ")
+                    .Spec(s =>
+                    {
+                        var symbol = filter.Any ? LogicalSymbol.Or : LogicalSymbol.And;
+
+                        s.Predicate("filter", x => $"where {x}")
+                            .Expression(symbol, "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
+                            .Expression(symbol, "CustomerName like @LikeCustomerName + '%'", p => p["@LikeCustomerName"] = filter.LikeCustomerName);
+
+                        s.Predicate("sortColumns")
+                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultValue: "CustomerId");
+                    })
+                    .Fetch().ToArray();
+
+                connection.Close();
+            }
+        }
+
+        [TestMethod]
+        public void Test7()
+        {
+            var filter = new CustomerFilter
+            {
+                Any = false,
+                CustomerIds = new List<int> { 1, 2 },
+                LikeCustomerName = "Customer",
+                SortColumns = new List<string> { "CustomerId", "CustomerName " },
+                Desc = false
+            };
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var customers = connection
+                    .Query<Customer>(@"
+                        select 
+                            * 
+                        from 
+                            Customer 
+                        {{filter}} 
+                        order by 
+                            {{sortColumns}}
+                    ")
+                    .Spec(s =>
+                    {
+                        var symbol = filter.Any ? LogicalSymbol.Or : LogicalSymbol.And;
+
+                        s.Predicate("filter", x => $"where {x}")
+                            .Expression(symbol, "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
+                            .Expression(symbol, "CustomerName like @LikeCustomerName + '%'", p => p["@LikeCustomerName"] = filter.LikeCustomerName)
+                            .Expression(symbol, sp =>
+                            {
+                                sp
+                                    .Expression(LogicalSymbol.Or, "CustomerId in (@OrCustomerIds)", p => p["@OrCustomerIds"] = filter.CustomerIds)
+                                    .Expression(LogicalSymbol.Or, "CustomerName like @OrLikeCustomerName + '%'", p => p["@OrLikeCustomerName"] = filter.LikeCustomerName);
+                            });
+
+                        s.Predicate("sortColumns")
+                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultValue: "CustomerId");
+                    })
+                    .Fetch().ToArray();
+
+                connection.Close();
+            }
+        }
     }
 }

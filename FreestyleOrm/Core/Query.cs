@@ -673,5 +673,14 @@ namespace FreestyleOrm.Core
 
             return this;
         }
+
+        public IQuery<TRootEntity> Spec(Action<ISpec> setSpec)
+        {
+            Spec spec = new Spec();
+            setSpec(spec);
+            _queryOptions.Spec = spec;
+
+            return this;
+        }
     }
 }

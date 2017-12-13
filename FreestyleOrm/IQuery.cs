@@ -9,7 +9,8 @@ using FreestyleOrm.Core;
 namespace FreestyleOrm
 {
     public interface IQueryBase<TRootEntity> where TRootEntity : class
-    {
+    {        
+        IQuery<TRootEntity> Spec(Action<ISpec> setSpec);
         IQuery<TRootEntity> Params(Action<Dictionary<string, object>> setParams);
         IQuery<TRootEntity> Formats(Action<Dictionary<string, object>> setFormats);
         IQuery<TRootEntity> TempTables(Action<ITempTableSet> setTempTables);
@@ -50,6 +51,31 @@ namespace FreestyleOrm
         IMapRule<TRootEntity, TEntity> OptimisticLock<TRowVersion>(string rowVersionColumn, Func<TEntity, TRowVersion> newRowVersion = null);        
         IMapRule<TRootEntity, TEntity> ReNest<TProperty, TId>(Expression<Func<TEntity, IEnumerable<TProperty>>> nestEntity, Expression<Func<TEntity, TId>> idPropertiy, Expression<Func<TEntity, TId>> parentProperty) where  TProperty : TEntity;
         IMapRule<TRootEntity, TEntity> ClearRule(Func<IMapRule<TRootEntity, TEntity>, string> methodName);
+    }
+
+    public interface IFormat
+    {
+        IFormat Set(string name, Func<string> getFormat, Func<bool> validation = null);
+    }
+
+    public interface ISpec
+    {
+        ISpecPredicate Predicate(string name, Func<string, string> formatPredicate = null);
+        void RemovePredicate(string name);
+    }
+
+    public enum LogicalSymbol
+    {
+        And,
+        Or
+    }
+
+    public interface ISpecPredicate
+    {
+        ISpecPredicate Expression(LogicalSymbol logicalSymbol, string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultValue = null);
+        ISpecPredicate Expression(LogicalSymbol logicalSymbol, Action<ISpecPredicate> setSpecPredicate);
+        ISpecPredicate Sort<T>(IEnumerable<T> list, Func<T, int, bool> isDesc = null, string defaultValue = null, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null);
+        ISpecPredicate Comma<T>(IEnumerable<T> list, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultValue = null);
     }
 
     public class Page<TRootEntity>
