@@ -46,19 +46,19 @@ namespace FreestyleOrm.Core
 
             foreach (var entity in entites)
             {
-                if (propertyMap == null) propertyMap = entity.GetType().GetPropertyMap(BindingFlags.Public, PropertyTypeFilters.All);                
+                if (propertyMap == null) propertyMap = entity.GetType().GetPropertyMap(BindingFlags.Public, PropertyTypeFilters.All);
 
                 var propertyInfo = propertyMap[reNest.IdProperty];
                 var id = propertyInfo.Get(entity);
                 nodeMap[id.ToString()] = entity;
 
                 propertyInfo = propertyMap[reNest.ParentProperty];
-                var parentId = propertyInfo.Get(entity);  
+                var parentId = propertyInfo.Get(entity);
 
                 if (parentId == null) continue;
 
                 List<string> propertyIdList;
-                if (!parentNodeMap.TryGetValue(id.ToString(), out propertyIdList))          
+                if (!parentNodeMap.TryGetValue(id.ToString(), out propertyIdList))
                 {
                     propertyIdList = new List<string>();
                     parentNodeMap[id.ToString()] = propertyIdList;
@@ -71,15 +71,16 @@ namespace FreestyleOrm.Core
 
             List<object> nodes = new List<object>();
 
-            foreach(var id in nodeMap.Keys)
+            foreach (var id in nodeMap.Keys)
             {
-                object node = nodeMap[id];                
+                object node = nodeMap[id];
 
                 if (!parentNodeMap.ContainsKey(id))
                 {
                     nodes.Add(node);
                     continue;
                 }
+
 
                 foreach (var parentId in parentNodeMap[id])
                 {
@@ -182,12 +183,9 @@ namespace FreestyleOrm.Core
                 }
 
                 IEnumerable<object> nodes = CreateNodes(entities, mapRule.ReNest);
+                property.Set(parentEntity, null);
 
-                if (nodes.Count() > 0)
-                {
-                    property.Set(parentEntity, null);
-                }
-                else if (mapRule.IsToMany)
+                if (nodes.Count() > 0 && mapRule.IsToMany)
                 {
                     object newList;
 
@@ -234,7 +232,7 @@ namespace FreestyleOrm.Core
                         }
                     }
                 }
-                else
+                else if (nodes.Count() > 0)
                 {
                     property.Set(parentEntity, nodes.FirstOrDefault());
                 }

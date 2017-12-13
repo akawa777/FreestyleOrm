@@ -154,13 +154,13 @@ namespace FreestyleOrm.Core
 
             try
             {
-                if ((validation == null && defaultValidation()) || validation())
+                if ((validation == null && defaultValidation()) || (validation != null && validation()))
                 {
                     result.Sql = sql;
 
                     setParams?.Invoke(result.Params);
 
-                    if ((validation == null && defaultValidation()) || (validation != null && validation()))
+                    if (validation == null && !ValidationParams(result.Params))
                     {
                         if (defaultValue != null) result.Sql = defaultValue;
                         else return this;

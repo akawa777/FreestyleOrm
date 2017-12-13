@@ -220,7 +220,7 @@ namespace FreestyleOrm.Tests
         }
 
         [TestMethod]
-        public void TestTree()
+        public void TestTree1()
         {            
             using (var connection = _testInitializer.CreateConnection())
             {
@@ -231,10 +231,21 @@ namespace FreestyleOrm.Tests
                         select * from Node
                     ")
                     .Map(m => m.To().UniqueKeys("Id, ParentId").ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId))
-                    .Fetch().ToArray();                
+                    .Fetch().ToArray();
+
+                ValidationNodes(nodes);
 
                 connection.Close();
             }
+        }
+
+        private void ValidationNodes(Node[] nodes)
+        {
+            Assert.AreEqual(2, nodes.Count());
+            Assert.AreEqual(nodes[0].Id, nodes[0].Chilrdren[0].ParentId);
+            Assert.AreEqual(nodes[0].Chilrdren[0].Id, nodes[0].Chilrdren[0].Chilrdren[0].ParentId);
+            Assert.AreEqual(nodes[0].Id, nodes[0].Chilrdren[1].ParentId);
+            Assert.AreEqual(nodes[1].Id, nodes[1].Chilrdren[0].ParentId);            
         }
 
         public class Customer
@@ -250,16 +261,26 @@ namespace FreestyleOrm.Tests
             {
                 connection.Open();
 
+                var customersCount = connection.Query("select * from Customer").Fetch().Count();
+
                 var customers = connection
                     .Query<Customer>(@"
-                        select * from Customer, Node
+                        select * from Customer, Node order by CustomerId
                     ")
                     .Map(m => 
                     {
                         m.To().UniqueKeys("CustomerId");
                         m.ToMany(x => x.Nodes).UniqueKeys("Id, ParentId").ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId);
                     })
-                    .Fetch().ToArray();                
+                    .Fetch().ToArray();
+
+                Assert.AreEqual(customersCount, customers.Count());                
+
+                foreach (var customer in customers)
+                {
+                    var nodes = customer.Nodes;
+                    ValidationNodes(nodes.ToArray());
+                }
 
                 connection.Close();
             }
@@ -286,7 +307,7 @@ namespace FreestyleOrm.Tests
                             n2.Id n2_Id, 
                             n2.Name n2_Name, 
                             n2.ParentId n2_ParentId                            
-                        from (select *, 1000 nodeId from Product) p
+                        from (select *, 1000 NodeId from Product) p
                         left join Node n on p.NodeId = n.Id
                         left join Node n2 on n.Id = n2.ParentId
                     ")
@@ -298,7 +319,14 @@ namespace FreestyleOrm.Tests
                             .UniqueKeys("n2_Id, n2_ParentId")
                             .IncludePrefix("n2_").ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId);
                     })
-                    .Fetch().ToArray();                
+                    .Fetch().ToArray();
+
+                Assert.AreEqual(1000, customers[0].Node.Id);
+
+                foreach (var node in customers[0].Node.Chilrdren)
+                {
+                    Assert.AreEqual(customers[0].Node.Id, node.ParentId);
+                }
 
                 connection.Close();
             }
@@ -314,7 +342,7 @@ namespace FreestyleOrm.Tests
         }
 
         [TestMethod]
-        public void Test5()
+        public void TestSpec1()
         {
             var filter = new CustomerFilter
             {
@@ -352,12 +380,14 @@ namespace FreestyleOrm.Tests
                     })                    
                     .Fetch().ToArray();
 
+                Assert.AreEqual(2, customers.Length);
+
                 connection.Close();
             }
         }
 
         [TestMethod]
-        public void Test6()
+        public void TestSpec2()
         {
             var filter = new CustomerFilter
             {
@@ -368,6 +398,8 @@ namespace FreestyleOrm.Tests
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();
+
+                var count = connection.Query("select * from Customer").Fetch().Count();
 
                 var customers = connection
                     .Query<Customer>(@"
@@ -392,12 +424,14 @@ namespace FreestyleOrm.Tests
                     })
                     .Fetch().ToArray();
 
+                Assert.AreEqual(count, customers.Length);
+
                 connection.Close();
             }
         }
 
         [TestMethod]
-        public void Test7()
+        public void TestSpec3()
         {
             var filter = new CustomerFilter
             {
@@ -440,6 +474,8 @@ namespace FreestyleOrm.Tests
                             .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultValue: "CustomerId");
                     })
                     .Fetch().ToArray();
+
+                Assert.AreEqual(2, customers.Length);
 
                 connection.Close();
             }

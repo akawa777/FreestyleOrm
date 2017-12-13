@@ -191,12 +191,11 @@ namespace FreestyleOrm.Tests
                 );
 
                 insert into Node values(1000, 'node_1000', null);
-                insert into Node values(1100, 'node_1100', 1000);
-                insert into Node values(1200, 'node_1200', 1000);
-                insert into Node values(1110, 'node_1110', 1100);
+                    insert into Node values(1100, 'node_1100', 1000);
+                        insert into Node values(1110, 'node_1110', 1100);
+                    insert into Node values(1200, 'node_1200', 1000);                        
                 insert into Node values(2000, 'node_2000', null);
-                insert into Node values(2100, 'node_2100', 2000);
-                insert into Node values(2100, 'node_2200', 1110);
+                    insert into Node values(2100, 'node_2100', 2000);                    
             ";
         }
 
