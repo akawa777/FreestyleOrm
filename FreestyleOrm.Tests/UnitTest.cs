@@ -336,7 +336,7 @@ namespace FreestyleOrm.Tests
         {
             public bool Any { get; set; }
             public List<int> CustomerIds { get; set; }
-            public string LikeCustomerName { get; set; }
+            public string CustomerName { get; set; }
             public List<string> SortColumns { get; set; }
             public bool Desc { get; set; }
         }
@@ -348,7 +348,7 @@ namespace FreestyleOrm.Tests
             {
                 Any = false,
                 CustomerIds = new List<int> { 1, 2 },
-                LikeCustomerName = "Customer",
+                CustomerName = "CustomerName_1",
                 SortColumns = new List<string> { "CustomerId", "CustomerName " },
                 Desc = false
             };
@@ -364,23 +364,22 @@ namespace FreestyleOrm.Tests
                         from 
                             Customer 
                         {{filter}} 
-                        order by 
-                            {{sortColumns}}
+                        order by {{sortColumns}}
                     ")
                     .Spec(s =>
                     {
                         var symbol = filter.Any ? LogicalSymbol.Or : LogicalSymbol.And;
 
                         s.Predicate("filter", x => $"where {x}")
-                            .Expression(symbol, "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
-                            .Expression(symbol, "CustomerName like 'Customer%'", p => p["@LikeCustomerName"] = filter.LikeCustomerName);
+                            .Satify(symbol, $"{Environment.NewLine}                            CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
+                            .Satify(symbol, $"{Environment.NewLine}                            CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName);
 
                         s.Predicate("sortColumns")
-                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultSql: "CustomerId");                         
+                            .Sort(filter.SortColumns.Select(x => $"{Environment.NewLine}                            {x}"), (x, i) => i == 0 && filter.Desc, defaultSql: "CustomerId");                         
                     })                    
                     .Fetch().ToArray();
 
-                Assert.AreEqual(2, customers.Length);
+                Assert.AreEqual(1, customers.Length);
 
                 connection.Close();
             }
@@ -416,8 +415,8 @@ namespace FreestyleOrm.Tests
                         var symbol = filter.Any ? LogicalSymbol.Or : LogicalSymbol.And;
 
                         s.Predicate("filter", x => $"where {x}")
-                            .Expression(symbol, "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
-                            .Expression(symbol, "CustomerName like @LikeCustomerName + '%'", p => p["@LikeCustomerName"] = filter.LikeCustomerName);
+                            .Satify(symbol, "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
+                            .Satify(symbol, "CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName);
 
                         s.Predicate("sortColumns")
                             .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultSql: "CustomerId");
@@ -437,7 +436,7 @@ namespace FreestyleOrm.Tests
             {
                 Any = false,
                 CustomerIds = new List<int> { 1, 2 },
-                LikeCustomerName = "Customer",
+                CustomerName = "CustomerName_1",
                 SortColumns = new List<string> { "CustomerId", "CustomerName " },
                 Desc = false
             };
@@ -461,13 +460,13 @@ namespace FreestyleOrm.Tests
                         var symbol = filter.Any ? LogicalSymbol.Or : LogicalSymbol.And;
 
                         s.Predicate("filter", x => $"where {x}")
-                            .Expression(symbol, "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
-                            .Expression(symbol, "CustomerName like @LikeCustomerName + '%'", p => p["@LikeCustomerName"] = filter.LikeCustomerName)
-                            .Expression(symbol, sp =>
+                            .Satify(symbol, "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
+                            .Satify(symbol, "CustomerName = @CustomerName + '%'", p => p["@CustomerName"] = filter.CustomerName)
+                            .Satify(LogicalSymbol.Or, sp =>
                             {
                                 sp
-                                    .Expression(LogicalSymbol.Or, "CustomerId in (@OrCustomerIds)", p => p["@OrCustomerIds"] = filter.CustomerIds)
-                                    .Expression(LogicalSymbol.Or, "CustomerName like @OrLikeCustomerName + '%'", p => p["@OrLikeCustomerName"] = filter.LikeCustomerName);
+                                    .Satify(LogicalSymbol.Or, "CustomerId in (@OrCustomerIds)", p => p["@OrCustomerIds"] = filter.CustomerIds)
+                                    .Satify(symbol, "CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName);
                             });
 
                         s.Predicate("sortColumns")
@@ -475,7 +474,7 @@ namespace FreestyleOrm.Tests
                     })
                     .Fetch().ToArray();
 
-                Assert.AreEqual(2, customers.Length);
+                Assert.AreEqual(1, customers.Length);
 
                 connection.Close();
             }

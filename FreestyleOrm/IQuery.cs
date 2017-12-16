@@ -72,8 +72,8 @@ namespace FreestyleOrm
 
     public interface ISpecPredicate
     {
-        ISpecPredicate Expression(LogicalSymbol logicalSymbol, string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null);
-        ISpecPredicate Expression(LogicalSymbol logicalSymbol, Action<ISpecPredicate> setSpecPredicate);
+        ISpecPredicate Satify(LogicalSymbol logicalSymbol, string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null);
+        ISpecPredicate Satify(LogicalSymbol logicalSymbol, Action<ISpecPredicate> setSpecPredicate);
         ISpecPredicate Sort<T>(IEnumerable<T> list, Func<T, int, bool> isDesc = null, string defaultSql = null, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null);
         ISpecPredicate Comma<T>(IEnumerable<T> list, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null);
     }

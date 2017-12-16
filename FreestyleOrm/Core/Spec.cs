@@ -70,7 +70,7 @@ namespace FreestyleOrm.Core
 
         public string GetSql()
         {
-            var sql = string.Join(Environment.NewLine, _specPredicateResults.Select(x => x.Sql));
+            var sql = string.Join(string.Empty, _specPredicateResults.Select(x => x.Sql));
 
             if (string.IsNullOrEmpty(sql)) return sql;
             else return _formatPredicate(sql);
@@ -150,7 +150,7 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        public ISpecPredicate Expression(LogicalSymbol logicalSymbol, string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null)
+        public ISpecPredicate Satify(LogicalSymbol logicalSymbol, string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null)
         {
             var result = new SpecPredicateResult();
             Func<bool> defaultValidation = () => !string.IsNullOrEmpty(sql);
@@ -197,7 +197,7 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        public ISpecPredicate Expression(LogicalSymbol logicalSymbol, Action<ISpecPredicate> setSpecPredicate)
+        public ISpecPredicate Satify(LogicalSymbol logicalSymbol, Action<ISpecPredicate> setSpecPredicate)
         {
             var result = new SpecPredicateResult();
             Func<bool> defaultValidation = () => setSpecPredicate == null;
