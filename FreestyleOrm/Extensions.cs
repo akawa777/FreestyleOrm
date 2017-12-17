@@ -41,5 +41,13 @@ namespace FreestyleOrm
         {
             return Query<IRowBase>(connection, sql, queryDefine);
         }
+
+        public static void AddMap<TKey, TValue>(this IDictionary<string, object> self, IDictionary<TKey, TValue> map)
+        {
+            foreach (var entry in map)
+            {
+                self[entry.Key.ToString()] = entry.Value;
+            }
+        }
     }
 }

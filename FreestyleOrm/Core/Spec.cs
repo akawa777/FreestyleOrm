@@ -11,9 +11,9 @@ namespace FreestyleOrm.Core
     internal class Spec : ISpec
     {
         private List<SpecPredicate> _specPredicates = new List<SpecPredicate>();
-        public ISpecPredicate Predicate(string name, Func<string, string> formatPredicate = null)
+        public ISpecPredicate Predicate(string name, Func<string, string> formatPredicate = null, string prettySpace = null)
         {
-            var specPredicate = new SpecPredicate(name, formatPredicate);
+            var specPredicate = new SpecPredicate(name, formatPredicate, prettySpace);
             _specPredicates.Add(specPredicate);
 
             return specPredicate;
@@ -56,17 +56,20 @@ namespace FreestyleOrm.Core
 
     internal class SpecPredicate : ISpecPredicate
     {   
-        public SpecPredicate(string name, Func<string, string> formatPredicate = null)
+        public SpecPredicate(string name, Func<string, string> formatPredicate = null, string prettySpace = null)
         {
             Name = name;
 
             if (formatPredicate == null) _formatPredicate = x => x;
             else _formatPredicate = formatPredicate;
+
+            _prettySpace = prettySpace;
         }
 
         public string Name { get; }
         private Func<string, string> _formatPredicate;
         private List<SpecPredicateResult> _specPredicateResults = new List<SpecPredicateResult>();
+        private string _prettySpace;
 
         public string GetSql()
         {
@@ -122,8 +125,8 @@ namespace FreestyleOrm.Core
             try
             {
                 if ((validation == null && defaultValidation()) || (validation != null && validation()))
-                {
-                    result.Sql = string.Join(", ", list);
+                {                   
+                    result.Sql = string.Join(string.Empty, list.Select((x, i) => GetPrettySql((i == 0? string.Empty : ",") + x.ToString(), i != 0, " ")));                     
 
                     setParams?.Invoke(result.Params);
 
@@ -145,7 +148,10 @@ namespace FreestyleOrm.Core
                 
             }
 
-            _specPredicateResults.Add(result);
+            if (!string.IsNullOrEmpty(result.Sql))
+            {
+                _specPredicateResults.Add(result);
+            }
 
             return this;
         }
@@ -183,16 +189,25 @@ namespace FreestyleOrm.Core
             if (!string.IsNullOrEmpty(result.Sql) && _specPredicateResults.Count > 0)
             {
                 if (logicalSymbol == LogicalSymbol.And)
-                {
-                    result.Sql = $" and {result.Sql}";
+                {                    
+                    result.Sql = $"and {result.Sql}";
                 }
                 else
                 {
-                    result.Sql = $" or {result.Sql}";
+                    result.Sql = $"or {result.Sql}";
                 }
+
+                result.Sql = GetPrettySql(result.Sql, true, " ");
+            }
+            else
+            {
+                result.Sql = GetPrettySql(result.Sql, false, " ");
             }
 
-            _specPredicateResults.Add(result);
+            if (!string.IsNullOrEmpty(result.Sql))
+            {
+                _specPredicateResults.Add(result);
+            }
 
             return this;
         }
@@ -202,25 +217,34 @@ namespace FreestyleOrm.Core
             var result = new SpecPredicateResult();
             Func<bool> defaultValidation = () => setSpecPredicate == null;
 
-            var specPredicate = new SpecPredicate(Name);
+            var specPredicate = new SpecPredicate(Name, prettySpace: _prettySpace == null ? null : _prettySpace + "\t");
             setSpecPredicate(specPredicate);
 
-            result.Sql = $"({specPredicate.GetSql()})";
+            result.Sql = $"({specPredicate.GetSql()}";
             result.Params = specPredicate.GetParams();
 
             if (specPredicate != null && _specPredicateResults.Count > 0)
             {
                 if (logicalSymbol == LogicalSymbol.And)
                 {
-                    result.Sql = $" and {result.Sql}";
+                    result.Sql = $"and {result.Sql}";
                 }
                 else
                 {
-                    result.Sql = $" or {result.Sql}";
+                    result.Sql = $"or {result.Sql}";
                 }
+
+                result.Sql = GetPrettySql(result.Sql, true, " ") + GetPrettySql(")", true, string.Empty);
+            }
+            else
+            {
+                result.Sql = GetPrettySql(result.Sql, false, " ") + GetPrettySql(")", true, string.Empty);
             }
 
-            _specPredicateResults.Add(result);
+           if (!string.IsNullOrEmpty(result.Sql))
+            {
+                _specPredicateResults.Add(result);
+            }
 
             return this;
         }
@@ -229,7 +253,7 @@ namespace FreestyleOrm.Core
         {
             var result = new SpecPredicateResult();
             Func<bool> defaultValidation = () => list != null && list.Count() > 0;
-            Func<T, int, object> setColumn = (x, i) =>
+            Func<T, int, string> setColumn = (x, i) =>
             {
                 if (isDesc != null && isDesc(x, i))
                 {
@@ -237,7 +261,7 @@ namespace FreestyleOrm.Core
                 }
                 else
                 {
-                    return x;
+                    return $"{x}";
                 }
             };
 
@@ -245,7 +269,7 @@ namespace FreestyleOrm.Core
             {                
                 if ((validation == null && defaultValidation()) || (validation != null && validation()))
                 {
-                    result.Sql = string.Join(", ", list.Select((x, i) => setColumn(x, i)));
+                    result.Sql = string.Join(string.Empty, list.Select((x, i) => GetPrettySql((i == 0? string.Empty : ",") + setColumn(x, i), i != 0, " ")));
 
                     setParams?.Invoke(result.Params);
 
@@ -266,9 +290,28 @@ namespace FreestyleOrm.Core
                 if (defaultSql != null) result.Sql = defaultSql;
             }
 
-            _specPredicateResults.Add(result);
+           if (!string.IsNullOrEmpty(result.Sql))
+            {
+                _specPredicateResults.Add(result);
+            }
 
             return this;
+        }
+
+        private string GetPrettySql(string sql, bool format, string defaultPrepend)
+        {            
+            string prettiedSql = sql;
+
+            if (string.IsNullOrEmpty(_prettySpace))
+            {
+                prettiedSql = (format ? defaultPrepend : string.Empty) + prettiedSql;
+            }
+            else
+            {
+                prettiedSql = Environment.NewLine + _prettySpace + prettiedSql;
+            }
+
+            return prettiedSql;
         }
     }
 }

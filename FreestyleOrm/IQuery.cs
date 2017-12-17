@@ -60,7 +60,7 @@ namespace FreestyleOrm
 
     public interface ISpec
     {
-        ISpecPredicate Predicate(string name, Func<string, string> formatPredicate = null);
+        ISpecPredicate Predicate(string name, Func<string, string> formatPredicate = null, string prettySpace = null);
         void RemovePredicate(string name);
     }
 
