@@ -375,7 +375,7 @@ namespace FreestyleOrm.Tests
                             .Satify(symbol, $"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName);
 
                         s.Predicate("sortColumns", prettySpace: "                            ")                        
-                            .Sort(filter.SortColumns.Select(x => x), (x, i) => i == 0 && filter.Desc, defaultSql: "CustomerId");                         
+                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultSql: "CustomerId");                         
                     })                    
                     .Fetch().ToArray();
 
