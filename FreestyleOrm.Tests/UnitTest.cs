@@ -538,6 +538,11 @@ namespace FreestyleOrm.Tests
 
         public class SqlExpressionResolver : List<SqlExpressionProxy>
         {
+            public SqlExpressionResolver()
+            {
+
+            }
+            
             public SqlExpressionResolver(IEnumerable<SqlExpression> sqlExpressions)
             {
                 ReSet(sqlExpressions);
@@ -593,10 +598,11 @@ namespace FreestyleOrm.Tests
 
                         var sp = s.Predicate("filters", x => $"where {x}", prettySpace: "                            ");
 
-                        var filterResolver = new SqlExpressionResolver(filter2.Filters);
+                        var filterResolver = new SqlExpressionResolver();
 
                         sp.Satify(LogicalSymbol.And, spp =>
                         {
+                            filterResolver.ReSet(filter2.Filters);
                             foreach (var filter in filterResolver)
                             {
                                 spp.Satify(LogicalSymbol.And, filter.Sql, p => p.AddMap(filter.Params));
