@@ -220,7 +220,11 @@ namespace FreestyleOrm.Core
             var specPredicate = new SpecPredicate(Name, prettySpace: _prettySpace == null ? null : _prettySpace + "\t");
             setSpecPredicate(specPredicate);
 
-            result.Sql = $"({specPredicate.GetSql()}";
+            var sql = specPredicate.GetSql();
+
+            if (string.IsNullOrEmpty(sql)) return this;
+
+            result.Sql = $"({sql}";
             result.Params = specPredicate.GetParams();
 
             if (specPredicate != null && _specPredicateResults.Count > 0)
@@ -270,6 +274,44 @@ namespace FreestyleOrm.Core
                 if ((validation == null && defaultValidation()) || (validation != null && validation()))
                 {
                     result.Sql = string.Join(string.Empty, list.Select((x, i) => GetPrettySql((i == 0? string.Empty : ",") + setColumn(x, i), i != 0, " ")));
+
+                    setParams?.Invoke(result.Params);
+
+                    if (validation == null && !ValidationParams(result.Params))
+                    {
+                        if (defaultSql != null) result.Sql = defaultSql;
+                        else return this;
+                    }
+                }
+                else
+                {
+                    if (defaultSql != null) result.Sql = defaultSql;
+                }
+            }
+            catch (Exception e)
+            {
+                if (validation != null) throw e;
+                if (defaultSql != null) result.Sql = defaultSql;
+            }
+
+           if (!string.IsNullOrEmpty(result.Sql))
+            {
+                _specPredicateResults.Add(result);
+            }
+
+            return this;
+        }
+
+        public ISpecPredicate Text(string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null)
+        {
+            var result = new SpecPredicateResult();
+            Func<bool> defaultValidation = () => !string.IsNullOrEmpty(sql);
+
+            try
+            {                
+                if ((validation == null && defaultValidation()) || (validation != null && validation()))
+                {
+                    result.Sql = sql;
 
                     setParams?.Invoke(result.Params);
 

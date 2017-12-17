@@ -513,19 +513,19 @@ namespace FreestyleOrm.Tests
 
                 if (Symbol == "=")
                 {
-                    sql = $"{Subject} = @{Subject}{paramNo}";
-                    paramMap[$"@{Subject}{paramNo}"] = Values[0];
+                    sql = $"{Subject} = @{Subject}_{paramNo}";
+                    paramMap[$"@{Subject}_{paramNo}"] = Values[0];
                 }                
                 else if (Symbol == "in")
                 {
-                    sql = $"{Subject} in (@{Subject}{paramNo})";
-                    paramMap[$"@{Subject}{paramNo}"] = Values;
+                    sql = $"{Subject} in (@{Subject}_{paramNo})";
+                    paramMap[$"@{Subject}_{paramNo}"] = Values;
                 }
                 else if (Symbol == "between")
                 {
-                    sql = $"{Subject} between @{Subject}{paramNo}1 and @{Subject}{paramNo}2";
-                    paramMap[$"@{Subject}{paramNo}1"] = Values[0];
-                    paramMap[$"@{Subject}{paramNo}2"] = Values[1];
+                    sql = $"{Subject} between @{Subject}_{paramNo}_1 and @{Subject}_{paramNo}_2";
+                    paramMap[$"@{Subject}_{paramNo}_1"] = Values[0];
+                    paramMap[$"@{Subject}_{paramNo}_2"] = Values[1];
                 }
 
                 Sql = sql;
@@ -540,23 +540,37 @@ namespace FreestyleOrm.Tests
         {
             public SqlExpressionResolver(IEnumerable<SqlExpression> sqlExpressions)
             {
-                int no = 1;
+                ReSet(sqlExpressions);
+            }
+
+            private int _no = 1;
+
+            public void ReSet(IEnumerable<SqlExpression> sqlExpressions)
+            {
+                this.Clear();
+                
                 foreach (var item in sqlExpressions)
                 {
-                    this.Add(new SqlExpressionProxy(item, no));
-                    no++;
+                    this.Add(new SqlExpressionProxy(item, _no));
+                    _no++;
                 }
             }
+        }
+
+        public class Filter2
+        {
+            public List<SqlExpression> Filters { get; set;} = new List<SqlExpression>();
+            public List<SqlExpression> UnionFilters { get; set; } = new List<SqlExpression>();
         }
 
         [TestMethod]
         public void TestSpec4()
         {
-            List<SqlExpression> filters = new List<SqlExpression>();
+            var filter2 = new Filter2();
 
-            filters.Add(new SqlExpression{ Subject = "CustomerId", Symbol = "=", Values = { 1 } });
-            filters.Add(new SqlExpression{ Subject = "CustomerId", Symbol = "in", Values = { 1, 2, 3 } });
-            filters.Add(new SqlExpression{ Subject = "CustomerId", Symbol = "between", Values = { 1, 2 } });
+            filter2.Filters.Add(new SqlExpression{ Subject = "CustomerId", Symbol = "=", Values = { 1 } });            
+            filter2.Filters.Add(new SqlExpression{ Subject = "CustomerId", Symbol = "between", Values = { 1, 2 } });
+            filter2.UnionFilters.Add(new SqlExpression{ Subject = "CustomerId", Symbol = "in", Values = { 1, 2, 3 } });
 
             using (var connection = _testInitializer.CreateConnection())
             {
@@ -569,17 +583,34 @@ namespace FreestyleOrm.Tests
                         select 
                             * 
                         from 
-                            Customer 
+                            {{table}} 
                         {{filters}}
                     ")
                     .Spec(s =>
                     {
-                        var sp = s.Predicate("filters", x => $"where {x}");
-                        var filterResolver = new SqlExpressionResolver(filters);
-                        foreach (var filter in filterResolver)
+                        s.Predicate("table")
+                            .Text("Customer");
+
+                        var sp = s.Predicate("filters", x => $"where {x}", prettySpace: "                            ");
+
+                        var filterResolver = new SqlExpressionResolver(filter2.Filters);
+
+                        sp.Satify(LogicalSymbol.And, spp =>
                         {
-                            sp.Satify(LogicalSymbol.Or, filter.Sql, p => p.AddMap(filter.Params));
-                        }
+                            foreach (var filter in filterResolver)
+                            {
+                                spp.Satify(LogicalSymbol.And, filter.Sql, p => p.AddMap(filter.Params));
+                            }
+                        });
+
+                        sp.Satify(LogicalSymbol.Or, spp =>
+                        {
+                            filterResolver.ReSet(filter2.UnionFilters);
+                            foreach (var filter in filterResolver)
+                            {
+                                spp.Satify(LogicalSymbol.And, filter.Sql, p => p.AddMap(filter.Params));
+                            }
+                        });                        
                     })
                     .Fetch().ToArray();
 

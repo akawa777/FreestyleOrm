@@ -76,6 +76,7 @@ namespace FreestyleOrm
         ISpecPredicate Satify(LogicalSymbol logicalSymbol, Action<ISpecPredicate> setSpecPredicate);
         ISpecPredicate Sort<T>(IEnumerable<T> list, Func<T, int, bool> isDesc = null, string defaultSql = null, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null);
         ISpecPredicate Comma<T>(IEnumerable<T> list, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null);
+        ISpecPredicate Text(string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null);
     }
 
     public class Page<TRootEntity>
