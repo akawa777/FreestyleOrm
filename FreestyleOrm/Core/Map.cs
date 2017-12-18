@@ -134,21 +134,21 @@ namespace FreestyleOrm.Core
     {
         public MapRule(IQueryDefine queryDefine, Expression<Func<TRootEntity, TEntity>> target)
         {   
-            _mapRule = new MapRule(queryDefine, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property), property, false);
+            _mapRule = new MapRule(queryDefine, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property).First(), property, false);
         }
 
         public MapRule(IQueryDefine queryDefine, Expression<Func<TRootEntity, IEnumerable<TEntity>>> target)
         {
-            _mapRule = new MapRule(queryDefine, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property), property, true);
+            _mapRule = new MapRule(queryDefine, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property).First(), property, true);
         }
 
         private MapRule _mapRule;
 
         public MapRule GetMapRule() => _mapRule;
 
-        public IMapRule<TRootEntity, TEntity> AutoId(bool autoId)
+        public IMapRule<TRootEntity, TEntity> AutoId()
         {
-            _mapRule.AutoId = autoId;
+            _mapRule.AutoId = true;
 
             return this;
         }
@@ -219,7 +219,7 @@ namespace FreestyleOrm.Core
             if (relationEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(relationEntity)} is null.");            
 
             _mapRule.RelationId.RelationIdColumn = relationIdColumn;
-            _mapRule.RelationId.RelationEntityPath = relationEntity.GetExpressionPath();
+            _mapRule.RelationId.RelationEntityPath = relationEntity.GetExpressionPath().First();
 
             return this;
         }
@@ -233,27 +233,26 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        public IMapRule<TRootEntity, TEntity> OptimisticLock<TRowVersion>(string rowVersionColumn, Func<TEntity, TRowVersion> newRowVersion = null)
+        public IMapRule<TRootEntity, TEntity> OptimisticLock(string columns, Func<TEntity, object[]> getNewToken = null)        
         {
-            if (string.IsNullOrEmpty(rowVersionColumn)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(rowVersionColumn)} is null or empty.");
-            if (newRowVersion == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(newRowVersion)} is null.");
+            if (string.IsNullOrEmpty(columns)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(columns)} is null or empty.");            
 
-            _mapRule.OptimisticLock.RowVersionColumn = rowVersionColumn;
-            if (newRowVersion != null) _mapRule.OptimisticLock.NewRowVersion = entity => newRowVersion(entity as TEntity);
+            _mapRule.OptimisticLock.Columns = columns;
+            if (getNewToken != null) _mapRule.OptimisticLock.GetNewToken = entity => getNewToken(entity as TEntity);
 
             return this;
         }  
 
-        public IMapRule<TRootEntity, TEntity> ReNest<TProperty, TId>(Expression<Func<TEntity, IEnumerable<TProperty>>> nestEntity, Expression<Func<TEntity, TId>> idPropertiy, Expression<Func<TEntity, TId>> parentProperty) where  TProperty : TEntity
+        public IMapRule<TRootEntity, TEntity> ReNest<TProperty, TId, TParentId>(Expression<Func<TEntity, IEnumerable<TProperty>>> nestEntity, Expression<Func<TEntity, TId>> idPropertiy, Expression<Func<TEntity, TParentId>> parentProperty) where  TProperty : TEntity
         {
             if (!_mapRule.IsRootOptions && !_mapRule.IsToMany) throw new InvalidOperationException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(ReNest)} is valid only for ToMany.");    
             if (nestEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(nestEntity)} is null.");    
             if (idPropertiy == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(idPropertiy)} is null.");        
             if (parentProperty == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(parentProperty)} is null.");        
 
-            _mapRule.ReNest.NestEntityPath = nestEntity.GetExpressionPath();
-            _mapRule.ReNest.IdProperty = idPropertiy.GetExpressionPath();
-            _mapRule.ReNest.ParentProperty = parentProperty.GetExpressionPath();
+            _mapRule.ReNest.NestEntityPath = nestEntity.GetExpressionPath().First();
+            _mapRule.ReNest.IdProperties = idPropertiy.GetExpressionPath();
+            _mapRule.ReNest.ParentProperties = parentProperty.GetExpressionPath();
 
             return this;
         }    

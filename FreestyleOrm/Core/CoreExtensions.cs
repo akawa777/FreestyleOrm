@@ -203,63 +203,79 @@ namespace FreestyleOrm.Core
             return Activator.CreateInstance(type, true);
         }
 
-        public static string GetExpressionPath<TRoot, TTarget>(this Expression<Func<TRoot, TTarget>> expression) where TRoot : class
+        public static string[] GetExpressionPath<TRoot, TTarget>(this Expression<Func<TRoot, TTarget>> expression) where TRoot : class
         {
             return GetExpressionPath(expression, out PropertyInfo property);
         }
 
-        public static string GetExpressionPath<TRoot, TTarget>(this Expression<Func<TRoot, TTarget>> expression, out PropertyInfo property) where TRoot : class
+        public static string[] GetExpressionPath<TRoot, TTarget>(this Expression<Func<TRoot, TTarget>> expression, out PropertyInfo property) where TRoot : class
         {
             property = null;
 
-            string expressionText;
+            List<string> expressionTextList = new List<string>();
             if (expression.Body is UnaryExpression)
             {
                 UnaryExpression unaryExpression = expression.Body as UnaryExpression;
-                expressionText = unaryExpression.Operand.ToString();
+                var expressionText = unaryExpression.Operand.ToString();
+                expressionTextList.Add(expressionText);
+            }
+            else if (expression.Body is NewExpression newExpression)
+            {
+                foreach (var arg in newExpression.Arguments)
+                {
+                    expressionTextList.Add(arg.ToString());
+                }
             }
             else
             {
-                expressionText = expression.Body.ToString();
+                var expressionText = expression.Body.ToString();
+                expressionTextList.Add(expressionText);
             }
 
-            string[] sections =  expressionText.Split('.');
-            List<string> path = new List<string>();
+            List<string> pathList = new List<string>();
 
-            Dictionary<string, PropertyInfo> propertyMap = typeof(TRoot).GetPropertyMap(BindingFlags.Public, PropertyTypeFilters.All);
-
-            for (var i = 0; i < sections.Length; i++)
+            foreach (var expressionText in expressionTextList)
             {
-                var targetSection = sections[i];
+                string[] sections = expressionText.Split('.');
+                List<string> path = new List<string>();
 
-                if (targetSection.IndexOf("(") != -1) continue;
-                int arrayHolderIndex = targetSection.IndexOf("[");
-                if (arrayHolderIndex != -1) targetSection = targetSection.Substring(0, arrayHolderIndex + 1);
+                Dictionary<string, PropertyInfo> propertyMap = typeof(TRoot).GetPropertyMap(BindingFlags.Public, PropertyTypeFilters.All);
 
-                if (propertyMap.TryGetValue(targetSection, out property))
+                for (var i = 0; i < sections.Length; i++)
                 {
-                    path.Add(targetSection);
+                    var targetSection = sections[i];
 
-                    Type type;
+                    if (targetSection.IndexOf("(") != -1) continue;
+                    int arrayHolderIndex = targetSection.IndexOf("[");
+                    if (arrayHolderIndex != -1) targetSection = targetSection.Substring(0, arrayHolderIndex + 1);
 
-                    if (property.PropertyType.IsList(out Type elementType))
+                    if (propertyMap.TryGetValue(targetSection, out property))
                     {
-                        type = elementType;
-                    }
-                    else
-                    {
-                        type = property.PropertyType;
-                    }
+                        path.Add(targetSection);
 
-                    propertyMap = type.GetPropertyMap(BindingFlags.Public, PropertyTypeFilters.All);
+                        Type type;
+
+                        if (property.PropertyType.IsList(out Type elementType))
+                        {
+                            type = elementType;
+                        }
+                        else
+                        {
+                            type = property.PropertyType;
+                        }
+
+                        propertyMap = type.GetPropertyMap(BindingFlags.Public, PropertyTypeFilters.All);
+                    }
+                    else if (sections.Length > 1 && i == sections.Length - 1)
+                    {
+                        throw new ArgumentException($"[{expression.ToString()}] expression is not class property.");
+                    }
                 }
-                else if (sections.Length > 1 && i == sections.Length - 1)
-                {
-                    throw new ArgumentException($"[{expression.ToString()}] expression is not class property.");
-                }
+
+                pathList.Add(string.Join(".", path));
             }
 
-            return string.Join(".", path);
+            return pathList.ToArray();
         }
     }
 

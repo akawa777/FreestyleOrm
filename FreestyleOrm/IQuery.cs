@@ -47,9 +47,9 @@ namespace FreestyleOrm
         IMapRule<TRootEntity, TEntity> Table(string table);
         IMapRule<TRootEntity, TEntity> RelationId<TRelationEntity>(string relationIdColumn, Expression<Func<TRootEntity, TRelationEntity>> relationEntity) where TRelationEntity : class;
         IMapRule<TRootEntity, TEntity> FormatPropertyName(Func<string, string> formatPropertyName);
-        IMapRule<TRootEntity, TEntity> AutoId(bool autoId);                
-        IMapRule<TRootEntity, TEntity> OptimisticLock<TRowVersion>(string rowVersionColumn, Func<TEntity, TRowVersion> newRowVersion = null);        
-        IMapRule<TRootEntity, TEntity> ReNest<TProperty, TId>(Expression<Func<TEntity, IEnumerable<TProperty>>> nestEntity, Expression<Func<TEntity, TId>> idPropertiy, Expression<Func<TEntity, TId>> parentProperty) where  TProperty : TEntity;
+        IMapRule<TRootEntity, TEntity> AutoId();                
+        IMapRule<TRootEntity, TEntity> OptimisticLock(string columns, Func<TEntity, object[]> getNewToken = null);        
+        IMapRule<TRootEntity, TEntity> ReNest<TProperty, TId, TParentId>(Expression<Func<TEntity, IEnumerable<TProperty>>> nestEntity, Expression<Func<TEntity, TId>> idPropertiy, Expression<Func<TEntity, TParentId>> parentProperty) where  TProperty : TEntity;
         IMapRule<TRootEntity, TEntity> ClearRule(Func<IMapRule<TRootEntity, TEntity>, string> methodName);
     }
 

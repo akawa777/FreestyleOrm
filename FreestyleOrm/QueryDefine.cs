@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Reflection;
+using System.Linq;
 
 namespace FreestyleOrm
 {
@@ -22,8 +23,9 @@ namespace FreestyleOrm
 
     public class OptimisticLock
     {
-        public string RowVersionColumn { get; set; }
-        public Func<object, object> NewRowVersion { get; set; }
+        public string Columns { get; set; }
+        public string[] GetColumns() => Columns.Split(',').Select(x => x.Trim()).ToArray();
+        public Func<object, object[]> GetNewToken{ get; set; }
     }
 
     public class RelationId
@@ -35,8 +37,8 @@ namespace FreestyleOrm
     internal class ReNest
     {   
         public string NestEntityPath { get; set; }
-        public string IdProperty { get; set; }
-        public string ParentProperty { get; set; }
+        public string[] IdProperties { get; set; }
+        public string[] ParentProperties { get; set; }
         public bool Should() => !string.IsNullOrEmpty(NestEntityPath);
     }
 

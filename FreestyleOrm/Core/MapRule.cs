@@ -22,23 +22,6 @@ namespace FreestyleOrm.Core
             EntityType = property == null ? rootEntityType : entityType;
             Property = property;
             IsToMany = isToMany;            
-            // IncludePrefix = queryDefine.GetIncludePrefix(this);
-            // FormatPropertyName = column => _queryDefine.GetFormatPropertyName(this, column);
-            // AutoId = _queryDefine.GetAutoId(this);            
-            // Table = _queryDefine.GetTable(this);
-
-            // RelationId relationId = new RelationId();
-            // _queryDefine.SetRelationId(this, relationId);
-
-            // RelationIdColumn = relationId.RelationIdColumn;
-            // RelationEntityPath = relationId.RelationEntityPath;
-
-            // OptimisticLock optimisticLock = new OptimisticLock();
-            // _queryDefine.SetOptimisticLock(this, optimisticLock);
-
-            // RowVersionColumn = optimisticLock.RowVersionColumn;
-            // NewRowVersion = optimisticLock.NewRowVersion;
-
             Binder binder = new Binder();
             BindEntity = binder.Bind;
             BindRow = binder.Bind;
@@ -52,11 +35,6 @@ namespace FreestyleOrm.Core
                 SetEntity(row, rootEntity, entity);
                 return entity;
             };
-
-            // CreateEntity = (row, rootEntity) => _queryDefine.CreateEntity(this, rootEntity);
-            // SetEntity = (row, rootEntity, entity) => _queryDefine.SetEntity(this, row, rootEntity, entity);                            
-
-            // SetRow = (entity, rootEntity, row) => _queryDefine.SetRow(this, entity, rootEntity, row);            
         }
 
         private IQueryDefine _queryDefine;
@@ -84,7 +62,7 @@ namespace FreestyleOrm.Core
         public Action<object, Row> BindRow { get; set; }
         public Func<string, string> FormatPropertyName { get; set; }
         public void InitFormatPropertyName() => FormatPropertyName = column => _queryDefine.GetFormatPropertyName(this, column);
-        public bool AutoId { get; set; }
+        public bool AutoId { get; set; }        
         public void InitAutoId() => AutoId = _queryDefine.GetAutoId(this); 
         public string Table { get; set; }
         public void InitTable() => Table = _queryDefine.GetTable(this); 

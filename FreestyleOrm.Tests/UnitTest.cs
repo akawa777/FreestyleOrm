@@ -230,7 +230,7 @@ namespace FreestyleOrm.Tests
                     .Query<Node>(@"
                         select * from Node
                     ")
-                    .Map(m => m.To().UniqueKeys("Id, ParentId").ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId))
+                    .Map(m => m.To().UniqueKeys("Id, ParentId").ReNest(x => x.Chilrdren, x => new { x.Id }, x => new { x.ParentId }))
                     .Fetch().ToArray();
 
                 ValidationNodes(nodes);

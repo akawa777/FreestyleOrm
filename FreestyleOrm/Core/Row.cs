@@ -16,7 +16,7 @@ namespace FreestyleOrm.Core
         public static Row CreateWriteRow(IDataRecord dataRecord, MapRule mapRule, string[] primaryKeys, object entity)
         {
             return new Row(dataRecord, mapRule, true, primaryKeys, entity);
-        }        
+        }
 
         protected Row(IDataRecord dataRecord, MapRule mapRule, bool noSetValue, string[] primaryKeys, object entity)
         {
@@ -42,10 +42,10 @@ namespace FreestyleOrm.Core
 
         public bool StartWithPrefix(string column) => string.IsNullOrEmpty(_mapRule.IncludePrefix) ? false : column.StartsWith(_mapRule.IncludePrefix);
 
-        public bool IsRowVersionColumn(string column)
+        public bool IsConcurrencyColumn(string column)
         {
-            if (string.IsNullOrEmpty(OptimisticLock.RowVersionColumn)) return false;
-            return OptimisticLock.RowVersionColumn == column;
+            if (string.IsNullOrEmpty(OptimisticLock.Columns)) return false;
+            return OptimisticLock.GetColumns().Any(x => x == column);
         }
 
         public bool IsPrimaryKey(string column)

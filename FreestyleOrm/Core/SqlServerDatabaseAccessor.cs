@@ -186,6 +186,13 @@ namespace FreestyleOrm.Core
         {
             Dictionary<string, IDbDataParameter> parameters = new Dictionary<string, IDbDataParameter>();
 
+            List<object> newConcurrencyTokens = new List<object>();
+            if (!string.IsNullOrEmpty(row.OptimisticLock.Columns)
+                && row.OptimisticLock.GetNewToken != null)
+            {
+                newConcurrencyTokens = row.OptimisticLock.GetNewToken(row.Entity).ToList();
+            }
+
             foreach (var column in row.Columns)
             {
                 bool isTargetColumn = false;
@@ -196,7 +203,7 @@ namespace FreestyleOrm.Core
                 }
                 else if (parameterFilter == ParameterFilter.PrimaryKeys)
                 {
-                    if (row.IsPrimaryKey(column) || row.IsRowVersionColumn(column)) isTargetColumn = true;
+                    if (row.IsPrimaryKey(column) || row.IsConcurrencyColumn(column)) isTargetColumn = true;
                 }
                 else if (parameterFilter == ParameterFilter.WithoutPrimaryKeys)
                 {
@@ -208,11 +215,11 @@ namespace FreestyleOrm.Core
                 IDbDataParameter parameter = null;
 
                 if (parameterFilter != ParameterFilter.PrimaryKeys
-                    && !string.IsNullOrEmpty(row.OptimisticLock.RowVersionColumn)
-                    && row.OptimisticLock.NewRowVersion != null
-                    && column == row.OptimisticLock.RowVersionColumn)
-                {
-                    if (row.OptimisticLock.NewRowVersion != null) parameter = CreateParameter(command, $"new_{column}", row.OptimisticLock.NewRowVersion(row.Entity), false);
+                    && newConcurrencyTokens.Count > 0                    
+                    && row.IsConcurrencyColumn(column))
+                {                    
+                    parameter = CreateParameter(command, $"new_{column}", newConcurrencyTokens.First(), false);
+                    newConcurrencyTokens.Remove(newConcurrencyTokens.First());
                 }
                 else if (row.Columns.Contains(column))
                 {                    

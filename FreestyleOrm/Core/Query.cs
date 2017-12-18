@@ -48,23 +48,39 @@ namespace FreestyleOrm.Core
             {
                 if (propertyMap == null) propertyMap = entity.GetType().GetPropertyMap(BindingFlags.Public, PropertyTypeFilters.All);
 
-                var propertyInfo = propertyMap[reNest.IdProperty];
-                var id = propertyInfo.Get(entity);
-                nodeMap[id.ToString()] = entity;
+                List<string> idValus = new List<string>();
 
-                propertyInfo = propertyMap[reNest.ParentProperty];
-                var parentId = propertyInfo.Get(entity);
-
-                if (parentId == null) continue;
-
-                List<string> propertyIdList;
-                if (!parentNodeMap.TryGetValue(id.ToString(), out propertyIdList))
+                foreach (var propertyName in reNest.IdProperties)
                 {
-                    propertyIdList = new List<string>();
-                    parentNodeMap[id.ToString()] = propertyIdList;
+                    var propertyInfo = propertyMap[propertyName];
+                    var value = propertyInfo.Get(entity);
+                    idValus.Add(value.ToString());
                 }
 
-                propertyIdList.Add(parentId.ToString());
+                var id = string.Join(",", idValus);
+                nodeMap[id] = entity;
+
+                List<string> parentValus = new List<string>();
+                foreach (var propertyName in reNest.ParentProperties)
+                {
+                    var propertyInfo = propertyMap[propertyName];
+                    var value = propertyInfo.Get(entity);
+                    if (value == null) break;
+                    parentValus.Add(value.ToString());
+                }
+
+                if (parentValus.Count == 0) continue;
+
+                var parentId = string.Join(",", parentValus);
+
+                List<string> propertyIdList;
+                if (!parentNodeMap.TryGetValue(id, out propertyIdList))
+                {
+                    propertyIdList = new List<string>();
+                    parentNodeMap[id] = propertyIdList;
+                }
+
+                propertyIdList.Add(parentId);
             }
 
             if (nodeMap.Count == 0) return Enumerable.Empty<object>();
@@ -80,7 +96,6 @@ namespace FreestyleOrm.Core
                     nodes.Add(node);
                     continue;
                 }
-
 
                 foreach (var parentId in parentNodeMap[id])
                 {

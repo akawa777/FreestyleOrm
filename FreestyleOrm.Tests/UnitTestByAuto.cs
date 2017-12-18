@@ -26,8 +26,8 @@ namespace FreestyleOrm.Tests
                         row.BindRow(entity);
                         row[nameof(entity.Customer.CustomerId)] = entity.Customer.CustomerId;
                     })
-                    .AutoId(true)
-                    .OptimisticLock("RecordVersion", x => x.RecordVersion + 1);
+                    .AutoId()
+                    .OptimisticLock("RecordVersion", x => new object[] { x.RecordVersion + 1 });
 
                 m.ToOne(x => x.Customer)
                     .UniqueKeys("CustomerId");                    
@@ -42,7 +42,7 @@ namespace FreestyleOrm.Tests
                         row[nameof(entity.Product.ProductId)] = entity.Product.ProductId;
                     })
                     .RelationId("PurchaseOrderId", x => x)
-                    .OptimisticLock("RecordVersion", x => x.RecordVersion + 1);
+                    .OptimisticLock("RecordVersion", x => new object[] { x.RecordVersion + 1 });
 
                 m.ToOne(x => x.PurchaseItems.First().Product)
                     .UniqueKeys("ProductId");
