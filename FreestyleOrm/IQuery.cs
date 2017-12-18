@@ -81,20 +81,20 @@ namespace FreestyleOrm
 
     public class Page<TRootEntity>
     {
-        internal Page(int no, int size, int total, IEnumerable<TRootEntity> lines)
+        internal Page(int no, int size, int total, IEnumerable<TRootEntity> items)
         {
             PageNo = no;
             PageSize = size;
-            TotalLinesCount = total;
+            Total = total;
             MaxPageNo = (total + size - 1) / size;
-            Lines = lines;
+            Items = items;
         }
 
         public int PageNo { get; } 
         public int PageSize { get; }
-        public int TotalLinesCount { get; }  
+        public int Total { get; }  
         public int MaxPageNo { get; }
-        public IEnumerable<TRootEntity> Lines { get; }
+        public IEnumerable<TRootEntity> Items { get; }
     }
 
     public enum Refer

@@ -76,8 +76,8 @@ namespace FreestyleOrm.Tests
         {
             if (_databaseKind == DatabaseKinds.SqlServer)
             {
-                return new SqlConnection(@"Data Source=akirapcwin7\sqlexpress;Initial Catalog=test;Integrated Security=True");
-                //return new SqlConnection(@"Data Source=akawawin8\sqlserver2016;Initial Catalog=cplan_demo;Integrated Security=True");
+                //return new SqlConnection(@"Data Source=akirapcwin7\sqlexpress;Initial Catalog=test;Integrated Security=True");
+                return new SqlConnection(@"Data Source=akawawin8\sqlserver2016;Initial Catalog=cplan_demo;Integrated Security=True");
             }
             else
             {
