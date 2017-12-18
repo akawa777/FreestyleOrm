@@ -148,10 +148,9 @@ namespace FreestyleOrm.Core
                 
             }
 
-            if (!string.IsNullOrEmpty(result.Sql))
-            {
-                _specPredicateResults.Add(result);
-            }
+            if (string.IsNullOrEmpty(result.Sql)) return this;
+
+            _specPredicateResults.Add(result);
 
             return this;
         }
@@ -186,7 +185,9 @@ namespace FreestyleOrm.Core
                 if (defaultSql != null) result.Sql = defaultSql;
             }
 
-            if (!string.IsNullOrEmpty(result.Sql) && _specPredicateResults.Count > 0)
+            if (string.IsNullOrEmpty(result.Sql)) return this;
+
+            if (_specPredicateResults.Count > 0)
             {
                 if (logicalSymbol == LogicalSymbol.And)
                 {                    
@@ -204,10 +205,7 @@ namespace FreestyleOrm.Core
                 result.Sql = GetPrettySql(result.Sql, false, " ");
             }
 
-            if (!string.IsNullOrEmpty(result.Sql))
-            {
-                _specPredicateResults.Add(result);
-            }
+            _specPredicateResults.Add(result);
 
             return this;
         }
@@ -227,7 +225,7 @@ namespace FreestyleOrm.Core
             result.Sql = $"({sql}";
             result.Params = specPredicate.GetParams();
 
-            if (specPredicate != null && _specPredicateResults.Count > 0)
+            if (_specPredicateResults.Count > 0)
             {
                 if (logicalSymbol == LogicalSymbol.And)
                 {
@@ -245,10 +243,7 @@ namespace FreestyleOrm.Core
                 result.Sql = GetPrettySql(result.Sql, false, " ") + GetPrettySql(")", true, string.Empty);
             }
 
-           if (!string.IsNullOrEmpty(result.Sql))
-            {
-                _specPredicateResults.Add(result);
-            }
+            _specPredicateResults.Add(result);
 
             return this;
         }
@@ -294,10 +289,9 @@ namespace FreestyleOrm.Core
                 if (defaultSql != null) result.Sql = defaultSql;
             }
 
-           if (!string.IsNullOrEmpty(result.Sql))
-            {
-                _specPredicateResults.Add(result);
-            }
+            if (string.IsNullOrEmpty(result.Sql)) return this;
+
+            _specPredicateResults.Add(result);
 
             return this;
         }
@@ -332,10 +326,9 @@ namespace FreestyleOrm.Core
                 if (defaultSql != null) result.Sql = defaultSql;
             }
 
-           if (!string.IsNullOrEmpty(result.Sql))
-            {
-                _specPredicateResults.Add(result);
-            }
+            if (string.IsNullOrEmpty(result.Sql)) return this;
+
+            _specPredicateResults.Add(result);
 
             return this;
         }
