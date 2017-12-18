@@ -579,48 +579,54 @@ namespace FreestyleOrm.Tests
 
             using (var connection = _testInitializer.CreateConnection())
             {
-                connection.Open();
-
-                var count = connection.Query("select * from Customer").Fetch().Count();
+                connection.Open();                
 
                 var customers = connection
                     .Query<Customer>(@"
                         select 
-                            * 
+                            {{selectColumns}} 
                         from 
                             {{table}} 
                         {{filters}}
+                        order by
+                            {{sortColumns}}
                     ")
                     .Spec(s =>
                     {
                         s.Predicate("table")
                             .Text("Customer");
 
+                        s.Predicate("selectColumns" , prettySpace: "                            ")
+                            .Comma(new string[] { "CustomerId", "CustomerName", "RecordVersion" });
+
                         var sp = s.Predicate("filters", x => $"where {x}", prettySpace: "                            ");
 
-                        var filterResolver = new SqlExpressionResolver();
+                        var sqlExpressionResolver = new SqlExpressionResolver();
 
                         sp.Satify(LogicalSymbol.And, spp =>
                         {
-                            filterResolver.ReSet(filter2.Filters);
-                            foreach (var filter in filterResolver)
+                            sqlExpressionResolver.ReSet(filter2.Filters);
+                            foreach (var sqlExpression in sqlExpressionResolver)
                             {
-                                spp.Satify(LogicalSymbol.And, filter.Sql, p => p.AddMap(filter.Params));
+                                spp.Satify(LogicalSymbol.And, sqlExpression.Sql, p => p.AddMap(sqlExpression.Params));
                             }
                         });
 
                         sp.Satify(LogicalSymbol.Or, spp =>
                         {
-                            filterResolver.ReSet(filter2.UnionFilters);
-                            foreach (var filter in filterResolver)
+                            sqlExpressionResolver.ReSet(filter2.UnionFilters);
+                            foreach (var sqlExpression in sqlExpressionResolver)
                             {
-                                spp.Satify(LogicalSymbol.And, filter.Sql, p => p.AddMap(filter.Params));
+                                spp.Satify(LogicalSymbol.And, sqlExpression.Sql, p => p.AddMap(sqlExpression.Params));
                             }
-                        });                        
+                        });   
+
+                        s.Predicate("sortColumns")                     
+                            .Sort(new string[] { "CustomerId", "CustomerName" });
                     })
                     .Fetch().ToArray();
 
-                //Assert.AreEqual(count, customers.Length);
+                Assert.AreEqual(3, customers.Length);
 
                 connection.Close();
             }
