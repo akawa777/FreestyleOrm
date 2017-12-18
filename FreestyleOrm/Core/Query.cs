@@ -30,7 +30,7 @@ namespace FreestyleOrm.Core
             Delete
         }
 
-        private class PageCount
+        private class TotalCount
         {
             public int Value { get; set; }
         }
@@ -260,14 +260,14 @@ namespace FreestyleOrm.Core
 
             if (map.RootMapRule.ReNest.Should())
             {
-                var list = Fetch(1, int.MaxValue, new PageCount(), map);
+                var list = Fetch(1, int.MaxValue, new TotalCount(), map);
                 var nodes = CreateNodes(list, map.RootMapRule.ReNest);
 
                 return nodes.Select(x => x as TRootEntity);
             }
             else
             {
-                return Fetch(1, int.MaxValue, new PageCount(), map);
+                return Fetch(1, int.MaxValue, new TotalCount(), map);
             }
         }        
 
@@ -278,21 +278,21 @@ namespace FreestyleOrm.Core
 
             Map<TRootEntity> map = CreateMap();
 
-            PageCount pageCount = new PageCount();
+            TotalCount totalCount = new TotalCount();
             IEnumerable<TRootEntity> list;
 
             if (map.RootMapRule.ReNest.Should())
             {
-                var nodes = Fetch();                
-                pageCount.Value = nodes.Count();
+                var nodes = Fetch();
+                totalCount.Value = nodes.Count();
                 list = Fetch().Skip((no - 1) * size).Take(size);
             }
             else
             {
-                list = Fetch(no, size, pageCount, map).ToList();
+                list = Fetch(no, size, totalCount, map).ToList();
             }
 
-            return new Page<TRootEntity>(no, size, pageCount.Value, list);
+            return new Page<TRootEntity>(no, size, totalCount.Value, list);
         }
 
         private Map<TRootEntity> CreateMap()
@@ -304,9 +304,9 @@ namespace FreestyleOrm.Core
             return map;
         }
 
-        private IEnumerable<TRootEntity> Fetch(int page, int size, PageCount outPageCount, Map<TRootEntity> map)
+        private IEnumerable<TRootEntity> Fetch(int page, int size, TotalCount totalCount, Map<TRootEntity> map)
         {
-            outPageCount.Value = 0;            
+            totalCount.Value = 0;            
 
             using (var reader = _databaseAccessor.CreateFetchReader(_queryOptions, out Action dispose))
             {
@@ -325,9 +325,11 @@ namespace FreestyleOrm.Core
 
                     if (currentRow.CanCreate(prevRow, uniqueKeys))
                     {
+                        totalCount.Value++;
+
                         if (rootEntity != null) 
                         {
-                            SetReNestNodes(map, rootEntity);
+                            SetReNestNodes(map, rootEntity);                            
                             yield return rootEntity;
                         }
 
@@ -461,11 +463,9 @@ namespace FreestyleOrm.Core
 
                 if (rootEntity != null) 
                 {
-                    SetReNestNodes(map, rootEntity);
+                    SetReNestNodes(map, rootEntity);                    
                     yield return rootEntity;
                 }
-
-                outPageCount.Value = currentPage;
 
                 reader.Close();
                 dispose();

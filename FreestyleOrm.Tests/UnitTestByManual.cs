@@ -220,7 +220,7 @@ namespace FreestyleOrm.Tests
                 Assert.AreEqual(no, page.PageNo);
                 Assert.AreEqual(size, page.Items.Count());
                 Assert.AreEqual(size * no, page.Items.Last().PurchaseOrderId);
-                Assert.AreEqual(no, page.Total);
+                Assert.AreEqual(query.Fetch().Count(), page.Total);
 
                 connection.Close();
             }            

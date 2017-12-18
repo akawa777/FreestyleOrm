@@ -148,7 +148,7 @@ namespace FreestyleOrm.Core
 
                 _lastIdMap.Remove(row.ExpressionPath);
 
-                if (rtn == 0) throw new DBConcurrencyException($"{row.Table} table.");
+                if (rtn == 0) throw new DBConcurrencyException($"DBConcurrencyException at {row.Table} table.");
 
                 return rtn;
             }
@@ -176,7 +176,7 @@ namespace FreestyleOrm.Core
 
                 _lastIdMap.Remove(row.ExpressionPath);
 
-                if (rtn == 0) throw new DBConcurrencyException($"{row.Table} table.");
+                if (rtn == 0) throw new DBConcurrencyException($"DBConcurrencyException at {row.Table} table.");
 
                 return rtn;
             }
