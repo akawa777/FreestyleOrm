@@ -472,13 +472,6 @@ namespace FreestyleOrm.Core
             }
         }
 
-        public IQuery<TRootEntity> Formats(Action<Dictionary<string, object>> setFormats)
-        {
-            _queryOptions.SetFormats = setFormats ?? throw new AggregateException($"{setFormats} is null.");
-
-            return this;
-        }
-
         public IQuery<TRootEntity> Map(Action<IMap<TRootEntity>> setMap)
         {
             _setMap = setMap ?? throw new AggregateException($"{setMap} is null.");
@@ -682,15 +675,6 @@ namespace FreestyleOrm.Core
         public IQuery<TRootEntity> Transaction(IDbTransaction transaction)
         {
             _queryOptions.Transaction = transaction;
-
-            return this;
-        }
-
-        public IQuery<TRootEntity> Spec(Action<ISpec> setSpec)
-        {
-            Spec spec = new Spec();
-            setSpec(spec);
-            _queryOptions.Spec = spec;
 
             return this;
         }

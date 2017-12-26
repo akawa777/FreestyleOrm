@@ -8,6 +8,8 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Linq.Expressions;
+using System.Collections;
+using FreestyleOrm.Core;
 
 namespace FreestyleOrm.Tests
 {
@@ -79,7 +81,7 @@ namespace FreestyleOrm.Tests
     public class UnitTest : UnitTestByManual
     {
         [TestMethod]
-        public void Test1()
+        public void TestSnakeToPascal1()
         {
             var table = new D_TEST_TABLE
             {
@@ -122,7 +124,7 @@ namespace FreestyleOrm.Tests
         }
 
         [TestMethod]
-        public void Test2()
+        public void TestSnakeToPascal2()
         {
             var table = new TestTable
             {
@@ -157,9 +159,9 @@ namespace FreestyleOrm.Tests
         }
 
         [TestMethod]
-        public void Test3()
+        public void TestSnakeToPascal3()
         {
-            Test1();
+            TestSnakeToPascal1();
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();    
@@ -185,9 +187,9 @@ namespace FreestyleOrm.Tests
         }
 
         [TestMethod]
-        public void Test4()
+        public void TestSnakeToPascal4()
         {
-            Test1();
+            TestSnakeToPascal1();
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();
@@ -342,7 +344,7 @@ namespace FreestyleOrm.Tests
         }
 
         [TestMethod]
-        public void TestSpec1()
+        public void TestSpec()
         {
             var filter = new CustomerFilter
             {
@@ -353,33 +355,42 @@ namespace FreestyleOrm.Tests
                 Desc = false
             };
 
+            var spec1 = new IfSpec("CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds);            
+            var spec2 = new IfSpec("CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName);            
+
+            var and1Spec = new AndSpec(spec1, spec2);
+            var and2Spec = new AndSpec(spec1, spec2);
+
+            var orSpec = new OrSpec(and1Spec, and2Spec);
+
+            var whereSpec = new WhereSpec(orSpec);
+
+            var selelctSpec = new SelectSpec(new string[] { "CustomerId", "CustomerName" });            
+            var sortSpec = new SortSpec(filter.SortColumns, defaultPredicate: "CustomerId");
+
+            string sql = $@"
+                        select 
+                            {selelctSpec}
+                        from 
+                            Customer
+                        {whereSpec}
+                        order by
+                            {sortSpec} ";
+
+            Console.Write(sql);
+
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();
 
+                var customersCount = connection.Query("select * from Customer").Fetch().Count();
+
                 var customers = connection
-                    .Query<Customer>(@"
-                        select 
-                            * 
-                        from 
-                            Customer                             
-                        {{filters}} 
-                        order by {{sortColumns}}
-                    ")
-                    .Spec(s =>
-                    {
-                        var symbol = filter.Any ? LogicalSymbol.Or : LogicalSymbol.And;
-
-                        s.Predicate("filters", x => $"where {x}", prettySpace: "                            ")                        
-                            .Satify(symbol, $"CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
-                            .Satify(symbol, $"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName);
-
-                        s.Predicate("sortColumns", prettySpace: "                            ")                        
-                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultSql: "CustomerId");                         
-                    })                    
+                    .Query<Customer>(sql)
+                    .Params(p => p.AddMap(whereSpec))
                     .Fetch().ToArray();
 
-                Assert.AreEqual(1, customers.Length);
+                Assert.AreEqual(1, customers.Count());
 
                 connection.Close();
             }
@@ -390,243 +401,47 @@ namespace FreestyleOrm.Tests
         {
             var filter = new CustomerFilter
             {
-                Any = false,                                
-                Desc = false
-            };
-
-            using (var connection = _testInitializer.CreateConnection())
-            {
-                connection.Open();
-
-                var count = connection.Query("select * from Customer").Fetch().Count();
-
-                var customers = connection
-                    .Query<Customer>(@"
-                        select 
-                            * 
-                        from 
-                            Customer 
-                        {{filters}} 
-                        order by 
-                            {{sortColumns}}
-                    ")
-                    .Spec(s =>
-                    {
-                        var symbol = filter.Any ? LogicalSymbol.Or : LogicalSymbol.And;
-
-                        s.Predicate("filters", x => $"where {x}")
-                            .Satify(symbol, "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
-                            .Satify(symbol, "CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName);
-
-                        s.Predicate("sortColumns")
-                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultSql: "CustomerId");
-                    })
-                    .Fetch().ToArray();
-
-                Assert.AreEqual(count, customers.Length);
-
-                connection.Close();
-            }
-        }
-
-        [TestMethod]
-        public void TestSpec3()
-        {
-            var filter = new CustomerFilter
-            {
-                Any = false,
-                CustomerIds = new List<int> { 1, 2 },                
+                Any = false,                
                 SortColumns = new List<string> { "CustomerId", "CustomerName " },
                 Desc = false
             };
 
+            var spec1 = new IfSpec("CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds);
+            var spec2 = new IfSpec("CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName);
+
+            var and1Spec = new AndSpec(spec1, spec2);
+            var and2Spec = new AndSpec(spec1, spec2);
+
+            var orSpec = new OrSpec(and1Spec, and2Spec);
+
+            var whereSpec = new WhereSpec(orSpec);
+
+            var selelctSpec = new SelectSpec(new string[] { "CustomerId", "CustomerName" });
+            var sortSpec = new SortSpec(filter.SortColumns, defaultPredicate: "CustomerId");
+
+            string sql = $@"
+                        select 
+                            {selelctSpec}
+                        from 
+                            Customer
+                        {whereSpec}
+                        order by
+                            {sortSpec} ";
+
+            Console.Write(sql);
+
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();
 
-                var customers = connection
-                    .Query<Customer>(@"
-                        select 
-                            * 
-                        from 
-                            Customer 
-                        {{filters}} 
-                        order by {{sortColumns}}
-                    ")
-                    .Spec(s =>
-                    {
-                        var symbol = filter.Any ? LogicalSymbol.Or : LogicalSymbol.And;
-
-                        s.Predicate("filters", x => $"where {x}", prettySpace: "                            ")
-                            .Satify(symbol, "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
-                            .Satify(symbol, "CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)
-                            .Satify(LogicalSymbol.Or, sp =>
-                            {
-                                sp
-                                    .Satify(LogicalSymbol.Or, "CustomerId in (@OrCustomerIds)", p => p["@OrCustomerIds"] = filter.CustomerIds)
-                                    .Satify(symbol, "CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)
-                                    .Satify(LogicalSymbol.Or, spp =>
-                                    {
-                                        spp
-                                            .Satify(LogicalSymbol.Or, "CustomerId in (@OrCustomerIds)", p => p["@OrCustomerIds"] = filter.CustomerIds)
-                                            .Satify(symbol, "CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName);
-                                    })
-                                    .Satify(LogicalSymbol.And, spp =>
-                                    {
-                                        spp
-                                            .Satify(LogicalSymbol.Or, "CustomerId in (@OrCustomerIds)", p => p["@OrCustomerIds"] = filter.CustomerIds)
-                                            .Satify(symbol, "CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName);
-                                    });
-                            })
-                            .Satify(symbol, "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
-                            .Satify(symbol, "CustomerName = @CustomerNam", p => p["@CustomerName"] = filter.CustomerName);
-
-                        s.Predicate("sortColumns", prettySpace: "                            ")
-                            .Sort(filter.SortColumns, (x, i) => i == 0 && filter.Desc, defaultSql: "CustomerId");
-                    })
-                    .Fetch().ToArray();
-
-                Assert.AreEqual(2, customers.Length);
-
-                connection.Close();
-            }
-        }
-
-        public class SqlExpression
-        {
-            public virtual string Subject { get; set; }
-            public virtual string Symbol { get; set; }
-            public virtual List<object> Values { get; set; } = new List<object>();
-        }
-
-        public class SqlExpressionProxy : SqlExpression
-        {
-            public SqlExpressionProxy(SqlExpression sqlExpression, int paramNo)
-            {
-                foreach (var prop in sqlExpression.GetType().GetProperties())
-                {
-                    prop.SetValue(this, prop.GetValue(sqlExpression));
-                }
-
-                var sql = string.Empty;
-                var paramMap = new Dictionary<string, object>();
-
-                if (Symbol == "=")
-                {
-                    sql = $"{Subject} = @{Subject}_{paramNo}";
-                    paramMap[$"@{Subject}_{paramNo}"] = Values[0];
-                }                
-                else if (Symbol == "in")
-                {
-                    sql = $"{Subject} in (@{Subject}_{paramNo})";
-                    paramMap[$"@{Subject}_{paramNo}"] = Values;
-                }
-                else if (Symbol == "between")
-                {
-                    sql = $"{Subject} between @{Subject}_{paramNo}_1 and @{Subject}_{paramNo}_2";
-                    paramMap[$"@{Subject}_{paramNo}_1"] = Values[0];
-                    paramMap[$"@{Subject}_{paramNo}_2"] = Values[1];
-                }
-
-                Sql = sql;
-                Params = paramMap;
-            }
-
-            public string Sql { get; }
-            public Dictionary<string, object> Params { get; }
-        }
-
-        public class SqlExpressionResolver : List<SqlExpressionProxy>
-        {
-            public SqlExpressionResolver()
-            {
-
-            }
-            
-            public SqlExpressionResolver(IEnumerable<SqlExpression> sqlExpressions)
-            {
-                ReSet(sqlExpressions);
-            }
-
-            private int _no = 1;
-
-            public void ReSet(IEnumerable<SqlExpression> sqlExpressions)
-            {
-                this.Clear();
-                
-                foreach (var item in sqlExpressions)
-                {
-                    this.Add(new SqlExpressionProxy(item, _no));
-                    _no++;
-                }
-            }
-        }
-
-        public class Filter2
-        {
-            public List<SqlExpression> Filters { get; set;} = new List<SqlExpression>();
-            public List<SqlExpression> UnionFilters { get; set; } = new List<SqlExpression>();
-        }
-
-        [TestMethod]
-        public void TestSpec4()
-        {
-            var filter2 = new Filter2();
-
-            filter2.Filters.Add(new SqlExpression{ Subject = "CustomerId", Symbol = "=", Values = { 1 } });            
-            filter2.Filters.Add(new SqlExpression{ Subject = "CustomerId", Symbol = "between", Values = { 1, 2 } });
-            filter2.UnionFilters.Add(new SqlExpression{ Subject = "CustomerId", Symbol = "in", Values = { 1, 2, 3 } });
-
-            using (var connection = _testInitializer.CreateConnection())
-            {
-                connection.Open();                
+                var customersCount = connection.Query("select * from Customer").Fetch().Count();
 
                 var customers = connection
-                    .Query<Customer>(@"
-                        select 
-                            {{selectColumns}} 
-                        from 
-                            {{table}} 
-                        {{filters}}
-                        order by
-                            {{sortColumns}}
-                    ")
-                    .Spec(s =>
-                    {
-                        s.Predicate("table")
-                            .Text("Customer");
-
-                        s.Predicate("selectColumns" , prettySpace: "                            ")
-                            .Comma(new string[] { "CustomerId", "CustomerName", "RecordVersion" });
-
-                        var sp = s.Predicate("filters", x => $"where {x}", prettySpace: "                            ");
-
-                        var sqlExpressionResolver = new SqlExpressionResolver();
-
-                        sp.Satify(LogicalSymbol.And, spp =>
-                        {
-                            sqlExpressionResolver.ReSet(filter2.Filters);
-                            foreach (var sqlExpression in sqlExpressionResolver)
-                            {
-                                spp.Satify(LogicalSymbol.And, sqlExpression.Sql, p => p.AddMap(sqlExpression.Params));
-                            }
-                        });
-
-                        sp.Satify(LogicalSymbol.Or, spp =>
-                        {
-                            sqlExpressionResolver.ReSet(filter2.UnionFilters);
-                            foreach (var sqlExpression in sqlExpressionResolver)
-                            {
-                                spp.Satify(LogicalSymbol.And, sqlExpression.Sql, p => p.AddMap(sqlExpression.Params));
-                            }
-                        });   
-
-                        s.Predicate("sortColumns")                     
-                            .Sort(new string[] { "CustomerId", "CustomerName" });
-                    })
+                    .Query<Customer>(sql)
+                    .Params(p => p.AddMap(sortSpec))
                     .Fetch().ToArray();
 
-                Assert.AreEqual(3, customers.Length);
+                Assert.AreEqual(customersCount, customers.Count());
 
                 connection.Close();
             }

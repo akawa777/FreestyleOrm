@@ -9,10 +9,8 @@ using FreestyleOrm.Core;
 namespace FreestyleOrm
 {
     public interface IQueryBase<TRootEntity> where TRootEntity : class
-    {        
-        IQuery<TRootEntity> Spec(Action<ISpec> setSpec);
-        IQuery<TRootEntity> Params(Action<Dictionary<string, object>> setParams);
-        IQuery<TRootEntity> Formats(Action<Dictionary<string, object>> setFormats);
+    {   
+        IQuery<TRootEntity> Params(Action<Dictionary<string, object>> setParams);        
         IQuery<TRootEntity> TempTables(Action<ITempTableSet> setTempTables);
         IQuery<TRootEntity> Connection(IDbConnection connection);
         IQuery<TRootEntity> Transaction(IDbTransaction transaction);
@@ -56,27 +54,6 @@ namespace FreestyleOrm
     public interface IFormat
     {
         IFormat Set(string name, Func<string> getFormat, Func<bool> validation = null);
-    }
-
-    public interface ISpec
-    {
-        ISpecPredicate Predicate(string name, Func<string, string> formatPredicate = null, string prettySpace = null);
-        void RemovePredicate(string name);
-    }
-
-    public enum LogicalSymbol
-    {
-        And,
-        Or
-    }
-
-    public interface ISpecPredicate
-    {
-        ISpecPredicate Satify(LogicalSymbol logicalSymbol, string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null);
-        ISpecPredicate Satify(LogicalSymbol logicalSymbol, Action<ISpecPredicate> setSpecPredicate);
-        ISpecPredicate Sort<T>(IEnumerable<T> list, Func<T, int, bool> isDesc = null, string defaultSql = null, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null);
-        ISpecPredicate Comma<T>(IEnumerable<T> list, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null);
-        ISpecPredicate Text(string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null);
     }
 
     public class Page<TRootEntity>

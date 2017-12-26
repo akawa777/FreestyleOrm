@@ -7,8 +7,7 @@ using System.Linq;
 namespace FreestyleOrm
 {
     public interface IQueryDefine
-    {
-        void SetFormats(Type rootEntityType, Dictionary<string, object> formats);
+    {        
         string GetTable(IMapRule mapRule);
         void SetRelationId(IMapRule mapRule, RelationId relationId);
         bool GetAutoId(IMapRule mapRule);

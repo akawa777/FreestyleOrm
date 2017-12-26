@@ -10,15 +10,14 @@ namespace FreestyleOrm.Tests
 {
     public class TestInitializer: IDisposable
     {
-        public TestInitializer(DatabaseKinds databaseKind, Func<IDbConnection, IDbTransaction, IQuery<PurchaseOrder>> createPurchaseOrderQuery, int purchaseOrderNo)
+        public TestInitializer(DatabaseKinds databaseKind, int purchaseOrderNo)
         {
             _databaseKind = databaseKind;            
 
             using (_connection = CreateConnection())
             {            
                 _connection.Open();
-                _transaction = _connection.BeginTransaction();
-                _purchaseOrderQuery = createPurchaseOrderQuery(_connection, _transaction);
+                _transaction = _connection.BeginTransaction();                
                 
                 Init(purchaseOrderNo);
 
@@ -76,8 +75,8 @@ namespace FreestyleOrm.Tests
         {
             if (_databaseKind == DatabaseKinds.SqlServer)
             {
-                return new SqlConnection(@"Data Source=akirapcwin7\sqlexpress;Initial Catalog=test;Integrated Security=True");
-                //return new SqlConnection(@"Data Source=akawawin8\sqlserver2016;Initial Catalog=cplan_demo;Integrated Security=True");
+                //return new SqlConnection(@"Data Source=akirapcwin7\sqlexpress;Initial Catalog=test;Integrated Security=True");
+                return new SqlConnection(@"Data Source=akawawin8\sqlserver2016;Initial Catalog=cplan_demo;Integrated Security=True");
             }
             else
             {
@@ -99,8 +98,7 @@ namespace FreestyleOrm.Tests
         {
             CreateTable();
             InsertCustomers(CreateCustomers(10));
-            InsertProducts(CreateProducts(10));
-            InsertPurchaseOrders(CreatePurchaseOrders(purchaseOrderNo, 10, 10, 10));
+            InsertProducts(CreateProducts(10));            
         }
 
         private void CreateTable()
@@ -220,13 +218,6 @@ namespace FreestyleOrm.Tests
             foreach (var model in models) query.Insert(model);
         }
 
-        private void InsertPurchaseOrders(IEnumerable<PurchaseOrder> models)
-        {
-            var query = _purchaseOrderQuery.Formats(f => f["where"] = string.Empty);
-
-            foreach (var model in models) query.Insert(model);
-        }
-
         private IEnumerable<Customer> CreateCustomers(int number)
         {
             for (int i = 0; i < number; i++)
@@ -250,27 +241,5 @@ namespace FreestyleOrm.Tests
                 yield return product;
             }
         }
-
-        private IEnumerable<PurchaseOrder> CreatePurchaseOrders(int number, int maxItemNumber, int maxCutomerId, int maxProductId)
-        {
-            for (int i = 0; i < number; i++)
-            {
-                PurchaseOrder order = PurchaseOrder.Create(0);
-
-                order.Title = $"{nameof(order.Title)}_{i + 1}";
-                order.Customer = Customer.Create((i % maxCutomerId) + 1);
-
-                for (int ii = 0; ii < maxItemNumber; ii++)
-                {
-                    var orderItem = PurchaseItem.Create(order.GetNewItemNo());
-                    orderItem.Product = Product.Create((ii % maxProductId) + 1);
-                    orderItem.Number = orderItem.PurchaseItemNo;
-
-                    order.AddItem(orderItem);
-                }
-
-                yield return order;
-            }
-        }        
     }
 }

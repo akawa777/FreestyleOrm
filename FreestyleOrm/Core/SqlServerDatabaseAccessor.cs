@@ -258,11 +258,7 @@ namespace FreestyleOrm.Core
         public string FormatSql(QueryOptions queryOptions, Dictionary<string, List<IDbDataParameter>> complexParameters)
         {
             string formatedSql = queryOptions.Sql;
-
-            Dictionary<string, object> formats = new Dictionary<string, object>();            
-            queryOptions.SetFormats(formats);
-
-            foreach (var format in formats) formatedSql = formatedSql.Replace("{{" + format.Key + "}}", format.Value.ToString());
+            
             foreach (var param in complexParameters) formatedSql = formatedSql.Replace(param.Key, string.Join(", ", param.Value.Select(x => x.ParameterName)));
 
             return formatedSql;

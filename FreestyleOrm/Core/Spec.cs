@@ -8,345 +8,209 @@ using System.Collections;
 
 namespace FreestyleOrm.Core
 {
-    internal class Spec : ISpec
-    {
-        private List<SpecPredicate> _specPredicates = new List<SpecPredicate>();
-        public ISpecPredicate Predicate(string name, Func<string, string> formatPredicate = null, string prettySpace = null)
-        {
-            var specPredicate = new SpecPredicate(name, formatPredicate, prettySpace);
-            _specPredicates.Add(specPredicate);
-
-            return specPredicate;
-        }
-        public void RemovePredicate(string name)
-        {
-            var specPredicates = _specPredicates.Where(x => x.Name == name);
-
-            foreach (var specPredicate in specPredicates)
-            {
-                _specPredicates.Remove(specPredicate);
-            }
-        }
-
-        public void SetFormats(Dictionary<string, object> formatMap)
-        {
-            foreach (var specPredicate in _specPredicates)
-            {
-                formatMap[specPredicate.Name] = specPredicate.GetSql();
-            }
-        }
-
-        public void SetParams(Dictionary<string, object> paramMap)
-        {
-            foreach (var specPredicate in _specPredicates)
-            {
-                foreach (var entry in specPredicate.GetParams())
-                {
-                    paramMap[entry.Key] = entry.Value;
-                }
-            }
-        }
+    public interface ISqlSpec : IDictionary<string, object>
+    {        
+        
     }
 
-    internal class SpecPredicateResult
+    public abstract class SpecBase : Dictionary<string, object>, ISqlSpec
     {
-        public string Sql { get; set; } = string.Empty;
-        public Dictionary<string, object> Params { get; set; } = new Dictionary<string, object>();
-    }
-
-    internal class SpecPredicate : ISpecPredicate
-    {   
-        public SpecPredicate(string name, Func<string, string> formatPredicate = null, string prettySpace = null)
+        protected SpecBase(Action<Dictionary<string, object>> setParams, Func<bool> validation)
         {
-            Name = name;
-
-            if (formatPredicate == null) _formatPredicate = x => x;
-            else _formatPredicate = formatPredicate;
-
-            _prettySpace = prettySpace;
+            _validation = validation;
+            ValidParam = TrySetParams(setParams, validation);
         }
+        
+        protected Func<bool> _validation;
+        protected bool ValidParam = false;
 
-        public string Name { get; }
-        private Func<string, string> _formatPredicate;
-        private List<SpecPredicateResult> _specPredicateResults = new List<SpecPredicateResult>();
-        private string _prettySpace;
-
-        public string GetSql()
+        protected bool TrySetParams(Action<Dictionary<string, object>> setParams, Func<bool> validation)
         {
-            var sql = string.Join(string.Empty, _specPredicateResults.Select(x => x.Sql));
-
-            if (string.IsNullOrEmpty(sql)) return sql;
-            else return _formatPredicate(sql);
-        }
-
-        public Dictionary<string, object> GetParams()
-        {
-            Dictionary<string, object> paramMap = new Dictionary<string, object>();
-
-            foreach (var result in _specPredicateResults)
+            if (setParams == null)
             {
-                foreach (var entry in result.Params)
-                {
-                    paramMap[entry.Key] = entry.Value;
-                }
+                ValidParam = true;
+                return true;
             }
-
-            return paramMap;
-        }
-
-        public bool ValidationParams(Dictionary<string, object> parameters)
-        {
-            foreach (var value in parameters.Values)
-            {
-                if (value == null) return false;
-                if (value.ToString() == string.Empty) return false;    
-                if (value.GetType() != typeof(string) && value is IEnumerable values)
-                {
-                    bool hasElement = false;
-                    foreach (var element in values)
-                    {
-                        if (hasElement) break;
-                        hasElement = true;
-                    }
-
-                    return hasElement;
-                }
-            }
-
-            return true;
-        }
-
-        public ISpecPredicate Comma<T>(IEnumerable<T> list, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null)
-        {
-            var result = new SpecPredicateResult();
-            
-            Func<bool> defaultValidation = () => list != null && list.Count() > 0;
 
             try
             {
-                if ((validation == null && defaultValidation()) || (validation != null && validation()))
-                {                   
-                    result.Sql = string.Join(string.Empty, list.Select((x, i) => GetPrettySql((i == 0? string.Empty : ",") + x.ToString(), i != 0, " ")));                     
+                Dictionary<string, object> map = new Dictionary<string, object>();
 
-                    setParams?.Invoke(result.Params);
+                setParams(map);
 
-                    if (validation == null && !ValidationParams(result.Params))
-                    {
-                        if (defaultSql != null) result.Sql = defaultSql;
-                        else return this;
-                    }
-                }
-                else
-                {   
-                    if (defaultSql != null) result.Sql = defaultSql;
-                }
-            }
-            catch(Exception e)
-            {
-                if (validation != null) throw e;
-                if (defaultSql != null) result.Sql = defaultSql;
-                
-            }
+                bool rtn = true;
 
-            if (string.IsNullOrEmpty(result.Sql)) return this;
-
-            _specPredicateResults.Add(result);
-
-            return this;
-        }
-
-        public ISpecPredicate Satify(LogicalSymbol logicalSymbol, string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null)
-        {
-            var result = new SpecPredicateResult();
-            Func<bool> defaultValidation = () => !string.IsNullOrEmpty(sql);
-
-            try
-            {
-                if ((validation == null && defaultValidation()) || (validation != null && validation()))
+                if (validation!= null && !validation())
                 {
-                    result.Sql = sql;
-
-                    setParams?.Invoke(result.Params);
-
-                    if (validation == null && !ValidationParams(result.Params))
-                    {
-                        if (defaultSql != null) result.Sql = defaultSql;
-                        else return this;
-                    }
+                    rtn = false;
                 }
-                else
-                {
-                    if (defaultSql != null) result.Sql = defaultSql;
-                }
-            }
-            catch (Exception e)
-            {
-                if (validation != null) throw e;
-                if (defaultSql != null) result.Sql = defaultSql;
-            }
-
-            if (string.IsNullOrEmpty(result.Sql)) return this;
-
-            if (_specPredicateResults.Count > 0)
-            {
-                if (logicalSymbol == LogicalSymbol.And)
+                if (validation == null)
                 {                    
-                    result.Sql = $"and {result.Sql}";
-                }
-                else
-                {
-                    result.Sql = $"or {result.Sql}";
-                }
-
-                result.Sql = GetPrettySql(result.Sql, true, " ");
-            }
-            else
-            {
-                result.Sql = GetPrettySql(result.Sql, false, " ");
-            }
-
-            _specPredicateResults.Add(result);
-
-            return this;
-        }
-
-        public ISpecPredicate Satify(LogicalSymbol logicalSymbol, Action<ISpecPredicate> setSpecPredicate)
-        {
-            var result = new SpecPredicateResult();
-            Func<bool> defaultValidation = () => setSpecPredicate == null;
-
-            var specPredicate = new SpecPredicate(Name, prettySpace: _prettySpace == null ? null : _prettySpace + "\t");
-            setSpecPredicate(specPredicate);
-
-            var sql = specPredicate.GetSql();
-
-            if (string.IsNullOrEmpty(sql)) return this;
-
-            result.Sql = $"({sql}";
-            result.Params = specPredicate.GetParams();
-
-            if (_specPredicateResults.Count > 0)
-            {
-                if (logicalSymbol == LogicalSymbol.And)
-                {
-                    result.Sql = $"and {result.Sql}";
-                }
-                else
-                {
-                    result.Sql = $"or {result.Sql}";
-                }
-
-                result.Sql = GetPrettySql(result.Sql, true, " ") + GetPrettySql(")", true, string.Empty);
-            }
-            else
-            {
-                result.Sql = GetPrettySql(result.Sql, false, " ") + GetPrettySql(")", true, string.Empty);
-            }
-
-            _specPredicateResults.Add(result);
-
-            return this;
-        }
-
-        public ISpecPredicate Sort<T>(IEnumerable<T> list, Func<T, int, bool> isDesc = null, string defaultSql = null, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null)
-        {
-            var result = new SpecPredicateResult();
-            Func<bool> defaultValidation = () => list != null && list.Count() > 0;
-            Func<T, int, string> setColumn = (x, i) =>
-            {
-                if (isDesc != null && isDesc(x, i))
-                {
-                    return $"{x} desc";
-                }
-                else
-                {
-                    return $"{x}";
-                }
-            };
-
-            try
-            {                
-                if ((validation == null && defaultValidation()) || (validation != null && validation()))
-                {
-                    result.Sql = string.Join(string.Empty, list.Select((x, i) => GetPrettySql((i == 0? string.Empty : ",") + setColumn(x, i), i != 0, " ")));
-
-                    setParams?.Invoke(result.Params);
-
-                    if (validation == null && !ValidationParams(result.Params))
+                    foreach (var value in map.Values)
                     {
-                        if (defaultSql != null) result.Sql = defaultSql;
-                        else return this;
+                        if (value == null) return false;
+                        if (value.ToString() == string.Empty) return false;
+                        if (value.GetType() != typeof(string) && value is IEnumerable values)
+                        {
+                            bool hasElement = false;
+                            foreach (var element in values)
+                            {
+                                if (hasElement) break;
+                                hasElement = true;
+                            }
+
+                            rtn = hasElement;
+                        }
                     }
                 }
-                else
+
+                if (rtn)
                 {
-                    if (defaultSql != null) result.Sql = defaultSql;
+                    ValidParam = true;
+                    this.AddMap(map);
                 }
+
+                return rtn;
             }
-            catch (Exception e)
+            catch
             {
-                if (validation != null) throw e;
-                if (defaultSql != null) result.Sql = defaultSql;
+                return false;
             }
-
-            if (string.IsNullOrEmpty(result.Sql)) return this;
-
-            _specPredicateResults.Add(result);
-
-            return this;
         }
+    }
 
-        public ISpecPredicate Text(string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null)
+    public class IfSpec : SpecBase
+    {
+        public IfSpec(string predicate, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultPredicate = null) : base(setParams, validation)
         {
-            var result = new SpecPredicateResult();
-            Func<bool> defaultValidation = () => !string.IsNullOrEmpty(sql);
+            Init(predicate, setParams, validation, defaultPredicate);
+        }
 
-            try
-            {                
-                if ((validation == null && defaultValidation()) || (validation != null && validation()))
+        private string _predicate = string.Empty;        
+
+        private void Init(string predicate, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultPredicate = null)
+        {
+            if ((validation != null && !validation()) || !ValidParam)
+            {
+                if (string.IsNullOrEmpty(defaultPredicate))
                 {
-                    result.Sql = sql;
-
-                    setParams?.Invoke(result.Params);
-
-                    if (validation == null && !ValidationParams(result.Params))
-                    {
-                        if (defaultSql != null) result.Sql = defaultSql;
-                        else return this;
-                    }
+                    _predicate = string.Empty;
                 }
                 else
                 {
-                    if (defaultSql != null) result.Sql = defaultSql;
+                    _predicate = defaultPredicate;
                 }
-            }
-            catch (Exception e)
-            {
-                if (validation != null) throw e;
-                if (defaultSql != null) result.Sql = defaultSql;
-            }
-
-            if (string.IsNullOrEmpty(result.Sql)) return this;
-
-            _specPredicateResults.Add(result);
-
-            return this;
-        }
-
-        private string GetPrettySql(string sql, bool format, string defaultPrepend)
-        {            
-            string prettiedSql = sql;
-
-            if (string.IsNullOrEmpty(_prettySpace))
-            {
-                prettiedSql = (format ? defaultPrepend : string.Empty) + prettiedSql;
             }
             else
             {
-                prettiedSql = Environment.NewLine + _prettySpace + prettiedSql;
+                _predicate = predicate;
+            }
+        }        
+
+        public override string ToString()
+        {
+            return _predicate;
+        }
+    }
+
+    public class LogicalSpec : SpecBase
+    {
+        public LogicalSpec(string symbol = null, string prefixHolder = null, string suffixHolder = null, Action<Dictionary<string, object>> setParams = null, params ISqlSpec[] specs) : base(setParams, null)
+        {
+            _symbol = symbol ?? string.Empty;
+            _prefixHolder = prefixHolder ?? string.Empty;
+            _suffixHolder = suffixHolder ?? string.Empty;
+            Specs = specs;
+
+            if (ValidParam)
+            {
+                List<string> predicates = new List<string>();
+
+                foreach (var spec in Specs)
+                {
+                    if (string.IsNullOrEmpty(spec.ToString())) continue;
+
+                    predicates.Add($"{_prefixHolder}{spec.ToString()}{_suffixHolder}");
+                    this.AddMap(spec);
+                }
+
+                _predicate = string.Join(_symbol, predicates);
+            }
+        }
+
+        private string _symbol;
+        private string _prefixHolder;
+        private string _suffixHolder;
+        protected ISqlSpec[] Specs { get; set; }
+        private string _predicate;        
+
+        public override string ToString()
+        {
+            return _predicate;
+        }
+    }
+
+    public class AndSpec : LogicalSpec
+    {
+        public AndSpec(params ISqlSpec[] specs) : base("and ", "( ", ") ", specs: specs)
+        {
+
+        }
+    }
+
+    public class OrSpec : LogicalSpec
+    {
+        public OrSpec(params ISqlSpec[] specs) : base("or ", "(", ") ", specs: specs)
+        {
+
+        }
+    }
+
+    public class WhereSpec : LogicalSpec
+    {
+        public WhereSpec(params ISqlSpec[] specs) : base(string.Empty, "where ", string.Empty, specs: specs)
+        {
+
+        }
+    }
+
+    public class SelectSpec : LogicalSpec
+    {
+        public SelectSpec(IEnumerable<object> items, Action<Dictionary<string, object>> setParams = null, string defaultPredicate = null) 
+            : base(", ", string.Empty, string.Empty, setParams, specs: CreateSpecs(items, defaultPredicate))
+        {
+
+        }        
+
+        private static ISqlSpec[] CreateSpecs(IEnumerable<object> items, string defaultPredicate)
+        {
+            var specs = new List<ISqlSpec>();
+
+            if (items == null || items.Count() == 0)
+            {
+                if (!string.IsNullOrEmpty(defaultPredicate))
+                {
+                    specs.Add(new IfSpec(defaultPredicate));
+                }
+            }
+            else
+            {
+                foreach (var item in items)
+                {
+                    specs.Add(new IfSpec(item.ToString()));
+                }
             }
 
-            return prettiedSql;
+            return specs.ToArray();
+        }
+    }
+
+    public class SortSpec : SelectSpec
+    {
+        public SortSpec(IEnumerable<object> items, Action<Dictionary<string, object>> setParams = null, string defaultPredicate = null) 
+            : base(items, setParams, defaultPredicate)
+        {
+
         }
     }
 }

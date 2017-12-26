@@ -13,9 +13,9 @@ namespace FreestyleOrm.Tests
     [TestClass]
     public class UnitTestByAuto : UnitTestByManual
     {
-        protected override IQuery<PurchaseOrder> CreatePurchaseOrderQuery(IDbConnection connection, IDbTransaction  transaction = null)
+        protected override IQuery<PurchaseOrder> CreatePurchaseOrderQuery(IDbConnection connection, IDbTransaction  transaction = null, string where = "")
         {
-            IQuery<PurchaseOrder> query = base.CreatePurchaseOrderQuery(connection, transaction);
+            IQuery<PurchaseOrder> query = base.CreatePurchaseOrderQuery(connection, transaction, where);
 
             query.Map(m =>
             {
@@ -59,10 +59,9 @@ namespace FreestyleOrm.Tests
             {
                 connection.Open();
 
-                var query = base.CreatePurchaseOrderQuery(connection);
+                var query = base.CreatePurchaseOrderQuery(connection, null, "where PurchaseOrder.PurchaseOrderId not in (@PurchaseOrderIds)");
 
-                query
-                    .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId not in (@PurchaseOrderIds)")
+                query                    
                     .Params(p => p["@PurchaseOrderIds"] = new object[] { _purchaseOrderNo + 1, _purchaseOrderNo + 2 });
 
                 var ordersByManual = query.Fetch().ToList();
@@ -71,8 +70,9 @@ namespace FreestyleOrm.Tests
 
                 string tempTable = _databaseKind == TestInitializer.DatabaseKinds.Sqlite ? "OrderIds" : "#OrderIds";
 
-                query
-                    .Formats(f => f["where"] = $"where PurchaseOrder.PurchaseOrderId not in (select OrderId from {tempTable})")
+                query = base.CreatePurchaseOrderQuery(connection, null, $"where PurchaseOrder.PurchaseOrderId not in (select OrderId from {tempTable})");
+
+                query                    
                     .TempTables(t =>
                     {
                         t.Table($"{tempTable}", "OrderId int, KeyWord nvarchar(100)")
