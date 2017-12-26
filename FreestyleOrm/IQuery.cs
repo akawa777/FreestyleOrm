@@ -114,8 +114,13 @@ namespace FreestyleOrm
         string Table { get; }
     }
 
-    public interface ISqlSpec : IDictionary<string, object>
+    public interface IParamMapGetter<TKey, TValue>
     {
+        Dictionary<TKey, TValue> ParamMap { get; }
+    }
 
+    public interface ISqlSpec : IParamMapGetter<string, object>
+    {
+        
     }
 }

@@ -49,5 +49,10 @@ namespace FreestyleOrm
                 self[entry.Key.ToString()] = entry.Value;
             }
         }
+
+        public static void AddMap<TKey, TValue>(this IDictionary<string, object> self, IParamMapGetter<TKey, TValue> paramMapGetter)
+        {
+            self.AddMap(paramMapGetter.ParamMap);
+        }
     }
 }

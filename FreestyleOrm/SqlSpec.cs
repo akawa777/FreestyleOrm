@@ -8,7 +8,7 @@ using System.Collections;
 
 namespace FreestyleOrm
 {
-    public abstract class SpecBase : Dictionary<string, object>, ISqlSpec
+    public abstract class SpecBase : ISqlSpec
     {
         protected SpecBase(Action<Dictionary<string, object>> setParams, Func<bool> validation)
         {
@@ -18,6 +18,13 @@ namespace FreestyleOrm
         
         protected Func<bool> _validation;
         protected bool ValidParam = false;
+
+        Dictionary<string, object> IParamMapGetter<string, object>.ParamMap { get; } = new Dictionary<string, object>();        
+
+        protected Dictionary<string, object> GetParamMap()
+        {
+            return (this as IParamMapGetter<string, object>).ParamMap;
+        }
 
         protected bool TrySetParams(Action<Dictionary<string, object>> setParams, Func<bool> validation)
         {
@@ -62,7 +69,7 @@ namespace FreestyleOrm
                 if (rtn)
                 {
                     ValidParam = true;
-                    this.AddMap(map);
+                    GetParamMap().AddMap(map);
                 }
 
                 return rtn;
@@ -126,7 +133,7 @@ namespace FreestyleOrm
                     if (string.IsNullOrEmpty(spec.ToString())) continue;
 
                     predicates.Add($"{_prefixHolder}{spec.ToString()}{_suffixHolder}");
-                    this.AddMap(spec);
+                    GetParamMap().AddMap(spec.ParamMap);
                 }
 
                 _predicate = string.Join(_symbol, predicates);
