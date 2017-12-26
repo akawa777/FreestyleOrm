@@ -113,4 +113,9 @@ namespace FreestyleOrm
         PropertyInfo Property { get; }
         string Table { get; }
     }
+
+    public interface ISqlSpec : IDictionary<string, object>
+    {
+
+    }
 }

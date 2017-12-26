@@ -6,13 +6,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Collections;
 
-namespace FreestyleOrm.Core
+namespace FreestyleOrm
 {
-    public interface ISqlSpec : IDictionary<string, object>
-    {        
-        
-    }
-
     public abstract class SpecBase : Dictionary<string, object>, ISqlSpec
     {
         protected SpecBase(Action<Dictionary<string, object>> setParams, Func<bool> validation)
