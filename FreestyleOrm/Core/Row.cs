@@ -162,6 +162,8 @@ namespace FreestyleOrm.Core
             {
                 List<string> primaryValues = new List<string>();
 
+                primaryValues.Add($"ExpressionPath: {ExpressionPath}");
+
                 foreach (var primaryKey in PrimaryKeys)
                 {
                     primaryValues.Add($"{primaryKey}: {this[primaryKey].ToString()}");

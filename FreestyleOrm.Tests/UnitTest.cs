@@ -365,8 +365,8 @@ namespace FreestyleOrm.Tests
 
             var whereSpec = new WhereSpec(orSpec);
 
-            var selelctSpec = new SelectSpec(new string[] { "CustomerId", "CustomerName" });            
-            var sortSpec = new SortSpec(filter.SortColumns, defaultPredicate: "CustomerId");
+            var selelctSpec = new CommaSpec(new string[] { "CustomerId", "CustomerName" });            
+            var sortSpec = new CommaSpec(filter.SortColumns, defaultPredicate: "CustomerId");
 
             string sql = $@"
                         select 
@@ -416,8 +416,8 @@ namespace FreestyleOrm.Tests
 
             var whereSpec = new WhereSpec(orSpec);
 
-            var selelctSpec = new SelectSpec(new string[] { "CustomerId", "CustomerName" });
-            var sortSpec = new SortSpec(filter.SortColumns, defaultPredicate: "CustomerId");
+            var selelctSpec = new CommaSpec(new string[] { "CustomerId", "CustomerName" });
+            var sortSpec = new CommaSpec(filter.SortColumns, defaultPredicate: "CustomerId");
 
             string sql = $@"
                         select 

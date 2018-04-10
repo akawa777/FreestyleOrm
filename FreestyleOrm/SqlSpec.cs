@@ -176,13 +176,13 @@ namespace FreestyleOrm
         }
     }
 
-    public class SelectSpec : LogicalSpec
+    public class SplitSpec : LogicalSpec
     {
-        public SelectSpec(IEnumerable<object> items, Action<Dictionary<string, object>> setParams = null, string defaultPredicate = null) 
-            : base(", ", string.Empty, string.Empty, setParams, specs: CreateSpecs(items, defaultPredicate))
+        public SplitSpec(string splitter, IEnumerable<object> items, Action<Dictionary<string, object>> setParams = null, string defaultPredicate = null)
+            : base(splitter, string.Empty, string.Empty, setParams, specs: CreateSpecs(items, defaultPredicate))
         {
 
-        }        
+        }
 
         private static ISqlSpec[] CreateSpecs(IEnumerable<object> items, string defaultPredicate)
         {
@@ -207,10 +207,10 @@ namespace FreestyleOrm
         }
     }
 
-    public class SortSpec : SelectSpec
+    public class CommaSpec : SplitSpec
     {
-        public SortSpec(IEnumerable<object> items, Action<Dictionary<string, object>> setParams = null, string defaultPredicate = null) 
-            : base(items, setParams, defaultPredicate)
+        public CommaSpec(IEnumerable<object> items, Action<Dictionary<string, object>> setParams = null, string defaultPredicate = null) 
+            : base(", ", items, setParams, defaultPredicate)
         {
 
         }
