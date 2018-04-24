@@ -15,16 +15,16 @@ namespace FreestyleOrm
         object CreateEntity(IMapRule mapRule, object rootEntity);
         void SetEntity(IMapRule mapRule, IRow row, object rootentiy, object entity);
         void SetRow(IMapRule mapRule, object entity, object rootentiy, IRow row);
-        void SetOptimisticLock(IMapRule mapRule, OptimisticLock optimisticLock);
+        void SetOptimisticLock(IMapRule mapRule, IOptimisticLock optimisticLock);
         string GetIncludePrefix(IMapRule mapRule);        
         string GetUniqueKeys(IMapRule mapRule);
     }
 
     public interface IOptimisticLock
     {
-        string[] GetColumns();
-        object[] GetCurrentValues(object entity);
-        object[] GetNewValues(object entity);
+        IOptimisticLock Columns(string columns);
+        IOptimisticLock CurrentValues(Func<object, object[]> values);
+        IOptimisticLock NewValues(Func<object, object[]> values);
     }
 
     public class OptimisticLock : IOptimisticLock
@@ -147,7 +147,7 @@ namespace FreestyleOrm
 
         }
 
-        public virtual void SetOptimisticLock(IMapRule mapRule, OptimisticLock optimisticLock)
+        public virtual void SetOptimisticLock(IMapRule mapRule, IOptimisticLock optimisticLock)
         {
             
         }
