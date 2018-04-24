@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 using System.Data;
 using FreestyleOrm.Core;
 
@@ -53,6 +54,33 @@ namespace FreestyleOrm
         public static void AddMap<TKey, TValue>(this IDictionary<string, object> self, IParamMapGetter<TKey, TValue> paramMapGetter)
         {
             self.AddMap(paramMapGetter.ParamMap);
+        }
+
+        public static IEnumerable<string> Merge(this IEnumerable<string> self, IEnumerable<string> second)
+        {
+            Dictionary<string, string> exists = new Dictionary<string, string>();
+
+            foreach (var item in self.Concat(second))
+            {
+                if (!exists.ContainsKey(item))
+                {
+                    exists[item] = item;
+                    yield return item;
+                }
+            }
+        }
+
+        public static void Merge(this List<string> self, IEnumerable<string> second)
+        {
+            Dictionary<string, string> exists = new Dictionary<string, string>();
+
+            foreach (var item in second)
+            {
+                if (!self.Any(x => x == item))
+                {   
+                    self.Add(item);
+                }
+            }
         }
     }
 }

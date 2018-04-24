@@ -54,31 +54,40 @@ namespace FreestyleOrm.Core
 
         public virtual string[] GetPrimaryKeys(QueryOptions queryOptions, MapRule mapRule)
         {
-            using (var command = queryOptions.Connection.CreateCommand())
+            List<string> columns = new List<string>();            
+
+            if (string.IsNullOrEmpty(mapRule.PrimaryKeys))
             {
-                command.Transaction = queryOptions.Transaction;               
-
-                string table = mapRule.Table.Split('.').Length == 1 ? mapRule.Table.Split('.')[0] : mapRule.Table.Split('.')[1];
-                string schema = mapRule.Table.Split('.').Length == 1 ? string.Empty : $"AND TABLE_SCHEMA = '{mapRule.Table.Split('.')[0]}'";
-
-                string sql = $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + QUOTENAME(CONSTRAINT_NAME)), 'IsPrimaryKey') = 1 AND TABLE_NAME = '{table}' {schema}";
-
-                command.CommandText = sql;
-
-                List<string> columns = new List<string>();
-
-                using (var reader = command.ExecuteReader())
+                using (var command = queryOptions.Connection.CreateCommand())
                 {
-                    while (reader.Read())
+                    command.Transaction = queryOptions.Transaction;               
+
+                    string table = mapRule.Table.Split('.').Length == 1 ? mapRule.Table.Split('.')[0] : mapRule.Table.Split('.')[1];
+                    string schema = mapRule.Table.Split('.').Length == 1 ? string.Empty : $"AND TABLE_SCHEMA = '{mapRule.Table.Split('.')[0]}'";
+
+                    string sql = $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + QUOTENAME(CONSTRAINT_NAME)), 'IsPrimaryKey') = 1 AND TABLE_NAME = '{table}' {schema}";
+
+                    command.CommandText = sql;
+
+                    using (var reader = command.ExecuteReader())
                     {
-                        columns.Add(reader["COLUMN_NAME"].ToString());
+                        while (reader.Read())
+                        {
+                            columns.Add(reader["COLUMN_NAME"].ToString());
+                        }
+
+                        reader.Close();
                     }
-
-                    reader.Close();
                 }
-
-                return columns.ToArray();
             }
+            else
+            {
+                columns = mapRule.PrimaryKeys.Split(',').Select(x => x.Trim()).ToList();
+            }
+
+            if (columns.Count == 0) throw new InvalidOperationException($"[{mapRule.Table}] primary keys not setted.");       
+            
+            return columns.ToArray();
         }
 
         public int Insert(Row row, QueryOptions queryOptions, out object lastId)

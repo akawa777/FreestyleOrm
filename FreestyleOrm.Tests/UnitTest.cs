@@ -13,75 +13,76 @@ using FreestyleOrm.Core;
 
 namespace FreestyleOrm.Tests
 {
-    public class D_TEST_TABLE
-    {
-        public int ID { get; set; }
-        public string COL_ONE { get; set; }
-        public string COL_TWO_ONE { get; set; }
-    }
-
-    public class MyQueryDefine : QueryDefine
-    {
-        private string ToPascal(string text)
-        {            
-            text = Regex.Replace(
-                text.ToLower(),
-                @"_\w", 
-                match => match.Value.ToUpper().Replace("_", string.Empty));
-
-            return Regex.Replace(
-                text,
-                @"^\w", 
-                match => match.Value.ToUpper());
-        }
-
-        private string ToSnake(string text)
-        {            
-            return "D" + Regex.Replace(
-                text,
-                @"[A-Z]", 
-                match => $"_{match.Value.ToUpper()}").ToUpper();
-        }
-
-        public override string GetFormatPropertyName(IMapRule mapRule, string column)
-        {
-            if (mapRule.EntityType == typeof(TestTable))
-            {
-                var pascalColumn = ToPascal(column);
-                return pascalColumn;
-            }
-            else
-            {
-                return base.GetFormatPropertyName(mapRule, column);
-            }
-        }
-
-        public override string GetTable(IMapRule mapRule)
-        {
-            if (mapRule.EntityType == typeof(TestTable))
-            {
-                var snakeTable = ToSnake(mapRule.EntityType.Name);
-                return snakeTable;
-            }
-            else
-            {
-                return base.GetTable(mapRule);
-            }
-        }
-    }
-
-    public class TestTable
-    {
-        public int Id { get; set; }
-        public string ColOne { get; set; }
-        public string ColTwoOne { get; set; }    
-    }
 
     [TestClass]
     public class UnitTest : UnitTestByManual
     {
+        public class D_TEST_TABLE
+        {
+            public int ID { get; set; }
+            public string COL_ONE { get; set; }
+            public string COL_TWO_ONE { get; set; }
+        }
+
+        public class MyQueryDefine : QueryDefine
+        {
+            private string ToPascal(string text)
+            {
+                text = Regex.Replace(
+                    text.ToLower(),
+                    @"_\w",
+                    match => match.Value.ToUpper().Replace("_", string.Empty));
+
+                return Regex.Replace(
+                    text,
+                    @"^\w",
+                    match => match.Value.ToUpper());
+            }
+
+            private string ToSnake(string text)
+            {
+                return "D" + Regex.Replace(
+                    text,
+                    @"[A-Z]",
+                    match => $"_{match.Value.ToUpper()}").ToUpper();
+            }
+
+            public override string GetFormatPropertyName(IMapRule mapRule, string column)
+            {
+                if (mapRule.EntityType == typeof(TestTable))
+                {
+                    var pascalColumn = ToPascal(column);
+                    return pascalColumn;
+                }
+                else
+                {
+                    return base.GetFormatPropertyName(mapRule, column);
+                }
+            }
+
+            public override string GetTable(IMapRule mapRule)
+            {
+                if (mapRule.EntityType == typeof(TestTable))
+                {
+                    var snakeTable = ToSnake(mapRule.EntityType.Name);
+                    return snakeTable;
+                }
+                else
+                {
+                    return base.GetTable(mapRule);
+                }
+            }
+        }
+
+        public class TestTable
+        {
+            public int Id { get; set; }
+            public string ColOne { get; set; }
+            public string ColTwoOne { get; set; }
+        }
+        
         [TestMethod]
-        public void TestSnakeToPascal1()
+        public void Test_SnakeToPascal1()
         {
             var table = new D_TEST_TABLE
             {
@@ -105,6 +106,7 @@ namespace FreestyleOrm.Tests
                 {
                     var query = connection
                         .Query<D_TEST_TABLE>("select * from D_TEST_TABLE where ID = @id")
+                        .Map(m => m.ToRoot().Refer(Refer.Write))
                         .Params(p => p["@id"] = table.ID)                        
                         .Transaction(tran);
 
@@ -124,7 +126,7 @@ namespace FreestyleOrm.Tests
         }
 
         [TestMethod]
-        public void TestSnakeToPascal2()
+        public void Test_SnakeToPascal2()
         {
             var table = new TestTable
             {
@@ -141,6 +143,7 @@ namespace FreestyleOrm.Tests
                 {
                     var query = connection
                         .Query<TestTable>("select * from D_TEST_TABLE where ID = @id", new MyQueryDefine())
+                        .Map(m => m.ToRoot().Refer(Refer.Write))
                         .Params(p => p["@id"] = table.Id)
                         .Transaction(tran);
 
@@ -159,9 +162,9 @@ namespace FreestyleOrm.Tests
         }
 
         [TestMethod]
-        public void TestSnakeToPascal3()
+        public void Test_SnakeToPascal3()
         {
-            TestSnakeToPascal1();
+            Test_SnakeToPascal1();
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();    
@@ -170,7 +173,7 @@ namespace FreestyleOrm.Tests
                     .Query<D_TEST_TABLE>("select * from D_TEST_TABLE")                         
                     .Map(m =>
                     {
-                        m.To()
+                        m.ToRoot()
                             .UniqueKeys("ID")
                             .SetEntity((row, root, entity) => { })
                             .ClearRule(x => nameof(x.SetEntity))
@@ -187,9 +190,9 @@ namespace FreestyleOrm.Tests
         }
 
         [TestMethod]
-        public void TestSnakeToPascal4()
+        public void Test_SnakeToPascal4()
         {
-            TestSnakeToPascal1();
+            Test_SnakeToPascal1();
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();
@@ -216,13 +219,13 @@ namespace FreestyleOrm.Tests
         public class Node
         {
             public int Id { get; set; }
-            public string Name { get; set; }            
+            public string Name { get; set; }
             public int? ParentId { get; set; }
             public List<Node> Chilrdren { get; set; }
-        }
+        }        
 
         [TestMethod]
-        public void TestTree1()
+        public void Test_Tree1()
         {            
             using (var connection = _testInitializer.CreateConnection())
             {
@@ -232,8 +235,14 @@ namespace FreestyleOrm.Tests
                     .Query<Node>(@"
                         select * from Node
                     ")
-                    .Map(m => m.To().UniqueKeys("Id, ParentId").ReNest(x => x.Chilrdren, x => new { x.Id }, x => new { x.ParentId }))
-                    .Fetch().ToArray();
+                    .Map(m => 
+                    {
+                        m.ToRoot()
+                            .UniqueKeys("Id, ParentId")
+                            .ReNest(x => x.Chilrdren, x => new { x.Id }, x => new { x.ParentId });
+                    })
+                    .Fetch()
+                    .ToArray();
 
                 ValidationNodes(nodes);
 
@@ -248,16 +257,10 @@ namespace FreestyleOrm.Tests
             Assert.AreEqual(nodes[0].Chilrdren[0].Id, nodes[0].Chilrdren[0].Chilrdren[0].ParentId);
             Assert.AreEqual(nodes[0].Id, nodes[0].Chilrdren[1].ParentId);
             Assert.AreEqual(nodes[1].Id, nodes[1].Chilrdren[0].ParentId);            
-        }
-
-        public class Customer
-        {
-            public int CustomerId { get; set; }            
-            public List<Node> Nodes { get; set; }
-        }
+        }        
 
         [TestMethod]
-        public void TestTree2()
+        public void Test_Tree2()
         {            
             using (var connection = _testInitializer.CreateConnection())
             {
@@ -271,10 +274,15 @@ namespace FreestyleOrm.Tests
                     ")
                     .Map(m => 
                     {
-                        m.To().UniqueKeys("CustomerId");
-                        m.ToMany(x => x.Nodes).UniqueKeys("Id, ParentId").ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId);
+                        m.ToRoot()
+                            .UniqueKeys("CustomerId");
+
+                        m.ToMany(x => x.Nodes)
+                            .UniqueKeys("Id, ParentId")
+                            .ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId);
                     })
-                    .Fetch().ToArray();
+                    .Fetch()
+                    .ToArray();
 
                 Assert.AreEqual(customersCount, customers.Count());                
 
@@ -286,16 +294,10 @@ namespace FreestyleOrm.Tests
 
                 connection.Close();
             }
-        }
-
-        public class Product
-        {
-            public int ProductId { get; set; }            
-            public Node Node { get; set; }
-        }
+        }        
 
         [TestMethod]
-        public void TestTree3()
+        public void Test_Tree3()
         {            
             using (var connection = _testInitializer.CreateConnection())
             {
@@ -315,13 +317,19 @@ namespace FreestyleOrm.Tests
                     ")
                     .Map(m => 
                     {
-                        m.To().UniqueKeys("ProductId");
-                        m.ToOne(x => x.Node).UniqueKeys("Id");
+                        m.ToRoot()
+                            .UniqueKeys("ProductId");
+
+                        m.ToOne(x => x.Node)
+                            .UniqueKeys("Id");
+
                         m.ToMany(x => x.Node.Chilrdren)
                             .UniqueKeys("n2_Id, n2_ParentId")
-                            .IncludePrefix("n2_").ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId);
+                            .IncludePrefix("n2_")
+                            .ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId);
                     })
-                    .Fetch().ToArray();
+                    .Fetch()
+                    .ToArray();
 
                 Assert.AreEqual(1000, customers[0].Node.Id);
 
@@ -334,6 +342,18 @@ namespace FreestyleOrm.Tests
             }
         }
 
+        public class Customer
+        {
+            public int CustomerId { get; set; }
+            public List<Node> Nodes { get; set; }
+        }
+
+        public class Product
+        {
+            public int ProductId { get; set; }
+            public Node Node { get; set; }
+        }
+
         public class CustomerFilter
         {
             public bool Any { get; set; }
@@ -344,7 +364,7 @@ namespace FreestyleOrm.Tests
         }
 
         [TestMethod]
-        public void TestSpec()
+        public void Test_Spec()
         {
             var filter = new CustomerFilter
             {
@@ -388,7 +408,8 @@ namespace FreestyleOrm.Tests
                 var customers = connection
                     .Query<Customer>(sql)
                     .Params(p => p.AddMap(whereSpec))
-                    .Fetch().ToArray();
+                    .Fetch()
+                    .ToArray();
 
                 Assert.AreEqual(1, customers.Count());
 
@@ -397,7 +418,7 @@ namespace FreestyleOrm.Tests
         }
 
         [TestMethod]
-        public void TestSpec2()
+        public void Test_Spec2()
         {
             var filter = new CustomerFilter
             {
@@ -439,12 +460,187 @@ namespace FreestyleOrm.Tests
                 var customers = connection
                     .Query<Customer>(sql)
                     .Params(p => p.AddMap(sortSpec))
-                    .Fetch().ToArray();
+                    .Fetch()
+                    .ToArray();
 
                 Assert.AreEqual(customersCount, customers.Count());
 
                 connection.Close();
             }
+        }
+
+
+        public abstract class Entity
+        {
+            public string LastUpdate { get; private set; }
+        }
+
+        public abstract class AggregateRoot : Entity
+        {
+            public virtual void Register()
+            {
+                var property = this.GetType().GetProperty("LastUpdate").DeclaringType.GetProperty("LastUpdate");
+
+                property.SetValue(this, DateTime.Now.ToString("yyyyMMddmmss"));
+            }
+        }
+
+        public class Root : AggregateRoot
+        {
+            public int RootId { get; set; }
+            public string Text { get; set; }
+            public List<Many> ManyList { get; private set; } = new List<Many>();
+            public One One { get; set; }
+        }
+
+        public class Many : Entity
+        {
+            public int RootId { get; set; }
+            public int ManyId { get; set; }
+            public string Text { get; set; }
+        }
+
+        public class One : Entity
+        {
+            public int RootId { get; set; }
+            public string Text { get; set; }
+        }
+
+        public class RelationQueryDefine : QueryDefine
+        {
+            public override void SetRow(IMapRule mapRule, object entity, object rootEntity, IRow row)
+            {
+                base.SetRow(mapRule, entity, rootEntity, row);
+                row["LastUpdate"] = (rootEntity as AggregateRoot).LastUpdate;
+            }
+        }
+
+        [TestMethod]
+        public void Test_Relation()
+        {
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                using (var tran = connection.BeginTransaction())
+                {
+                    var root = new Root();
+                    root.RootId = 1;
+                    root.Text = $"{nameof(Root)}";
+                    root.Register();
+
+                    var query = CreateQueryOfRoot(root.RootId, connection);
+
+                    query.Transaction(tran);
+
+                    query.Insert(root);
+
+                    tran.Commit();                                        
+                }
+
+                connection.Close();
+            }
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var query = CreateQueryOfRoot(1, connection);
+
+                var root = query.Fetch().Single();
+
+                Assert.AreEqual(0, root.ManyList.Count);
+                Assert.AreEqual(true, root.One == null);
+
+                connection.Close();
+            }
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                using (var tran = connection.BeginTransaction())
+                {
+                    var query = CreateQueryOfRoot(1, connection);
+
+                    query.Transaction(tran);
+
+                    var root = query.Fetch().Single();
+
+                    root.ManyList.Add(new Many { RootId = root.RootId, ManyId = 1, Text = $"{nameof(Many)}" });
+                    root.One = new One { RootId = root.RootId, Text = $"{nameof(One)}" };
+
+                    query.Update(root);
+
+                    tran.Commit();
+                }
+
+                connection.Close();
+            }
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var query = CreateQueryOfRoot(1, connection);
+
+                var root = query.Fetch().Single();
+
+                Assert.AreEqual(1, root.ManyList.Count);
+                Assert.AreEqual(false, root.One == null);
+
+                connection.Close();
+            }
+        }
+
+        private IQuery<Root> CreateQueryOfRoot(int rootId, IDbConnection connection)
+        {
+
+            var query = connection.Query<Root>(
+                @"
+                    select 
+                        Root.RootId
+                        ,Root.Text
+                        ,Root.LastUpdate
+                        ,ManyId
+                        ,Many.Text Many_Text
+                        ,One.Text One_Text                         
+                    from 
+                        Root
+                    left join 
+                        Many 
+                    on 
+                        Root.RootId = Many.RootId
+                    left join 
+                        One 
+                    on 
+                        Root.RootId = One.RootId 
+                    where 
+                        Root.RootId = @RootId",
+                new RelationQueryDefine()
+                )
+                .Map(m =>
+                {
+                    m.ToRoot()
+                        .UniqueKeys("RootId")
+                        .Refer(Refer.Write);
+
+                    m.ToMany(x => x.ManyList)
+                        .UniqueKeys("RootId, ManyId")
+                        .Refer(Refer.Write)
+                        .IncludePrefix("Many_");
+
+                    m.ToOne(x => x.One)
+                        .UniqueKeys("RootId, One_Text")
+                        .Refer(Refer.Write)
+                        .IncludePrefix("One_");
+                })
+                .Params(p =>
+                {
+                    p["@RootId"] = rootId;
+                });
+
+            return query;
         }
     }
 }

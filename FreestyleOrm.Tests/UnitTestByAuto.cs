@@ -19,8 +19,9 @@ namespace FreestyleOrm.Tests
 
             query.Map(m =>
             {
-                m.To()
-                    .UniqueKeys("PurchaseOrderId")                    
+                m.ToRoot()
+                    .UniqueKeys("PurchaseOrderId")    
+                    .Refer(Refer.Write)                
                     .SetRow((entity, root, row) =>
                     {
                         row.BindRow(entity);

@@ -375,12 +375,12 @@ namespace FreestyleOrm.Core
 
                         if (!currentRow.CanCreate(prevRow, uniqueKeys))
                         {
-                            uniqueKeys.AddRange(currentRow.UniqueKeys);
+                            uniqueKeys.Merge(currentRow.UniqueKeys);
 
                             continue;
                         }
 
-                        uniqueKeys.AddRange(currentRow.UniqueKeys);
+                        uniqueKeys.Merge(currentRow.UniqueKeys);
 
                         object parentEntity = rootEntity;
                         PropertyInfo property = null;

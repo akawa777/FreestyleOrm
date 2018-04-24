@@ -119,7 +119,7 @@ namespace FreestyleOrm.Tests
                 ")
                 .Map(m =>
                 {
-                    m.To()
+                    m.ToRoot()
                         .UniqueKeys("PurchaseOrderId")
                         .FormatPropertyName(x => x)
                         .Refer(Refer.Write)      
@@ -202,6 +202,7 @@ namespace FreestyleOrm.Tests
                 {
                     var query = connection
                         .Query<Customer>("select * from Customer where CustomerId = @CustomerId")
+                        .Map(m => m.ToRoot().Refer(Refer.Write))
                         .Transaction(transaction);
 
                     var customer = Customer.Create(11);

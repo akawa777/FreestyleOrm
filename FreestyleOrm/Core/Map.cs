@@ -35,7 +35,6 @@ namespace FreestyleOrm.Core
                 }
 
                 mapRule = new MapRule(_queryDefine, typeof(TRootEntity));
-                mapRule.Refer = Refer.Write;
 
                 _mapRuleList.Insert(0, mapRule);
 
@@ -98,7 +97,7 @@ namespace FreestyleOrm.Core
         }
         
 
-        public IMapRule<TRootEntity, TRootEntity> To()
+        public IMapRule<TRootEntity, TRootEntity> ToRoot()
         {
             MapRule<TRootEntity, TRootEntity> mapRule = new MapRule<TRootEntity, TRootEntity>(_queryDefine, x => x);
 
@@ -203,7 +202,7 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        public IMapRule<TRootEntity, TEntity> Table(string table)
+        public IMapRule<TRootEntity, TEntity> Table(string table, string primaryKeys = null)
         {
             if (string.IsNullOrEmpty(table)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(table)} is null or empty.");
 

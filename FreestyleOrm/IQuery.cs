@@ -29,7 +29,7 @@ namespace FreestyleOrm
 
     public interface IMap<TRootEntity> where TRootEntity : class
     {
-        IMapRule<TRootEntity, TRootEntity> To();
+        IMapRule<TRootEntity, TRootEntity> ToRoot();
         IMapRule<TRootEntity, TEntity> ToOne<TEntity>(Expression<Func<TRootEntity, TEntity>> target) where TEntity : class;
         IMapRule<TRootEntity, TEntity> ToMany<TEntity>(Expression<Func<TRootEntity, IEnumerable<TEntity>>> target) where TEntity : class;
     }
@@ -42,7 +42,7 @@ namespace FreestyleOrm
         IMapRule<TRootEntity, TEntity> CreateEntity(Func<IRow, TRootEntity, TEntity> createEntity);
         IMapRule<TRootEntity, TEntity> SetEntity(Action<IRow, TRootEntity, TEntity> setEntity);
         IMapRule<TRootEntity, TEntity> SetRow(Action<TEntity, TRootEntity, IRow> setRow);
-        IMapRule<TRootEntity, TEntity> Table(string table);
+        IMapRule<TRootEntity, TEntity> Table(string table, string primaryKeys = null);
         IMapRule<TRootEntity, TEntity> RelationId<TRelationEntity>(string relationIdColumn, Expression<Func<TRootEntity, TRelationEntity>> relationEntity) where TRelationEntity : class;
         IMapRule<TRootEntity, TEntity> FormatPropertyName(Func<string, string> formatPropertyName);
         IMapRule<TRootEntity, TEntity> AutoId();                
@@ -112,6 +112,7 @@ namespace FreestyleOrm
         Type EntityType { get; }
         PropertyInfo Property { get; }
         string Table { get; }
+        string PrimaryKeys { get; }
     }
 
     public interface IParamMapGetter<TKey, TValue>

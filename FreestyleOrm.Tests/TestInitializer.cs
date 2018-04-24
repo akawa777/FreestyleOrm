@@ -129,6 +129,9 @@ namespace FreestyleOrm.Tests
                 drop table PurchaseItem;
                 drop table D_TEST_TABLE;
                 drop table Node;
+                drop table Root;
+                drop table Many;
+                drop table One;
             ";
         }
 
@@ -178,13 +181,13 @@ namespace FreestyleOrm.Tests
                 ));
 
                 CREATE TABLE D_TEST_TABLE(
-                    ID int,
+                    ID int primary key,
 	                COL_ONE nvarchar(100),
                     COL_TWO_ONE nvarchar(100)
                 );
 
                 create table Node (
-	                Id int,	
+	                Id int primary key,	
 	                Name nvarchar(100),
 	                ParentId int
                 );
@@ -194,7 +197,31 @@ namespace FreestyleOrm.Tests
                         insert into Node values(1110, 'node_1110', 1100);
                     insert into Node values(1200, 'node_1200', 1000);                        
                 insert into Node values(2000, 'node_2000', null);
-                    insert into Node values(2100, 'node_2100', 2000);                    
+                    insert into Node values(2100, 'node_2100', 2000);  
+
+                create table Root (
+	                RootId int primary key,
+                    Text nvarchar(100),
+                    LastUpdate nvarchar(100)
+                );
+
+                create table Many(
+                    RootId int,
+                    ManyId int,
+                    Text nvarchar(100),
+                    LastUpdate nvarchar(100),
+                    primary key (
+                        RootId,
+                        ManyId
+                    )
+                );
+
+                create table One (
+	                RootId int primary key,
+                    Text nvarchar(100),
+                    LastUpdate nvarchar(100)
+                );
+                    
             ";
         }
 
@@ -202,7 +229,7 @@ namespace FreestyleOrm.Tests
         {
             var query = _connection
                 .Query<Customer>("select * from Customer")
-                .Map(m => m.To().UniqueKeys("CustomerId").Refer(Refer.Write).OptimisticLock("RecordVersion", x => new object[]{ x.RecordVersion + 1 }))
+                .Map(m => m.ToRoot().UniqueKeys("CustomerId").Refer(Refer.Write).OptimisticLock("RecordVersion", x => new object[]{ x.RecordVersion + 1 }))
                 .Transaction(_transaction);
 
             foreach (var model in models) query.Insert(model);
@@ -212,7 +239,7 @@ namespace FreestyleOrm.Tests
         {
             var query = _connection
                 .Query<Product>("select * from Product")
-                .Map(m => m.To().UniqueKeys("ProductId").Refer(Refer.Write).OptimisticLock("RecordVersion", x => new object[]{ x.RecordVersion + 1 }))
+                .Map(m => m.ToRoot().UniqueKeys("ProductId").Refer(Refer.Write).OptimisticLock("RecordVersion", x => new object[]{ x.RecordVersion + 1 }))
                 .Transaction(_transaction);
 
             foreach (var model in models) query.Insert(model);
