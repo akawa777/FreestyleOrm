@@ -28,7 +28,7 @@ namespace FreestyleOrm.Tests
                         row[nameof(entity.Customer.CustomerId)] = entity.Customer.CustomerId;
                     })
                     .AutoId()
-                    .OptimisticLock("RecordVersion", x => new object[] { x.RecordVersion + 1 });
+                    .OptimisticLock(o => o.Columns("RecordVersion").CurrentValues(x => new object[] { x.RecordVersion }).NewValues(x => new object[] { x.RecordVersion + 1 }));
 
                 m.ToOne(x => x.Customer)
                     .UniqueKeys("CustomerId");                    
@@ -43,7 +43,7 @@ namespace FreestyleOrm.Tests
                         row[nameof(entity.Product.ProductId)] = entity.Product.ProductId;
                     })
                     .RelationId("PurchaseOrderId", x => x)
-                    .OptimisticLock("RecordVersion", x => new object[] { x.RecordVersion + 1 });
+                    .OptimisticLock(o => o.Columns("RecordVersion").CurrentValues(x => new object[] { x.RecordVersion }).NewValues(x => new object[] { x.RecordVersion + 1 }));
 
                 m.ToOne(x => x.PurchaseItems.First().Product)
                     .UniqueKeys("ProductId");

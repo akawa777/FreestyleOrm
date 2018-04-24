@@ -193,14 +193,7 @@ namespace FreestyleOrm.Core
 
         private Dictionary<string, IDbDataParameter> GetParameters(Row row, IDbCommand command, ParameterFilter parameterFilter)
         {
-            Dictionary<string, IDbDataParameter> parameters = new Dictionary<string, IDbDataParameter>();
-
-            List<object> newConcurrencyTokens = new List<object>();
-            if (!string.IsNullOrEmpty(row.OptimisticLock.Columns)
-                && row.OptimisticLock.GetNewToken != null)
-            {
-                newConcurrencyTokens = row.OptimisticLock.GetNewToken(row.Entity).ToList();
-            }
+            Dictionary<string, IDbDataParameter> parameters = new Dictionary<string, IDbDataParameter>();            
 
             foreach (var column in row.Columns)
             {
@@ -212,23 +205,37 @@ namespace FreestyleOrm.Core
                 }
                 else if (parameterFilter == ParameterFilter.PrimaryKeys)
                 {
-                    if (row.IsPrimaryKey(column) || row.IsConcurrencyColumn(column)) isTargetColumn = true;
+                    if (row.IsPrimaryKey(column)) isTargetColumn = true;
                 }
                 else if (parameterFilter == ParameterFilter.WithoutPrimaryKeys)
                 {
                     if (!row.IsPrimaryKey(column)) isTargetColumn = true;
+                }
+                else if (parameterFilter == ParameterFilter.RowVersion)
+                {
+                    if (row.IsConcurrencyColumn(column, out int index)) isTargetColumn = true;
                 }
 
                 if (!isTargetColumn) continue;
 
                 IDbDataParameter parameter = null;
 
-                if (parameterFilter != ParameterFilter.PrimaryKeys
-                    && newConcurrencyTokens.Count > 0                    
-                    && row.IsConcurrencyColumn(column))
-                {                    
-                    parameter = CreateParameter(command, $"new_{column}", newConcurrencyTokens.First(), false);
-                    newConcurrencyTokens.Remove(newConcurrencyTokens.First());
+                int rowVersionColumn = -1;
+                if (parameterFilter == ParameterFilter.RowVersion)
+                {                       
+                    row.IsConcurrencyColumn(column, out rowVersionColumn);
+                    object[] values = row.OptimisticLock.GetCurrentValues(row.Entity);
+                    object value = values[rowVersionColumn];
+
+                    parameter = CreateParameter(command, $"row_version_{column}", value, false);
+                }
+                else if ((parameterFilter == ParameterFilter.All || parameterFilter == ParameterFilter.WithoutPrimaryKeys) && row.IsConcurrencyColumn(column, out int index))
+                {
+                    row.IsConcurrencyColumn(column, out rowVersionColumn);
+                    object[] values = row.OptimisticLock.GetNewValues(row.Entity);
+                    object value = values[rowVersionColumn];
+
+                    parameter = CreateParameter(command, column, value, false);
                 }
                 else if (row.Columns.Contains(column))
                 {                    

@@ -42,10 +42,26 @@ namespace FreestyleOrm.Core
 
         public bool StartWithPrefix(string column) => string.IsNullOrEmpty(_mapRule.IncludePrefix) ? false : column.StartsWith(_mapRule.IncludePrefix);
 
-        public bool IsConcurrencyColumn(string column)
+        public bool IsConcurrencyColumn(string column, out int index)
         {
-            if (string.IsNullOrEmpty(OptimisticLock.Columns)) return false;
-            return OptimisticLock.GetColumns().Any(x => x == column);
+            index = -1;
+
+            string[] columns = OptimisticLock.GetColumns();
+
+            if (columns.Length == 0) return false;
+
+            for (int i = 0; i < columns.Length; i++)
+            {
+                string name = columns[i];
+
+                if (name == column)
+                {
+                    index = i;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public bool IsPrimaryKey(string column)

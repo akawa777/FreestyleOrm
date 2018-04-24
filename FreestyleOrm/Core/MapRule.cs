@@ -25,6 +25,7 @@ namespace FreestyleOrm.Core
             Binder binder = new Binder();
             BindEntity = binder.Bind;
             BindRow = binder.Bind;
+            Refer = Refer.Read;
 
             IEnumerable<MethodInfo> initMethods = typeof(MapRule).GetMethods().Where(x => x.Name.StartsWith("Init"));
             foreach (var methodInfo in initMethods) if (methodInfo.Name != nameof(this.InitRule)) methodInfo.Invoke(this, new object[0]);
@@ -68,7 +69,7 @@ namespace FreestyleOrm.Core
         public void InitTable() => Table = _queryDefine.GetTable(this); 
         public RelationId RelationId { get; set; } = new RelationId();
         public void InitRelationId() => _queryDefine.SetRelationId(this, RelationId);
-        public OptimisticLock OptimisticLock { get; set; } = new OptimisticLock();
+        public OptimisticLock OptimisticLock { get; set; } = new OptimisticLock();        
         public void InitOptimisticLock() =>  _queryDefine.SetOptimisticLock(this, OptimisticLock);
         public void InitRule(string methodName)
         {

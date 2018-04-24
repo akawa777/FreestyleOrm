@@ -232,12 +232,14 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        public IMapRule<TRootEntity, TEntity> OptimisticLock(string columns, Func<TEntity, object[]> getNewToken = null)        
+        public IMapRule<TRootEntity, TEntity> OptimisticLock(Action<IOptimisticLock<TEntity>> setOptimisticLock)        
         {
-            if (string.IsNullOrEmpty(columns)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(columns)} is null or empty.");            
+            if (setOptimisticLock == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(setOptimisticLock)} is null.");
 
-            _mapRule.OptimisticLock.Columns = columns;
-            if (getNewToken != null) _mapRule.OptimisticLock.GetNewToken = entity => getNewToken(entity as TEntity);
+            OptimisticLock<TEntity> optimisticLock = new OptimisticLock<TEntity>();
+            setOptimisticLock(optimisticLock);
+
+            _mapRule.OptimisticLock = optimisticLock;
 
             return this;
         }  
