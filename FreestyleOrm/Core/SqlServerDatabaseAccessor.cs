@@ -225,17 +225,25 @@ namespace FreestyleOrm.Core
                 {                       
                     row.IsConcurrencyColumn(column, out rowVersionColumn);
                     object[] values = row.OptimisticLock.GetCurrentValues(row.Entity);
-                    object value = values[rowVersionColumn];
 
-                    parameter = CreateParameter(command, $"row_version_{column}", value, false);
+                    if (rowVersionColumn < values.Length)
+                    {
+                        object value = values[rowVersionColumn];
+
+                        parameter = CreateParameter(command, $"row_version_{column}", value, false);
+                    }
                 }
                 else if ((parameterFilter == ParameterFilter.All || parameterFilter == ParameterFilter.WithoutPrimaryKeys) && row.IsConcurrencyColumn(column, out int index))
                 {
                     row.IsConcurrencyColumn(column, out rowVersionColumn);
                     object[] values = row.OptimisticLock.GetNewValues(row.Entity);
-                    object value = values[rowVersionColumn];
 
-                    parameter = CreateParameter(command, column, value, false);
+                    if (rowVersionColumn < values.Length)
+                    {
+                        object value = values[rowVersionColumn];
+
+                        parameter = CreateParameter(command, column, value, false);
+                    }
                 }
                 else if (row.Columns.Contains(column))
                 {                    

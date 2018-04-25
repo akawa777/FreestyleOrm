@@ -18,77 +18,7 @@ namespace FreestyleOrm
         void SetOptimisticLock(IMapRule mapRule, IOptimisticLock optimisticLock);
         string GetIncludePrefix(IMapRule mapRule);        
         string GetUniqueKeys(IMapRule mapRule);
-    }
-
-    public interface IOptimisticLock
-    {
-        IOptimisticLock Columns(string columns);
-        IOptimisticLock CurrentValues(Func<object, object[]> values);
-        IOptimisticLock NewValues(Func<object, object[]> values);
-    }
-
-    public class OptimisticLock : IOptimisticLock
-    {
-        public string[] GetColumns() => string.IsNullOrEmpty(_columns) ? new string[0] : _columns.Split(',').Select(x => x.Trim()).ToArray();
-        public object[] GetCurrentValues(object entity) => _currentValues(entity);
-        public object[] GetNewValues(object entity) => _newValues(entity);
-
-        protected string _columns;
-        protected Func<object, object[]> _currentValues;
-        protected Func<object, object[]> _newValues;
-
-        public IOptimisticLock Columns(string columns)
-        {
-            _columns = columns;
-
-            return this;
-        }
-
-        public IOptimisticLock CurrentValues(Func<object, object[]> values)
-        {
-            _currentValues = values;
-
-            return this;
-        }
-
-        public IOptimisticLock NewValues(Func<object, object[]> values)
-        {
-            _newValues = values;
-
-            return this;
-        }
-    }
-
-    public interface IOptimisticLock<TEntity> where TEntity : class
-    {
-        IOptimisticLock<TEntity> Columns(string columns);
-        IOptimisticLock<TEntity> CurrentValues(Func<TEntity, object[]> values);
-        IOptimisticLock<TEntity> NewValues(Func<TEntity, object[]> values);
-    }
-
-    internal class OptimisticLock<TEntity> : OptimisticLock, IOptimisticLock, IOptimisticLock<TEntity> where TEntity : class
-    {
-        IOptimisticLock<TEntity> IOptimisticLock<TEntity>.Columns(string columns)
-        {
-            _columns = columns;
-
-            return this;
-        }
-
-        IOptimisticLock<TEntity> IOptimisticLock<TEntity>.CurrentValues(Func<TEntity, object[]> values)
-        {
-            _currentValues = entity => values(entity as TEntity);
-
-            return this;
-        }
-
-        IOptimisticLock<TEntity> IOptimisticLock<TEntity>.NewValues(Func<TEntity, object[]> values)
-        {
-            _newValues = entity => values(entity as TEntity);
-
-            return this;
-        }
-    }
+    }    
 
     public class RelationId
     {        

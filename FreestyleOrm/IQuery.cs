@@ -116,6 +116,20 @@ namespace FreestyleOrm
         string PrimaryKeys { get; }
     }
 
+    public interface IOptimisticLock
+    {
+        IOptimisticLock Columns(string columns);
+        IOptimisticLock CurrentValues(Func<object, object[]> values);
+        IOptimisticLock NewValues(Func<object, object[]> values);
+    }
+
+    public interface IOptimisticLock<TEntity> where TEntity : class
+    {
+        IOptimisticLock<TEntity> Columns(string columns);
+        IOptimisticLock<TEntity> CurrentValues(Func<TEntity, object[]> values);
+        IOptimisticLock<TEntity> NewValues(Func<TEntity, object[]> values);
+    }
+
     public interface IParamMapGetter<TKey, TValue>
     {
         Dictionary<TKey, TValue> ParamMap { get; }
