@@ -299,8 +299,7 @@ namespace FreestyleOrm.Core
         private IEnumerable<TRootEntity> Fetch(int page, int size, TotalCount totalCount, Map<TRootEntity> map)
         {            
             totalCount.Value = 0;
-
-            using (_queryDefine.BeginFetch(map.RootMapRule, map.MapRuleListWithoutRoot.ToArray()))
+            
             using (var reader = _databaseAccessor.CreateFetchReader(_queryOptions, out Action dispose))
             {
                 TRootEntity rootEntity = null;
@@ -505,71 +504,67 @@ namespace FreestyleOrm.Core
             if (_queryOptions.Transaction == null) throw new InvalidOperationException("Transaction is null.");
 
             Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
-            _setMap(map);
+            _setMap(map);            
 
-            using (_queryDefine.BeginSave(map.RootMapRule, map.MapRuleListWithoutRoot.ToArray(), saveMode))
+            lastId = default(TId);
+            _databaseAccessor.BeginSave();            
+
+            List<Row> updateRows = GetRows(rootEntity, map);
+
+            if (saveMode == SaveMode.Insert)
             {
+                _databaseAccessor.Insert(updateRows.First(), _queryOptions, out object lastIdObj);
 
-                lastId = default(TId);
-                _databaseAccessor.BeginSave();            
+                if (lastIdObj != null) lastId = (TId)Convert.ChangeType(lastIdObj, typeof(TId));
 
-                List<Row> updateRows = GetRows(rootEntity, map);
-
-                if (saveMode == SaveMode.Insert)
+                foreach (var updateRow in updateRows.Skip(1))
                 {
-                    _databaseAccessor.Insert(updateRows.First(), _queryOptions, out object lastIdObj);
-
-                    if (lastIdObj != null) lastId = (TId)Convert.ChangeType(lastIdObj, typeof(TId));
-
-                    foreach (var updateRow in updateRows.Skip(1))
-                    {
-                        _databaseAccessor.Insert(updateRow, _queryOptions, out lastIdObj);
-                    }
-
-                    return;
+                    _databaseAccessor.Insert(updateRow, _queryOptions, out lastIdObj);
                 }
 
-                List<TRootEntity> currentEntityList = Fetch().ToList();
-                if (currentEntityList.Count == 0) throw new InvalidOperationException("not exists current entity.");
-                if (currentEntityList.Count != 1) throw new InvalidOperationException("1 or more current entities.");
+                return;
+            }
 
-                List<Row> currentRows = GetRows(currentEntityList.First(), map);
-                if (currentRows.First().Id != updateRows.First().Id) throw new InvalidOperationException("not match primary values of current entity.");
+            List<TRootEntity> currentEntityList = Fetch().ToList();
+            if (currentEntityList.Count == 0) throw new InvalidOperationException("not exists current entity.");
+            if (currentEntityList.Count != 1) throw new InvalidOperationException("1 or more current entities.");
 
-                Dictionary<string, Row> currentRowMap = currentRows.ToDictionary(x => x.Id);
-                Dictionary<string, Row> updateRowMap = updateRows.ToDictionary(x => x.Id);
+            List<Row> currentRows = GetRows(currentEntityList.First(), map);
+            if (currentRows.First().Id != updateRows.First().Id) throw new InvalidOperationException("not match primary values of current entity.");
 
-                if (saveMode == SaveMode.Update)
+            Dictionary<string, Row> currentRowMap = currentRows.ToDictionary(x => x.Id);
+            Dictionary<string, Row> updateRowMap = updateRows.ToDictionary(x => x.Id);
+
+            if (saveMode == SaveMode.Update)
+            {
+                _databaseAccessor.Update(updateRows.First(), _queryOptions);
+
+                foreach (var updateRow in updateRows.Skip(1))
                 {
-                    _databaseAccessor.Update(updateRows.First(), _queryOptions);
+                    string id = updateRow.Id;
 
-                    foreach (var updateRow in updateRows.Skip(1))
+                    if (currentRowMap.ContainsKey(updateRow.Id))
                     {
-                        string id = updateRow.Id;
-
-                        if (currentRowMap.ContainsKey(updateRow.Id))
-                        {
-                            _databaseAccessor.Update(updateRow, _queryOptions);
-                        }
-                        else
-                        {
-                            _databaseAccessor.Insert(updateRow, _queryOptions, out object lastIdObj);
-                        }
+                        _databaseAccessor.Update(updateRow, _queryOptions);
                     }
-
-                    foreach (var currentRow in currentRows.Skip(1))
+                    else
                     {
-                        if (updateRowMap.ContainsKey(currentRow.Id)) continue;
-
-                        _databaseAccessor.Delete(currentRow, _queryOptions);
+                        _databaseAccessor.Insert(updateRow, _queryOptions, out object lastIdObj);
                     }
                 }
-                else
+
+                foreach (var currentRow in currentRows.Skip(1))
                 {
-                    foreach (var updateRow in updateRows)
-                    {
-                        _databaseAccessor.Delete(updateRow, _queryOptions);
-                    }
+                    if (updateRowMap.ContainsKey(currentRow.Id)) continue;
+
+                    _databaseAccessor.Delete(currentRow, _queryOptions);
+                }
+            }
+            else
+            {
+                foreach (var updateRow in updateRows)
+                {
+                    _databaseAccessor.Delete(updateRow, _queryOptions);
                 }
             }
         }
