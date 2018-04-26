@@ -300,8 +300,7 @@ namespace FreestyleOrm.Core
         {            
             totalCount.Value = 0;
 
-            _queryDefine.BeginFetch(map.RootMapRule, map.MapRuleListWithoutRoot.ToArray());
-
+            using (_queryDefine.BeginFetch(map.RootMapRule, map.MapRuleListWithoutRoot.ToArray()))
             using (var reader = _databaseAccessor.CreateFetchReader(_queryOptions, out Action dispose))
             {
                 TRootEntity rootEntity = null;
@@ -311,7 +310,7 @@ namespace FreestyleOrm.Core
 
                 while (reader.Read())
                 {
-                    MapRule rootMapRule = map.RootMapRule;                    
+                    MapRule rootMapRule = map.RootMapRule;
 
                     Row currentRow = Row.CreateReadRow(reader, rootMapRule);
 
@@ -321,9 +320,9 @@ namespace FreestyleOrm.Core
                     {
                         totalCount.Value++;
 
-                        if (rootEntity != null) 
+                        if (rootEntity != null)
                         {
-                            SetReNestNodes(map, rootEntity);                            
+                            SetReNestNodes(map, rootEntity);
                             yield return rootEntity;
                         }
 
@@ -334,7 +333,7 @@ namespace FreestyleOrm.Core
                             currentPage++;
                             currentSize = 0;
                         }
-                        
+
                         currentSize++;
 
                         if (currentPage == page)
@@ -345,7 +344,7 @@ namespace FreestyleOrm.Core
                             }
                             else
                             {
-                                rootEntity = rootMapRule.GetEntity(currentRow, rootEntity) as TRootEntity;                            
+                                rootEntity = rootMapRule.GetEntity(currentRow, rootEntity) as TRootEntity;
                             }
                         }
                     }
@@ -361,9 +360,9 @@ namespace FreestyleOrm.Core
                         continue;
                     }
 
-                    uniqueKeys.AddRange(currentRow.UniqueKeys);                    
+                    uniqueKeys.AddRange(currentRow.UniqueKeys);
 
-                    foreach(var mapRule in map.MapRuleListWithoutRoot)
+                    foreach (var mapRule in map.MapRuleListWithoutRoot)
                     {
                         currentRow.SetMapRule(mapRule);
 
@@ -387,7 +386,7 @@ namespace FreestyleOrm.Core
                             }
                             if (property != null && property.PropertyType.IsList())
                             {
-                                var list = property.Get(parentEntity) as IEnumerable;                                
+                                var list = property.Get(parentEntity) as IEnumerable;
                                 foreach (var item in list) parentEntity = item;
                             }
 
@@ -431,7 +430,7 @@ namespace FreestyleOrm.Core
                                 property.Set(parentEntity, newArray);
                             }
                             else if (property.PropertyType == typeof(IEnumerable<>).MakeGenericType(mapRule.EntityType))
-                            {                                
+                            {
                                 dynamic dynamicList = typeof(List<>).MakeGenericType(mapRule.EntityType).Create();
                                 dynamicList.AddRange(list as dynamic);
                                 dynamicList.Add(entity as dynamic);
@@ -455,13 +454,11 @@ namespace FreestyleOrm.Core
                     prevRow = currentRow;
                 }
 
-                if (rootEntity != null) 
+                if (rootEntity != null)
                 {
-                    SetReNestNodes(map, rootEntity);                    
+                    SetReNestNodes(map, rootEntity);
                     yield return rootEntity;
                 }
-
-                _queryDefine.EndFetch(map.RootMapRule, map.MapRuleListWithoutRoot.ToArray());
 
                 reader.Close();
                 dispose();
@@ -505,76 +502,76 @@ namespace FreestyleOrm.Core
         private void Save<TId>(TRootEntity rootEntity, out TId lastId, SaveMode saveMode)
         {
             if (rootEntity == null) throw new ArgumentException("rootEntity is null.");
-            if (_queryOptions.Transaction == null) throw new InvalidOperationException("Transaction is null.");            
-
-            lastId = default(TId);
-            _databaseAccessor.BeginSave();
+            if (_queryOptions.Transaction == null) throw new InvalidOperationException("Transaction is null.");
 
             Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
             _setMap(map);
 
-            _queryDefine.BeginSave(map.RootMapRule, map.MapRuleListWithoutRoot.ToArray(), saveMode);
-
-            List<Row> updateRows = GetRows(rootEntity, map);            
-
-            if (saveMode == SaveMode.Insert)
+            using (_queryDefine.BeginSave(map.RootMapRule, map.MapRuleListWithoutRoot.ToArray(), saveMode))
             {
-                _databaseAccessor.Insert(updateRows.First(), _queryOptions, out object lastIdObj);
 
-                if (lastIdObj != null) lastId = (TId)Convert.ChangeType(lastIdObj, typeof(TId));
+                lastId = default(TId);
+                _databaseAccessor.BeginSave();            
 
-                foreach (var updateRow in updateRows.Skip(1))
+                List<Row> updateRows = GetRows(rootEntity, map);
+
+                if (saveMode == SaveMode.Insert)
                 {
-                    _databaseAccessor.Insert(updateRow, _queryOptions, out lastIdObj);
-                }
+                    _databaseAccessor.Insert(updateRows.First(), _queryOptions, out object lastIdObj);
 
-                return;
-            }
+                    if (lastIdObj != null) lastId = (TId)Convert.ChangeType(lastIdObj, typeof(TId));
 
-            List<TRootEntity> currentEntityList = Fetch().ToList();
-            if (currentEntityList.Count == 0) throw new InvalidOperationException("not exists current entity.");
-            if (currentEntityList.Count != 1) throw new InvalidOperationException("1 or more current entities.");
-
-            List<Row> currentRows = GetRows(currentEntityList.First(), map);
-            if (currentRows.First().Id != updateRows.First().Id) throw new InvalidOperationException("not match primary values of current entity.");
-
-            Dictionary<string, Row> currentRowMap = currentRows.ToDictionary(x => x.Id);
-            Dictionary<string, Row> updateRowMap = updateRows.ToDictionary(x => x.Id);
-
-            if (saveMode == SaveMode.Update)
-            {
-                _databaseAccessor.Update(updateRows.First(), _queryOptions);
-
-                foreach (var updateRow in updateRows.Skip(1))
-                {
-                    string id = updateRow.Id;
-
-                    if (currentRowMap.ContainsKey(updateRow.Id))
+                    foreach (var updateRow in updateRows.Skip(1))
                     {
-                        _databaseAccessor.Update(updateRow, _queryOptions);
+                        _databaseAccessor.Insert(updateRow, _queryOptions, out lastIdObj);
                     }
-                    else
+
+                    return;
+                }
+
+                List<TRootEntity> currentEntityList = Fetch().ToList();
+                if (currentEntityList.Count == 0) throw new InvalidOperationException("not exists current entity.");
+                if (currentEntityList.Count != 1) throw new InvalidOperationException("1 or more current entities.");
+
+                List<Row> currentRows = GetRows(currentEntityList.First(), map);
+                if (currentRows.First().Id != updateRows.First().Id) throw new InvalidOperationException("not match primary values of current entity.");
+
+                Dictionary<string, Row> currentRowMap = currentRows.ToDictionary(x => x.Id);
+                Dictionary<string, Row> updateRowMap = updateRows.ToDictionary(x => x.Id);
+
+                if (saveMode == SaveMode.Update)
+                {
+                    _databaseAccessor.Update(updateRows.First(), _queryOptions);
+
+                    foreach (var updateRow in updateRows.Skip(1))
                     {
-                        _databaseAccessor.Insert(updateRow, _queryOptions, out object lastIdObj);
+                        string id = updateRow.Id;
+
+                        if (currentRowMap.ContainsKey(updateRow.Id))
+                        {
+                            _databaseAccessor.Update(updateRow, _queryOptions);
+                        }
+                        else
+                        {
+                            _databaseAccessor.Insert(updateRow, _queryOptions, out object lastIdObj);
+                        }
+                    }
+
+                    foreach (var currentRow in currentRows.Skip(1))
+                    {
+                        if (updateRowMap.ContainsKey(currentRow.Id)) continue;
+
+                        _databaseAccessor.Delete(currentRow, _queryOptions);
                     }
                 }
-
-                foreach (var currentRow in currentRows.Skip(1))
+                else
                 {
-                    if (updateRowMap.ContainsKey(currentRow.Id)) continue;
-
-                    _databaseAccessor.Delete(currentRow, _queryOptions);
-                }            
-            }
-            else
-            {
-                foreach (var updateRow in updateRows)
-                {
-                    _databaseAccessor.Delete(updateRow, _queryOptions);
+                    foreach (var updateRow in updateRows)
+                    {
+                        _databaseAccessor.Delete(updateRow, _queryOptions);
+                    }
                 }
             }
-
-            _queryDefine.EndSave(map.RootMapRule, map.MapRuleListWithoutRoot.ToArray(), saveMode);
         }
 
         public IQuery<TRootEntity> TempTables(Action<ITempTableSet> setTempTables)

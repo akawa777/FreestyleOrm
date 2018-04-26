@@ -18,10 +18,8 @@ namespace FreestyleOrm
         void SetOptimisticLock(IMapRule mapRule, IOptimisticLock optimisticLock);
         string GetIncludePrefix(IMapRule mapRule);        
         string GetUniqueKeys(IMapRule mapRule);
-        void BeginFetch(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot);
-        void EndFetch(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot);
-        void BeginSave(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot, SaveMode saveMode);
-        void EndSave(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot, SaveMode saveMode);
+        IDisposable BeginFetch(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot);
+        IDisposable BeginSave(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot, SaveMode saveMode);
     }    
 
     public class RelationId
@@ -97,24 +95,22 @@ namespace FreestyleOrm
             return string.Empty;
         }
 
-        public virtual void BeginFetch(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot)
+        public virtual IDisposable BeginFetch(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot)
         {
-
+            return new DammyDisposable();
         }
 
-        public virtual void EndFetch(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot)
+        public virtual IDisposable BeginSave(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot, SaveMode saveMode)
         {
-
+            return new DammyDisposable();
         }
 
-        public virtual void BeginSave(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot, SaveMode saveMode)
+        private class DammyDisposable : IDisposable
         {
-
-        }
-
-        public virtual void EndSave(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot, SaveMode saveMode)
-        {
-
+            public void Dispose()
+            {
+                
+            }
         }
     }
 }
