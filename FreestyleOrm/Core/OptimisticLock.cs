@@ -15,7 +15,7 @@ namespace FreestyleOrm.Core
 
             if (values == null || values.Length == 0) return new object[0];
 
-            return values;
+            return values.Where(x => x != null).ToArray();
 
         }
         public object[] GetNewValues(object entity)
@@ -24,7 +24,7 @@ namespace FreestyleOrm.Core
 
             if (values == null || values.Length == 0) return new object[0];
 
-            return values;
+            return values.Where(x => x != null).ToArray();
         }
 
         protected string _columns;
