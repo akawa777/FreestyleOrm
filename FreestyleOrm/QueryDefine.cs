@@ -18,6 +18,10 @@ namespace FreestyleOrm
         void SetOptimisticLock(IMapRule mapRule, IOptimisticLock optimisticLock);
         string GetIncludePrefix(IMapRule mapRule);        
         string GetUniqueKeys(IMapRule mapRule);
+        void BeginFetch(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot);
+        void EndFetch(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot);
+        void BeginSave(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot, SaveMode saveMode);
+        void EndSave(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot, SaveMode saveMode);
     }    
 
     public class RelationId
@@ -91,6 +95,26 @@ namespace FreestyleOrm
         public virtual string GetUniqueKeys(IMapRule mapRule)
         {            
             return string.Empty;
+        }
+
+        public virtual void BeginFetch(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot)
+        {
+
+        }
+
+        public virtual void EndFetch(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot)
+        {
+
+        }
+
+        public virtual void BeginSave(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot, SaveMode saveMode)
+        {
+
+        }
+
+        public virtual void EndSave(IMapRule rootMapRule, IMapRule[] mapRuleListWithoutRoot, SaveMode saveMode)
+        {
+
         }
     }
 }

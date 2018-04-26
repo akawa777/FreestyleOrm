@@ -7,7 +7,6 @@ using System.Collections;
 
 namespace FreestyleOrm.Core
 {
-
     internal class Query<TRootEntity> : IQuery<TRootEntity> where TRootEntity : class
     {
         public Query(IDatabaseAccessor databaseAccessor, QueryOptions queryOptions, IQueryDefine queryDefine)
@@ -21,14 +20,7 @@ namespace FreestyleOrm.Core
         private QueryOptions _queryOptions;
         private IQueryDefine _queryDefine;
         private Action<IMap<TRootEntity>> _setMap = map => { };
-        private Binder _binder = new Binder();
-
-        private enum SaveMode
-        {
-            Insert,
-            Update,
-            Delete
-        }
+        private Binder _binder = new Binder();        
 
         private class TotalCount
         {
@@ -305,8 +297,10 @@ namespace FreestyleOrm.Core
         }
 
         private IEnumerable<TRootEntity> Fetch(int page, int size, TotalCount totalCount, Map<TRootEntity> map)
-        {
-            totalCount.Value = 0;            
+        {            
+            totalCount.Value = 0;
+
+            _queryDefine.BeginFetch(map.RootMapRule, map.MapRuleListWithoutRoot.ToArray());
 
             using (var reader = _databaseAccessor.CreateFetchReader(_queryOptions, out Action dispose))
             {
@@ -467,6 +461,8 @@ namespace FreestyleOrm.Core
                     yield return rootEntity;
                 }
 
+                _queryDefine.EndFetch(map.RootMapRule, map.MapRuleListWithoutRoot.ToArray());
+
                 reader.Close();
                 dispose();
             }
@@ -509,12 +505,17 @@ namespace FreestyleOrm.Core
         private void Save<TId>(TRootEntity rootEntity, out TId lastId, SaveMode saveMode)
         {
             if (rootEntity == null) throw new ArgumentException("rootEntity is null.");
-            if (_queryOptions.Transaction == null) throw new InvalidOperationException("Transaction is null.");
+            if (_queryOptions.Transaction == null) throw new InvalidOperationException("Transaction is null.");            
 
             lastId = default(TId);
             _databaseAccessor.BeginSave();
 
-            List<Row> updateRows = GetRows(rootEntity);            
+            Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
+            _setMap(map);
+
+            _queryDefine.BeginSave(map.RootMapRule, map.MapRuleListWithoutRoot.ToArray(), saveMode);
+
+            List<Row> updateRows = GetRows(rootEntity, map);            
 
             if (saveMode == SaveMode.Insert)
             {
@@ -534,7 +535,7 @@ namespace FreestyleOrm.Core
             if (currentEntityList.Count == 0) throw new InvalidOperationException("not exists current entity.");
             if (currentEntityList.Count != 1) throw new InvalidOperationException("1 or more current entities.");
 
-            List<Row> currentRows = GetRows(currentEntityList.First());
+            List<Row> currentRows = GetRows(currentEntityList.First(), map);
             if (currentRows.First().Id != updateRows.First().Id) throw new InvalidOperationException("not match primary values of current entity.");
 
             Dictionary<string, Row> currentRowMap = currentRows.ToDictionary(x => x.Id);
@@ -572,6 +573,8 @@ namespace FreestyleOrm.Core
                     _databaseAccessor.Delete(updateRow, _queryOptions);
                 }
             }
+
+            _queryDefine.EndSave(map.RootMapRule, map.MapRuleListWithoutRoot.ToArray(), saveMode);
         }
 
         public IQuery<TRootEntity> TempTables(Action<ITempTableSet> setTempTables)
@@ -581,14 +584,11 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        private List<Row> GetRows(TRootEntity rootEntity)
+        private List<Row> GetRows(TRootEntity rootEntity, Map<TRootEntity> map)
         {
             List<Row> rows = new List<Row>();
 
-            if (rootEntity == null) return rows;
-
-            Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
-            _setMap(map);
+            if (rootEntity == null) return rows;            
 
             if (map.RootMapRule.Refer == Refer.Read) throw new InvalidOperationException($"{typeof(TRootEntity).Name} is Refer.Read.");
 

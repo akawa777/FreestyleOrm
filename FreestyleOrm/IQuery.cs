@@ -116,6 +116,13 @@ namespace FreestyleOrm
         string PrimaryKeys { get; }
     }
 
+    public enum SaveMode
+    {
+        Insert,
+        Update,
+        Delete
+    }
+
     public interface IOptimisticLock
     {
         IOptimisticLock Columns(string columns);
