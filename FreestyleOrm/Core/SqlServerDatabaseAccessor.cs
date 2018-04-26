@@ -230,7 +230,10 @@ namespace FreestyleOrm.Core
                     {
                         object value = values[rowVersionColumn];
 
-                        parameter = CreateParameter(command, $"row_version_{column}", value, false);
+                        if (value != null)
+                        {
+                            parameter = CreateParameter(command, $"row_version_{column}", value, false);
+                        }
                     }
                 }
                 else if ((parameterFilter == ParameterFilter.All || parameterFilter == ParameterFilter.WithoutPrimaryKeys) && row.IsConcurrencyColumn(column, out int index))
@@ -242,7 +245,10 @@ namespace FreestyleOrm.Core
                     {
                         object value = values[rowVersionColumn];
 
-                        parameter = CreateParameter(command, column, value, false);
+                        if (value != null)
+                        {
+                            parameter = CreateParameter(command, column, value, false);
+                        }
                     }
                 }
                 else if (row.Columns.Contains(column))
