@@ -7,7 +7,6 @@ using System.Collections;
 
 namespace FreestyleOrm.Core
 {
-
     internal class Query<TRootEntity> : IQuery<TRootEntity> where TRootEntity : class
     {
         public Query(IDatabaseAccessor databaseAccessor, QueryOptions queryOptions, IQueryDefine queryDefine)
@@ -21,14 +20,7 @@ namespace FreestyleOrm.Core
         private QueryOptions _queryOptions;
         private IQueryDefine _queryDefine;
         private Action<IMap<TRootEntity>> _setMap = map => { };
-        private Binder _binder = new Binder();
-
-        private enum SaveMode
-        {
-            Insert,
-            Update,
-            Delete
-        }
+        private Binder _binder = new Binder();        
 
         private class TotalCount
         {
@@ -305,9 +297,9 @@ namespace FreestyleOrm.Core
         }
 
         private IEnumerable<TRootEntity> Fetch(int page, int size, TotalCount totalCount, Map<TRootEntity> map)
-        {
-            totalCount.Value = 0;            
-
+        {            
+            totalCount.Value = 0;
+            
             using (var reader = _databaseAccessor.CreateFetchReader(_queryOptions, out Action dispose))
             {
                 TRootEntity rootEntity = null;
@@ -317,7 +309,7 @@ namespace FreestyleOrm.Core
 
                 while (reader.Read())
                 {
-                    MapRule rootMapRule = map.RootMapRule;                    
+                    MapRule rootMapRule = map.RootMapRule;
 
                     Row currentRow = Row.CreateReadRow(reader, rootMapRule);
 
@@ -327,9 +319,9 @@ namespace FreestyleOrm.Core
                     {
                         totalCount.Value++;
 
-                        if (rootEntity != null) 
+                        if (rootEntity != null)
                         {
-                            SetReNestNodes(map, rootEntity);                            
+                            SetReNestNodes(map, rootEntity);
                             yield return rootEntity;
                         }
 
@@ -340,7 +332,7 @@ namespace FreestyleOrm.Core
                             currentPage++;
                             currentSize = 0;
                         }
-                        
+
                         currentSize++;
 
                         if (currentPage == page)
@@ -351,7 +343,7 @@ namespace FreestyleOrm.Core
                             }
                             else
                             {
-                                rootEntity = rootMapRule.GetEntity(currentRow, rootEntity) as TRootEntity;                            
+                                rootEntity = rootMapRule.GetEntity(currentRow, rootEntity) as TRootEntity;
                             }
                         }
                     }
@@ -367,20 +359,20 @@ namespace FreestyleOrm.Core
                         continue;
                     }
 
-                    uniqueKeys.AddRange(currentRow.UniqueKeys);                    
+                    uniqueKeys.AddRange(currentRow.UniqueKeys);
 
-                    foreach(var mapRule in map.MapRuleListWithoutRoot)
+                    foreach (var mapRule in map.MapRuleListWithoutRoot)
                     {
                         currentRow.SetMapRule(mapRule);
 
                         if (!currentRow.CanCreate(prevRow, uniqueKeys))
                         {
-                            uniqueKeys.AddRange(currentRow.UniqueKeys);
+                            uniqueKeys.Merge(currentRow.UniqueKeys);
 
                             continue;
                         }
 
-                        uniqueKeys.AddRange(currentRow.UniqueKeys);
+                        uniqueKeys.Merge(currentRow.UniqueKeys);
 
                         object parentEntity = rootEntity;
                         PropertyInfo property = null;
@@ -393,7 +385,7 @@ namespace FreestyleOrm.Core
                             }
                             if (property != null && property.PropertyType.IsList())
                             {
-                                var list = property.Get(parentEntity) as IEnumerable;                                
+                                var list = property.Get(parentEntity) as IEnumerable;
                                 foreach (var item in list) parentEntity = item;
                             }
 
@@ -437,7 +429,7 @@ namespace FreestyleOrm.Core
                                 property.Set(parentEntity, newArray);
                             }
                             else if (property.PropertyType == typeof(IEnumerable<>).MakeGenericType(mapRule.EntityType))
-                            {                                
+                            {
                                 dynamic dynamicList = typeof(List<>).MakeGenericType(mapRule.EntityType).Create();
                                 dynamicList.AddRange(list as dynamic);
                                 dynamicList.Add(entity as dynamic);
@@ -461,22 +453,15 @@ namespace FreestyleOrm.Core
                     prevRow = currentRow;
                 }
 
-                if (rootEntity != null) 
+                if (rootEntity != null)
                 {
-                    SetReNestNodes(map, rootEntity);                    
+                    SetReNestNodes(map, rootEntity);
                     yield return rootEntity;
                 }
 
                 reader.Close();
                 dispose();
             }
-        }
-
-        public IQuery<TRootEntity> Formats(Action<Dictionary<string, object>> setFormats)
-        {
-            _queryOptions.SetFormats = setFormats ?? throw new AggregateException($"{setFormats} is null.");
-
-            return this;
         }
 
         public IQuery<TRootEntity> Map(Action<IMap<TRootEntity>> setMap)
@@ -518,10 +503,13 @@ namespace FreestyleOrm.Core
             if (rootEntity == null) throw new ArgumentException("rootEntity is null.");
             if (_queryOptions.Transaction == null) throw new InvalidOperationException("Transaction is null.");
 
-            lastId = default(TId);
-            _databaseAccessor.BeginSave();
+            Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
+            _setMap(map);            
 
-            List<Row> updateRows = GetRows(rootEntity);            
+            lastId = default(TId);
+            _databaseAccessor.BeginSave();            
+
+            List<Row> updateRows = GetRows(rootEntity, map);
 
             if (saveMode == SaveMode.Insert)
             {
@@ -541,7 +529,7 @@ namespace FreestyleOrm.Core
             if (currentEntityList.Count == 0) throw new InvalidOperationException("not exists current entity.");
             if (currentEntityList.Count != 1) throw new InvalidOperationException("1 or more current entities.");
 
-            List<Row> currentRows = GetRows(currentEntityList.First());
+            List<Row> currentRows = GetRows(currentEntityList.First(), map);
             if (currentRows.First().Id != updateRows.First().Id) throw new InvalidOperationException("not match primary values of current entity.");
 
             Dictionary<string, Row> currentRowMap = currentRows.ToDictionary(x => x.Id);
@@ -570,7 +558,7 @@ namespace FreestyleOrm.Core
                     if (updateRowMap.ContainsKey(currentRow.Id)) continue;
 
                     _databaseAccessor.Delete(currentRow, _queryOptions);
-                }            
+                }
             }
             else
             {
@@ -588,14 +576,11 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        private List<Row> GetRows(TRootEntity rootEntity)
+        private List<Row> GetRows(TRootEntity rootEntity, Map<TRootEntity> map)
         {
             List<Row> rows = new List<Row>();
 
-            if (rootEntity == null) return rows;
-
-            Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
-            _setMap(map);
+            if (rootEntity == null) return rows;            
 
             if (map.RootMapRule.Refer == Refer.Read) throw new InvalidOperationException($"{typeof(TRootEntity).Name} is Refer.Read.");
 
@@ -682,15 +667,6 @@ namespace FreestyleOrm.Core
         public IQuery<TRootEntity> Transaction(IDbTransaction transaction)
         {
             _queryOptions.Transaction = transaction;
-
-            return this;
-        }
-
-        public IQuery<TRootEntity> Spec(Action<ISpec> setSpec)
-        {
-            Spec spec = new Spec();
-            setSpec(spec);
-            _queryOptions.Spec = spec;
 
             return this;
         }

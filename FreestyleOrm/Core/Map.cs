@@ -35,7 +35,6 @@ namespace FreestyleOrm.Core
                 }
 
                 mapRule = new MapRule(_queryDefine, typeof(TRootEntity));
-                mapRule.Refer = Refer.Write;
 
                 _mapRuleList.Insert(0, mapRule);
 
@@ -98,7 +97,7 @@ namespace FreestyleOrm.Core
         }
         
 
-        public IMapRule<TRootEntity, TRootEntity> To()
+        public IMapRule<TRootEntity, TRootEntity> ToRoot()
         {
             MapRule<TRootEntity, TRootEntity> mapRule = new MapRule<TRootEntity, TRootEntity>(_queryDefine, x => x);
 
@@ -203,7 +202,7 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        public IMapRule<TRootEntity, TEntity> Table(string table)
+        public IMapRule<TRootEntity, TEntity> Table(string table, string primaryKeys = null)
         {
             if (string.IsNullOrEmpty(table)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(table)} is null or empty.");
 
@@ -233,12 +232,14 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        public IMapRule<TRootEntity, TEntity> OptimisticLock(string columns, Func<TEntity, object[]> getNewToken = null)        
+        public IMapRule<TRootEntity, TEntity> OptimisticLock(Action<IOptimisticLock<TEntity>> setOptimisticLock)        
         {
-            if (string.IsNullOrEmpty(columns)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(columns)} is null or empty.");            
+            if (setOptimisticLock == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(setOptimisticLock)} is null.");
 
-            _mapRule.OptimisticLock.Columns = columns;
-            if (getNewToken != null) _mapRule.OptimisticLock.GetNewToken = entity => getNewToken(entity as TEntity);
+            OptimisticLock<TEntity> optimisticLock = new OptimisticLock<TEntity>();
+            setOptimisticLock(optimisticLock);
+
+            _mapRule.OptimisticLock = optimisticLock;
 
             return this;
         }  

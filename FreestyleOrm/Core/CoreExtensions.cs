@@ -177,11 +177,13 @@ namespace FreestyleOrm.Core
 
         public static Dictionary<string, PropertyInfo> GetPropertyMap(this Type type, BindingFlags bindingFlags, PropertyTypeFilters propertyTypeFilters)
         {
-            PropertyInfo[] properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | bindingFlags);            
+            PropertyInfo[] properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | bindingFlags);
+
+            IEnumerable<PropertyInfo> dclaringProperties = properties.Select(x => x.DeclaringType.GetProperty(x.Name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | bindingFlags)).ToArray();
 
             Dictionary<string, PropertyInfo> map = new Dictionary<string, PropertyInfo>();
 
-            foreach (var property in properties)
+            foreach (var property in dclaringProperties)
             {
                 if (propertyTypeFilters == PropertyTypeFilters.IgonreClass)
                 {

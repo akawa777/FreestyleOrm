@@ -7,8 +7,7 @@ using System.Linq;
 namespace FreestyleOrm
 {
     public interface IQueryDefine
-    {
-        void SetFormats(Type rootEntityType, Dictionary<string, object> formats);
+    {        
         string GetTable(IMapRule mapRule);
         void SetRelationId(IMapRule mapRule, RelationId relationId);
         bool GetAutoId(IMapRule mapRule);
@@ -16,17 +15,10 @@ namespace FreestyleOrm
         object CreateEntity(IMapRule mapRule, object rootEntity);
         void SetEntity(IMapRule mapRule, IRow row, object rootentiy, object entity);
         void SetRow(IMapRule mapRule, object entity, object rootentiy, IRow row);
-        void SetOptimisticLock(IMapRule mapRule, OptimisticLock optimisticLock);
+        void SetOptimisticLock(IMapRule mapRule, IOptimisticLock optimisticLock);
         string GetIncludePrefix(IMapRule mapRule);        
         string GetUniqueKeys(IMapRule mapRule);
-    }
-
-    public class OptimisticLock
-    {
-        public string Columns { get; set; }
-        public string[] GetColumns() => Columns.Split(',').Select(x => x.Trim()).ToArray();
-        public Func<object, object[]> GetNewToken{ get; set; }
-    }
+    }    
 
     public class RelationId
     {        
@@ -85,7 +77,7 @@ namespace FreestyleOrm
 
         }
 
-        public virtual void SetOptimisticLock(IMapRule mapRule, OptimisticLock optimisticLock)
+        public virtual void SetOptimisticLock(IMapRule mapRule, IOptimisticLock optimisticLock)
         {
             
         }

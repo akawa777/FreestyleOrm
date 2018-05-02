@@ -13,21 +13,22 @@ namespace FreestyleOrm.Tests
     [TestClass]
     public class UnitTestByAuto : UnitTestByManual
     {
-        protected override IQuery<PurchaseOrder> CreatePurchaseOrderQuery(IDbConnection connection, IDbTransaction  transaction = null)
+        protected override IQuery<PurchaseOrder> CreatePurchaseOrderQuery(IDbConnection connection, IDbTransaction  transaction = null, string where = "")
         {
-            IQuery<PurchaseOrder> query = base.CreatePurchaseOrderQuery(connection, transaction);
+            IQuery<PurchaseOrder> query = base.CreatePurchaseOrderQuery(connection, transaction, where);
 
             query.Map(m =>
             {
-                m.To()
-                    .UniqueKeys("PurchaseOrderId")                    
+                m.ToRoot()
+                    .UniqueKeys("PurchaseOrderId")    
+                    .Refer(Refer.Write)                
                     .SetRow((entity, root, row) =>
                     {
                         row.BindRow(entity);
                         row[nameof(entity.Customer.CustomerId)] = entity.Customer.CustomerId;
                     })
                     .AutoId()
-                    .OptimisticLock("RecordVersion", x => new object[] { x.RecordVersion + 1 });
+                    .OptimisticLock(o => o.Columns("RecordVersion").CurrentValues(x => new object[] { x.RecordVersion }).NewValues(x => new object[] { x.RecordVersion + 1 }));
 
                 m.ToOne(x => x.Customer)
                     .UniqueKeys("CustomerId");                    
@@ -42,7 +43,7 @@ namespace FreestyleOrm.Tests
                         row[nameof(entity.Product.ProductId)] = entity.Product.ProductId;
                     })
                     .RelationId("PurchaseOrderId", x => x)
-                    .OptimisticLock("RecordVersion", x => new object[] { x.RecordVersion + 1 });
+                    .OptimisticLock(o => o.Columns("RecordVersion").CurrentValues(x => new object[] { x.RecordVersion }).NewValues(x => new object[] { x.RecordVersion + 1 }));
 
                 m.ToOne(x => x.PurchaseItems.First().Product)
                     .UniqueKeys("ProductId");
@@ -59,10 +60,9 @@ namespace FreestyleOrm.Tests
             {
                 connection.Open();
 
-                var query = base.CreatePurchaseOrderQuery(connection);
+                var query = base.CreatePurchaseOrderQuery(connection, null, "where PurchaseOrder.PurchaseOrderId not in (@PurchaseOrderIds)");
 
-                query
-                    .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId not in (@PurchaseOrderIds)")
+                query                    
                     .Params(p => p["@PurchaseOrderIds"] = new object[] { _purchaseOrderNo + 1, _purchaseOrderNo + 2 });
 
                 var ordersByManual = query.Fetch().ToList();
@@ -71,8 +71,9 @@ namespace FreestyleOrm.Tests
 
                 string tempTable = _databaseKind == TestInitializer.DatabaseKinds.Sqlite ? "OrderIds" : "#OrderIds";
 
-                query
-                    .Formats(f => f["where"] = $"where PurchaseOrder.PurchaseOrderId not in (select OrderId from {tempTable})")
+                query = base.CreatePurchaseOrderQuery(connection, null, $"where PurchaseOrder.PurchaseOrderId not in (select OrderId from {tempTable})");
+
+                query                    
                     .TempTables(t =>
                     {
                         t.Table($"{tempTable}", "OrderId int, KeyWord nvarchar(100)")

@@ -10,15 +10,14 @@ namespace FreestyleOrm.Tests
 {
     public class TestInitializer: IDisposable
     {
-        public TestInitializer(DatabaseKinds databaseKind, Func<IDbConnection, IDbTransaction, IQuery<PurchaseOrder>> createPurchaseOrderQuery, int purchaseOrderNo)
+        public TestInitializer(DatabaseKinds databaseKind, int purchaseOrderNo)
         {
             _databaseKind = databaseKind;            
 
             using (_connection = CreateConnection())
             {            
                 _connection.Open();
-                _transaction = _connection.BeginTransaction();
-                _purchaseOrderQuery = createPurchaseOrderQuery(_connection, _transaction);
+                _transaction = _connection.BeginTransaction();                
                 
                 Init(purchaseOrderNo);
 
@@ -76,8 +75,8 @@ namespace FreestyleOrm.Tests
         {
             if (_databaseKind == DatabaseKinds.SqlServer)
             {
-                return new SqlConnection(@"Data Source=akirapcwin7\sqlexpress;Initial Catalog=test;Integrated Security=True");
-                //return new SqlConnection(@"Data Source=akawawin8\sqlserver2016;Initial Catalog=cplan_demo;Integrated Security=True");
+                //return new SqlConnection(@"Data Source=akirapcwin7\sqlexpress;Initial Catalog=test;Integrated Security=True");
+                return new SqlConnection(@"Data Source=akawawin8\sqlserver2016;Initial Catalog=cplan_demo;Integrated Security=True");
             }
             else
             {
@@ -99,8 +98,7 @@ namespace FreestyleOrm.Tests
         {
             CreateTable();
             InsertCustomers(CreateCustomers(10));
-            InsertProducts(CreateProducts(10));
-            InsertPurchaseOrders(CreatePurchaseOrders(purchaseOrderNo, 10, 10, 10));
+            InsertProducts(CreateProducts(10));            
         }
 
         private void CreateTable()
@@ -131,6 +129,9 @@ namespace FreestyleOrm.Tests
                 drop table PurchaseItem;
                 drop table D_TEST_TABLE;
                 drop table Node;
+                drop table Root;
+                drop table Many;
+                drop table One;
             ";
         }
 
@@ -180,13 +181,13 @@ namespace FreestyleOrm.Tests
                 ));
 
                 CREATE TABLE D_TEST_TABLE(
-                    ID int,
+                    ID int primary key,
 	                COL_ONE nvarchar(100),
                     COL_TWO_ONE nvarchar(100)
                 );
 
                 create table Node (
-	                Id int,	
+	                Id int primary key,	
 	                Name nvarchar(100),
 	                ParentId int
                 );
@@ -196,7 +197,31 @@ namespace FreestyleOrm.Tests
                         insert into Node values(1110, 'node_1110', 1100);
                     insert into Node values(1200, 'node_1200', 1000);                        
                 insert into Node values(2000, 'node_2000', null);
-                    insert into Node values(2100, 'node_2100', 2000);                    
+                    insert into Node values(2100, 'node_2100', 2000);  
+
+                create table Root (
+	                RootId int primary key,
+                    Text nvarchar(100),
+                    LastUpdate nvarchar(100)
+                );
+
+                create table Many(
+                    RootId int,
+                    ManyId int,
+                    Text nvarchar(100),
+                    LastUpdate nvarchar(100),
+                    primary key (
+                        RootId,
+                        ManyId
+                    )
+                );
+
+                create table One (
+	                RootId int primary key,
+                    Text nvarchar(100),
+                    LastUpdate nvarchar(100)
+                );
+                    
             ";
         }
 
@@ -204,7 +229,13 @@ namespace FreestyleOrm.Tests
         {
             var query = _connection
                 .Query<Customer>("select * from Customer")
-                .Map(m => m.To().UniqueKeys("CustomerId").Refer(Refer.Write).OptimisticLock("RecordVersion", x => new object[]{ x.RecordVersion + 1 }))
+                .Map(m =>
+                {
+                    m.ToRoot()
+                        .UniqueKeys("CustomerId")
+                        .Refer(Refer.Write)
+                        .OptimisticLock(o => o.Columns("RecordVersion").CurrentValues(x => new object[] { x.RecordVersion }).NewValues(x => new object[] { x.RecordVersion + 1 }));
+                })
                 .Transaction(_transaction);
 
             foreach (var model in models) query.Insert(model);
@@ -214,15 +245,14 @@ namespace FreestyleOrm.Tests
         {
             var query = _connection
                 .Query<Product>("select * from Product")
-                .Map(m => m.To().UniqueKeys("ProductId").Refer(Refer.Write).OptimisticLock("RecordVersion", x => new object[]{ x.RecordVersion + 1 }))
+                .Map(m =>
+                {
+                    m.ToRoot()
+                        .UniqueKeys("ProductId")
+                        .Refer(Refer.Write)
+                        .OptimisticLock(o => o.Columns("RecordVersion").CurrentValues(x => new object[] { x.RecordVersion }).NewValues(x => new object[] { x.RecordVersion + 1 }));
+                })
                 .Transaction(_transaction);
-
-            foreach (var model in models) query.Insert(model);
-        }
-
-        private void InsertPurchaseOrders(IEnumerable<PurchaseOrder> models)
-        {
-            var query = _purchaseOrderQuery.Formats(f => f["where"] = string.Empty);
 
             foreach (var model in models) query.Insert(model);
         }
@@ -250,27 +280,5 @@ namespace FreestyleOrm.Tests
                 yield return product;
             }
         }
-
-        private IEnumerable<PurchaseOrder> CreatePurchaseOrders(int number, int maxItemNumber, int maxCutomerId, int maxProductId)
-        {
-            for (int i = 0; i < number; i++)
-            {
-                PurchaseOrder order = PurchaseOrder.Create(0);
-
-                order.Title = $"{nameof(order.Title)}_{i + 1}";
-                order.Customer = Customer.Create((i % maxCutomerId) + 1);
-
-                for (int ii = 0; ii < maxItemNumber; ii++)
-                {
-                    var orderItem = PurchaseItem.Create(order.GetNewItemNo());
-                    orderItem.Product = Product.Create((ii % maxProductId) + 1);
-                    orderItem.Number = orderItem.PurchaseItemNo;
-
-                    order.AddItem(orderItem);
-                }
-
-                yield return order;
-            }
-        }        
     }
 }

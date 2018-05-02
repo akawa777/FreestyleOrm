@@ -13,29 +13,38 @@ namespace FreestyleOrm.Core
     {
         public override string[] GetPrimaryKeys(QueryOptions queryOptions, MapRule mapRule)
         {
-            using (var command = queryOptions.Connection.CreateCommand())
+            List<string> columns = new List<string>();            
+
+            if (string.IsNullOrEmpty(mapRule.PrimaryKeys))
             {
-                command.Transaction = queryOptions.Transaction;            
-
-                string sql = $"pragma table_info({mapRule.Table})";
-
-                command.CommandText = sql;
-
-                List<string> columns = new List<string>();
-
-                using (var reader = command.ExecuteReader())
+                using (var command = queryOptions.Connection.CreateCommand())
                 {
-                    while (reader.Read())
+                    command.Transaction = queryOptions.Transaction;            
+
+                    string sql = $"pragma table_info({mapRule.Table})";
+
+                    command.CommandText = sql;
+
+                    using (var reader = command.ExecuteReader())
                     {
-                        if (reader["pk"].ToString() == "0") continue;
-                        columns.Add(reader["name"].ToString());
+                        while (reader.Read())
+                        {
+                            if (reader["pk"].ToString() == "0") continue;
+                            columns.Add(reader["name"].ToString());
+                        }
+
+                        reader.Close();
                     }
-
-                    reader.Close();
                 }
-
-                return columns.ToArray();
             }
+            else
+            {
+                columns = mapRule.PrimaryKeys.Split(',').Select(x => x.Trim()).ToList();
+            }
+
+            if (columns.Count == 0) throw new InvalidOperationException($"[{mapRule.Table}] primary keys not setted.");       
+            
+            return columns.ToArray();
         }
 
         public override object GetLastId(Row row, QueryOptions queryOptions)

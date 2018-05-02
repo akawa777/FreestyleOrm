@@ -17,7 +17,57 @@ namespace FreestyleOrm.Tests
         public void Init()
         {
             _databaseKind = TestInitializer.DatabaseKinds.SqlServer;
-            _testInitializer = new TestInitializer(_databaseKind, CreatePurchaseOrderQuery, _purchaseOrderNo);
+            _testInitializer = new TestInitializer(_databaseKind, _purchaseOrderNo);
+            Insert();
+        }
+
+        public void Insert()
+        {
+            var orders = CreatePurchaseOrders(_purchaseOrderNo, 10, 10, 10);
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                using (var transaction = connection.BeginTransaction())
+                {
+                    var query = CreatePurchaseOrderQuery(connection, transaction, "where PurchaseOrder.PurchaseOrderId = @PurchaseOrderId");
+
+                    query
+                        .Params(p => p["@PurchaseOrderId"] = 0);
+
+                    foreach (var order in orders)
+                    {
+                        query.Insert(order);
+                    }
+
+                    transaction.Commit();
+                }
+
+                connection.Close();
+            }
+        }
+
+        private IEnumerable<PurchaseOrder> CreatePurchaseOrders(int number, int maxItemNumber, int maxCutomerId, int maxProductId)
+        {
+            for (int i = 0; i < number; i++)
+            {
+                PurchaseOrder order = PurchaseOrder.Create(0);
+
+                order.Title = $"{nameof(order.Title)}_{i + 1}";
+                order.Customer = Customer.Create((i % maxCutomerId) + 1);
+
+                for (int ii = 0; ii < maxItemNumber; ii++)
+                {
+                    var orderItem = PurchaseItem.Create(order.GetNewItemNo());
+                    orderItem.Product = Product.Create((ii % maxProductId) + 1);
+                    orderItem.Number = orderItem.PurchaseItemNo;
+
+                    order.AddItem(orderItem);
+                }
+
+                yield return order;
+            }
         }
 
         [TestCleanup]
@@ -27,13 +77,13 @@ namespace FreestyleOrm.Tests
         }
 
         protected TestInitializer.DatabaseKinds _databaseKind;
-        protected int _purchaseOrderNo = 100;
+        protected int _purchaseOrderNo = 10;
         protected TestInitializer _testInitializer;
 
-        protected virtual IQuery<PurchaseOrder> CreatePurchaseOrderQuery(IDbConnection connection, IDbTransaction transaction = null)
+        protected virtual IQuery<PurchaseOrder> CreatePurchaseOrderQuery(IDbConnection connection, IDbTransaction transaction = null, string where = "")
         {
             IQuery<PurchaseOrder> query = connection.Query<PurchaseOrder>(
-                @"
+                $@"
                     select
                         PurchaseOrder.*,
 
@@ -62,14 +112,14 @@ namespace FreestyleOrm.Tests
                         Product
                     on
                         PurchaseItem.ProductId = Product.ProductId
-                    {{where}}
+                    {where}
                     order by
                         PurchaseOrder.PurchaseOrderId,
                         PurchaseItem.PurchaseItemNo
                 ")
                 .Map(m =>
                 {
-                    m.To()
+                    m.ToRoot()
                         .UniqueKeys("PurchaseOrderId")
                         .FormatPropertyName(x => x)
                         .Refer(Refer.Write)      
@@ -88,7 +138,7 @@ namespace FreestyleOrm.Tests
                         })
                         .Table("PurchaseOrder")
                         .AutoId()
-                        .OptimisticLock("RecordVersion", x => new object[] { x.RecordVersion + 1 });
+                        .OptimisticLock(o => o.Columns("RecordVersion").CurrentValues(x => new object[] { x.RecordVersion }).NewValues(x => new object[] { x.RecordVersion + 1 }));
 
                     m.ToOne(x => x.Customer)
                         .UniqueKeys("CustomerId")
@@ -115,7 +165,7 @@ namespace FreestyleOrm.Tests
                         })
                         .Table("PurchaseItem")
                         .RelationId("PurchaseOrderId", x => x)
-                        .OptimisticLock("RecordVersion", x => new object[] { x.RecordVersion + 1 });
+                        .OptimisticLock(o => o.Columns("RecordVersion").CurrentValues(x => new object[] { x.RecordVersion }).NewValues(x => new object[] { x.RecordVersion + 1 }));
 
                     m.ToOne(x => x.PurchaseItems.First().Product)
                         .UniqueKeys("ProductId")
@@ -147,36 +197,39 @@ namespace FreestyleOrm.Tests
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();
-                var transaction = connection.BeginTransaction();
 
-                var query = connection
-                    .Query<Customer>("select * from Customer where CustomerId = @CustomerId")                    
-                    .Transaction(transaction);
+                using (var transaction = connection.BeginTransaction())
+                {
+                    var query = connection
+                        .Query<Customer>("select * from Customer where CustomerId = @CustomerId")
+                        .Map(m => m.ToRoot().Refer(Refer.Write))
+                        .Transaction(transaction);
 
-                var customer = Customer.Create(11);
-                customer.CustomerName = $"{nameof(customer.CustomerName)}_{11}";
+                    var customer = Customer.Create(11);
+                    customer.CustomerName = $"{nameof(customer.CustomerName)}_{11}";
 
-                query.Insert(customer);
+                    query.Insert(customer);
 
-                query = query.Params(p => p["@CustomerId"] = customer.CustomerId);
+                    query = query.Params(p => p["@CustomerId"] = customer.CustomerId);
 
-                var insertedCustomer = query.Fetch().Single();
+                    var insertedCustomer = query.Fetch().Single();
 
-                insertedCustomer.CustomerName += "_update";
+                    insertedCustomer.CustomerName += "_update";
 
-                query.Update(insertedCustomer);
+                    query.Update(insertedCustomer);
 
-                var updatedCustomer = query.Fetch().Single();
+                    var updatedCustomer = query.Fetch().Single();
 
-                Assert.AreEqual(insertedCustomer.CustomerName, updatedCustomer.CustomerName);
+                    Assert.AreEqual(insertedCustomer.CustomerName, updatedCustomer.CustomerName);
 
-                query.Delete(updatedCustomer);
+                    query.Delete(updatedCustomer);
 
-                updatedCustomer = query.Fetch().FirstOrDefault();
+                    updatedCustomer = query.Fetch().FirstOrDefault();
 
-                Assert.AreEqual(null, updatedCustomer);
+                    Assert.AreEqual(null, updatedCustomer);
 
-                transaction.Commit();
+                    transaction.Commit();
+                }
                 connection.Close();
             }
         }
@@ -189,9 +242,6 @@ namespace FreestyleOrm.Tests
                 connection.Open();
 
                 var query = CreatePurchaseOrderQuery(connection);
-
-                query
-                    .Formats(f => f["where"] = string.Empty);
 
                 var orders = query.Fetch().ToList();
 
@@ -209,8 +259,6 @@ namespace FreestyleOrm.Tests
                 connection.Open();
 
                 var query = CreatePurchaseOrderQuery(connection);
-                query
-                    .Formats(f => f["where"] = string.Empty);
 
                 int size = 5;
                 int no = _purchaseOrderNo / size;
@@ -235,9 +283,6 @@ namespace FreestyleOrm.Tests
 
                 var query = CreatePurchaseOrderQuery(connection);
 
-                query
-                    .Formats(f => f["where"] = string.Empty);
-
                 var orders = query.Fetch();
 
                 var ordersByTake = orders.Take(_purchaseOrderNo / 2);
@@ -260,21 +305,25 @@ namespace FreestyleOrm.Tests
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();
-                var transaction = connection.BeginTransaction();
 
-                var query = CreatePurchaseOrderQuery(connection, transaction);
+                IQuery<PurchaseOrder> query;
+                PurchaseOrder order = null;
 
-                query
-                    .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId = @PurchaseOrderId")
-                    .Params(p => p["@PurchaseOrderId"] = 1);
+                using (var transaction = connection.BeginTransaction())
+                {
+                    query = CreatePurchaseOrderQuery(connection, transaction, "where PurchaseOrder.PurchaseOrderId = @PurchaseOrderId");
 
-                var order = query.Fetch().Single();
+                    query
+                        .Params(p => p["@PurchaseOrderId"] = 1);
 
-                EditPurchaseOrder(order);
+                    order = query.Fetch().Single();
 
-                query.Update(order);
+                    EditPurchaseOrder(order);
 
-                transaction.Commit();
+                    query.Update(order);
+
+                    transaction.Commit();
+                }
 
                 query.Transaction(null);
 
@@ -292,23 +341,24 @@ namespace FreestyleOrm.Tests
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();
-                var transaction = connection.BeginTransaction();
 
-                var query = CreatePurchaseOrderQuery(connection, transaction);
+                using (var transaction = connection.BeginTransaction())
+                {
+                    var query = CreatePurchaseOrderQuery(connection, transaction, "where PurchaseOrder.PurchaseOrderId = @PurchaseOrderId");
 
-                query
-                    .Formats(f => f["where"] = "where PurchaseOrder.PurchaseOrderId = @PurchaseOrderId")
-                    .Params(p => p["@PurchaseOrderId"] = 1);
+                    query
+                        .Params(p => p["@PurchaseOrderId"] = 1);
 
-                var order = query.Fetch().Single();
+                    var order = query.Fetch().Single();
 
-                query.Delete(order);
+                    query.Delete(order);
 
-                var count = query.Fetch().Count();
+                    var count = query.Fetch().Count();
 
-                Assert.AreEqual(0, count);
+                    Assert.AreEqual(0, count);
 
-                transaction.Commit();
+                    transaction.Commit();
+                }
                 connection.Close();
             }            
         }

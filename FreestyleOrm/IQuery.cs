@@ -9,10 +9,8 @@ using FreestyleOrm.Core;
 namespace FreestyleOrm
 {
     public interface IQueryBase<TRootEntity> where TRootEntity : class
-    {        
-        IQuery<TRootEntity> Spec(Action<ISpec> setSpec);
-        IQuery<TRootEntity> Params(Action<Dictionary<string, object>> setParams);
-        IQuery<TRootEntity> Formats(Action<Dictionary<string, object>> setFormats);
+    {   
+        IQuery<TRootEntity> Params(Action<Dictionary<string, object>> setParams);        
         IQuery<TRootEntity> TempTables(Action<ITempTableSet> setTempTables);
         IQuery<TRootEntity> Connection(IDbConnection connection);
         IQuery<TRootEntity> Transaction(IDbTransaction transaction);
@@ -31,7 +29,7 @@ namespace FreestyleOrm
 
     public interface IMap<TRootEntity> where TRootEntity : class
     {
-        IMapRule<TRootEntity, TRootEntity> To();
+        IMapRule<TRootEntity, TRootEntity> ToRoot();
         IMapRule<TRootEntity, TEntity> ToOne<TEntity>(Expression<Func<TRootEntity, TEntity>> target) where TEntity : class;
         IMapRule<TRootEntity, TEntity> ToMany<TEntity>(Expression<Func<TRootEntity, IEnumerable<TEntity>>> target) where TEntity : class;
     }
@@ -44,11 +42,12 @@ namespace FreestyleOrm
         IMapRule<TRootEntity, TEntity> CreateEntity(Func<IRow, TRootEntity, TEntity> createEntity);
         IMapRule<TRootEntity, TEntity> SetEntity(Action<IRow, TRootEntity, TEntity> setEntity);
         IMapRule<TRootEntity, TEntity> SetRow(Action<TEntity, TRootEntity, IRow> setRow);
-        IMapRule<TRootEntity, TEntity> Table(string table);
+        IMapRule<TRootEntity, TEntity> Table(string table, string primaryKeys = null);
         IMapRule<TRootEntity, TEntity> RelationId<TRelationEntity>(string relationIdColumn, Expression<Func<TRootEntity, TRelationEntity>> relationEntity) where TRelationEntity : class;
         IMapRule<TRootEntity, TEntity> FormatPropertyName(Func<string, string> formatPropertyName);
         IMapRule<TRootEntity, TEntity> AutoId();                
-        IMapRule<TRootEntity, TEntity> OptimisticLock(string columns, Func<TEntity, object[]> getNewToken = null);        
+        IMapRule<TRootEntity, TEntity> OptimisticLock(Action<IOptimisticLock<TEntity>> setOptimisticLock);      
+        [Obsolete("currently not used.")]
         IMapRule<TRootEntity, TEntity> ReNest<TProperty, TId, TParentId>(Expression<Func<TEntity, IEnumerable<TProperty>>> nestEntity, Expression<Func<TEntity, TId>> idPropertiy, Expression<Func<TEntity, TParentId>> parentProperty) where  TProperty : TEntity;
         IMapRule<TRootEntity, TEntity> ClearRule(Func<IMapRule<TRootEntity, TEntity>, string> methodName);
     }
@@ -56,27 +55,6 @@ namespace FreestyleOrm
     public interface IFormat
     {
         IFormat Set(string name, Func<string> getFormat, Func<bool> validation = null);
-    }
-
-    public interface ISpec
-    {
-        ISpecPredicate Predicate(string name, Func<string, string> formatPredicate = null, string prettySpace = null);
-        void RemovePredicate(string name);
-    }
-
-    public enum LogicalSymbol
-    {
-        And,
-        Or
-    }
-
-    public interface ISpecPredicate
-    {
-        ISpecPredicate Satify(LogicalSymbol logicalSymbol, string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null);
-        ISpecPredicate Satify(LogicalSymbol logicalSymbol, Action<ISpecPredicate> setSpecPredicate);
-        ISpecPredicate Sort<T>(IEnumerable<T> list, Func<T, int, bool> isDesc = null, string defaultSql = null, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null);
-        ISpecPredicate Comma<T>(IEnumerable<T> list, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null);
-        ISpecPredicate Text(string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null);
     }
 
     public class Page<TRootEntity>
@@ -135,5 +113,37 @@ namespace FreestyleOrm
         Type EntityType { get; }
         PropertyInfo Property { get; }
         string Table { get; }
+        string PrimaryKeys { get; }
+    }
+
+    public enum SaveMode
+    {
+        Insert,
+        Update,
+        Delete
+    }
+
+    public interface IOptimisticLock
+    {
+        IOptimisticLock Columns(string columns);
+        IOptimisticLock CurrentValues(Func<object, object[]> values);
+        IOptimisticLock NewValues(Func<object, object[]> values);
+    }
+
+    public interface IOptimisticLock<TEntity> where TEntity : class
+    {
+        IOptimisticLock<TEntity> Columns(string columns);
+        IOptimisticLock<TEntity> CurrentValues(Func<TEntity, object[]> values);
+        IOptimisticLock<TEntity> NewValues(Func<TEntity, object[]> values);
+    }
+
+    public interface IParamMapGetter<TKey, TValue>
+    {
+        Dictionary<TKey, TValue> ParamMap { get; }
+    }
+
+    public interface ISqlSpec : IParamMapGetter<string, object>
+    {
+        
     }
 }

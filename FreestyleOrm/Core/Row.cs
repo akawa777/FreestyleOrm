@@ -42,10 +42,26 @@ namespace FreestyleOrm.Core
 
         public bool StartWithPrefix(string column) => string.IsNullOrEmpty(_mapRule.IncludePrefix) ? false : column.StartsWith(_mapRule.IncludePrefix);
 
-        public bool IsConcurrencyColumn(string column)
+        public bool IsConcurrencyColumn(string column, out int index)
         {
-            if (string.IsNullOrEmpty(OptimisticLock.Columns)) return false;
-            return OptimisticLock.GetColumns().Any(x => x == column);
+            index = -1;
+
+            string[] columns = OptimisticLock.GetColumns();
+
+            if (columns.Length == 0) return false;
+
+            for (int i = 0; i < columns.Length; i++)
+            {
+                string name = columns[i];
+
+                if (name == column)
+                {
+                    index = i;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public bool IsPrimaryKey(string column)
@@ -137,15 +153,15 @@ namespace FreestyleOrm.Core
                 return true;                
             }
 
-            // foreach (var column in prevUniqueKeys.Concat(UniqueKeys))
-            // {
-            //     if (this[column] == DBNull.Value) return false;
-            // }
+            foreach (var column in UniqueKeys)
+            {
+                if (this[column] == DBNull.Value) return false;
+            }
 
             if (prevRow == null) return true;
             if (UniqueKeys.Count() == 0) return true;
 
-            foreach (var column in prevUniqueKeys.Concat(UniqueKeys))
+            foreach (var column in prevUniqueKeys.Merge(UniqueKeys))
             {
                 if (this[column] == DBNull.Value && prevRow[column] == DBNull.Value) continue;
                 if (this[column] == DBNull.Value && prevRow[column] != DBNull.Value) return true;
@@ -161,6 +177,8 @@ namespace FreestyleOrm.Core
             get
             {
                 List<string> primaryValues = new List<string>();
+
+                primaryValues.Add($"ExpressionPath: {ExpressionPath}");
 
                 foreach (var primaryKey in PrimaryKeys)
                 {

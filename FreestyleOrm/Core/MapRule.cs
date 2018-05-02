@@ -25,6 +25,7 @@ namespace FreestyleOrm.Core
             Binder binder = new Binder();
             BindEntity = binder.Bind;
             BindRow = binder.Bind;
+            Refer = Refer.Read;
 
             IEnumerable<MethodInfo> initMethods = typeof(MapRule).GetMethods().Where(x => x.Name.StartsWith("Init"));
             foreach (var methodInfo in initMethods) if (methodInfo.Name != nameof(this.InitRule)) methodInfo.Invoke(this, new object[0]);
@@ -50,7 +51,6 @@ namespace FreestyleOrm.Core
         public string IncludePrefix { get; set; }
         public void InitIncludePrefix() => IncludePrefix = _queryDefine.GetIncludePrefix(this);
         public Refer Refer { get; set; }
-        public void InitRefer() => Refer = IsRootOptions ? Refer.Write : Refer.Read;
         public Func<Row, object, object> GetEntity { get; set; }
         public Func<Row, object, object> CreateEntity { get; set; }
         public void InitCreateEntity() => CreateEntity = (row, rootEntity) => _queryDefine.CreateEntity(this, rootEntity);
@@ -65,10 +65,11 @@ namespace FreestyleOrm.Core
         public bool AutoId { get; set; }        
         public void InitAutoId() => AutoId = _queryDefine.GetAutoId(this); 
         public string Table { get; set; }
+        public string PrimaryKeys { get; set; }
         public void InitTable() => Table = _queryDefine.GetTable(this); 
         public RelationId RelationId { get; set; } = new RelationId();
         public void InitRelationId() => _queryDefine.SetRelationId(this, RelationId);
-        public OptimisticLock OptimisticLock { get; set; } = new OptimisticLock();
+        public OptimisticLock OptimisticLock { get; set; } = new OptimisticLock();        
         public void InitOptimisticLock() =>  _queryDefine.SetOptimisticLock(this, OptimisticLock);
         public void InitRule(string methodName)
         {

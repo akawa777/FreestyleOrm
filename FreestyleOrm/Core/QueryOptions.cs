@@ -11,21 +11,13 @@ namespace FreestyleOrm.Core
         {
             _queryDefine = queryDefine;
             _rootEnttiyType = rootEntityType;
-            _setFormats = formats =>
-            {                
-                queryDefine.SetFormats(_rootEnttiyType, formats);
-                Spec.SetFormats(formats);
-            };
-            _setParams = parameters =>
-            {
-                Spec.SetParams(parameters);
-            };
+
+            _setParams = parameters => { };
         }
 
         private IQueryDefine _queryDefine;
         private Type _rootEnttiyType;
-        private Action<Dictionary<string, object>> _setParams;
-        private Action<Dictionary<string, object>> _setFormats;
+        private Action<Dictionary<string, object>> _setParams;        
 
         public IDbConnection Connection { get; set; }
         public IDbTransaction Transaction { get; set; }
@@ -39,29 +31,12 @@ namespace FreestyleOrm.Core
             set
             {
                 _setParams = parameters =>
-                {                    
-                    Spec.SetParams(parameters);
+                {   
                     value(parameters);
                 };
             }
         }
-        public Action<Dictionary<string, object>> SetFormats
-        {
-            get
-            {
-                return _setFormats;
-            }
-            set
-            {
-                _setFormats = formats =>
-                {
-                    _queryDefine.SetFormats(_rootEnttiyType, formats);
-                    Spec.SetFormats(formats);
-                    value(formats);
-                };
-            }
-        }
-        public Action<ITempTableSet> SetTempTables { get; set; } = t => { };
-        public Spec Spec { get; set; } = new Spec();
+        
+        public Action<ITempTableSet> SetTempTables { get; set; } = t => { };        
     }
 }

@@ -54,31 +54,40 @@ namespace FreestyleOrm.Core
 
         public virtual string[] GetPrimaryKeys(QueryOptions queryOptions, MapRule mapRule)
         {
-            using (var command = queryOptions.Connection.CreateCommand())
+            List<string> columns = new List<string>();            
+
+            if (string.IsNullOrEmpty(mapRule.PrimaryKeys))
             {
-                command.Transaction = queryOptions.Transaction;               
-
-                string table = mapRule.Table.Split('.').Length == 1 ? mapRule.Table.Split('.')[0] : mapRule.Table.Split('.')[1];
-                string schema = mapRule.Table.Split('.').Length == 1 ? string.Empty : $"AND TABLE_SCHEMA = '{mapRule.Table.Split('.')[0]}'";
-
-                string sql = $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + QUOTENAME(CONSTRAINT_NAME)), 'IsPrimaryKey') = 1 AND TABLE_NAME = '{table}' {schema}";
-
-                command.CommandText = sql;
-
-                List<string> columns = new List<string>();
-
-                using (var reader = command.ExecuteReader())
+                using (var command = queryOptions.Connection.CreateCommand())
                 {
-                    while (reader.Read())
+                    command.Transaction = queryOptions.Transaction;               
+
+                    string table = mapRule.Table.Split('.').Length == 1 ? mapRule.Table.Split('.')[0] : mapRule.Table.Split('.')[1];
+                    string schema = mapRule.Table.Split('.').Length == 1 ? string.Empty : $"AND TABLE_SCHEMA = '{mapRule.Table.Split('.')[0]}'";
+
+                    string sql = $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + QUOTENAME(CONSTRAINT_NAME)), 'IsPrimaryKey') = 1 AND TABLE_NAME = '{table}' {schema}";
+
+                    command.CommandText = sql;
+
+                    using (var reader = command.ExecuteReader())
                     {
-                        columns.Add(reader["COLUMN_NAME"].ToString());
+                        while (reader.Read())
+                        {
+                            columns.Add(reader["COLUMN_NAME"].ToString());
+                        }
+
+                        reader.Close();
                     }
-
-                    reader.Close();
                 }
-
-                return columns.ToArray();
             }
+            else
+            {
+                columns = mapRule.PrimaryKeys.Split(',').Select(x => x.Trim()).ToList();
+            }
+
+            if (columns.Count == 0) throw new InvalidOperationException($"[{mapRule.Table}] primary keys not setted.");       
+            
+            return columns.ToArray();
         }
 
         public int Insert(Row row, QueryOptions queryOptions, out object lastId)
@@ -129,9 +138,9 @@ namespace FreestyleOrm.Core
             {
                 command.Transaction = queryOptions.Transaction;
 
-                Dictionary<string, IDbDataParameter> parameters = GetParameters(row, command, ParameterFilter.WithoutPrimaryKeys);
-                Dictionary<string, IDbDataParameter> primaryKeyParameters = GetParameters(row, command, ParameterFilter.PrimaryKeys);
                 Dictionary<string, IDbDataParameter> rowVersionParameters = GetParameters(row, command, ParameterFilter.RowVersion);
+                Dictionary<string, IDbDataParameter> parameters = GetParameters(row, command, ParameterFilter.WithoutPrimaryKeys);
+                Dictionary<string, IDbDataParameter> primaryKeyParameters = GetParameters(row, command, ParameterFilter.PrimaryKeys);                
 
                 IEnumerable<KeyValuePair<string, IDbDataParameter>> whereParameters = primaryKeyParameters.Concat(rowVersionParameters);
 
@@ -160,8 +169,8 @@ namespace FreestyleOrm.Core
             {
                 command.Transaction = queryOptions.Transaction;
 
-                Dictionary<string, IDbDataParameter> primaryKeyParameters = GetParameters(row, command, ParameterFilter.PrimaryKeys);
                 Dictionary<string, IDbDataParameter> rowVersionParameters = GetParameters(row, command, ParameterFilter.RowVersion);
+                Dictionary<string, IDbDataParameter> primaryKeyParameters = GetParameters(row, command, ParameterFilter.PrimaryKeys);                
 
                 IEnumerable<KeyValuePair<string, IDbDataParameter>> whereParameters = primaryKeyParameters.Concat(rowVersionParameters);
 
@@ -184,14 +193,7 @@ namespace FreestyleOrm.Core
 
         private Dictionary<string, IDbDataParameter> GetParameters(Row row, IDbCommand command, ParameterFilter parameterFilter)
         {
-            Dictionary<string, IDbDataParameter> parameters = new Dictionary<string, IDbDataParameter>();
-
-            List<object> newConcurrencyTokens = new List<object>();
-            if (!string.IsNullOrEmpty(row.OptimisticLock.Columns)
-                && row.OptimisticLock.GetNewToken != null)
-            {
-                newConcurrencyTokens = row.OptimisticLock.GetNewToken(row.Entity).ToList();
-            }
+            Dictionary<string, IDbDataParameter> parameters = new Dictionary<string, IDbDataParameter>();            
 
             foreach (var column in row.Columns)
             {
@@ -203,23 +205,51 @@ namespace FreestyleOrm.Core
                 }
                 else if (parameterFilter == ParameterFilter.PrimaryKeys)
                 {
-                    if (row.IsPrimaryKey(column) || row.IsConcurrencyColumn(column)) isTargetColumn = true;
+                    if (row.IsPrimaryKey(column)) isTargetColumn = true;
                 }
                 else if (parameterFilter == ParameterFilter.WithoutPrimaryKeys)
                 {
                     if (!row.IsPrimaryKey(column)) isTargetColumn = true;
+                }
+                else if (parameterFilter == ParameterFilter.RowVersion)
+                {
+                    if (row.IsConcurrencyColumn(column, out int index)) isTargetColumn = true;
                 }
 
                 if (!isTargetColumn) continue;
 
                 IDbDataParameter parameter = null;
 
-                if (parameterFilter != ParameterFilter.PrimaryKeys
-                    && newConcurrencyTokens.Count > 0                    
-                    && row.IsConcurrencyColumn(column))
-                {                    
-                    parameter = CreateParameter(command, $"new_{column}", newConcurrencyTokens.First(), false);
-                    newConcurrencyTokens.Remove(newConcurrencyTokens.First());
+                int rowVersionColumn = -1;
+                if (parameterFilter == ParameterFilter.RowVersion)
+                {                       
+                    row.IsConcurrencyColumn(column, out rowVersionColumn);
+                    object[] values = row.OptimisticLock.GetCurrentValues(row.Entity);
+
+                    if (rowVersionColumn < values.Length)
+                    {
+                        object value = values[rowVersionColumn];
+
+                        if (value != null)
+                        {
+                            parameter = CreateParameter(command, $"row_version_{column}", value, false);
+                        }
+                    }
+                }
+                else if ((parameterFilter == ParameterFilter.All || parameterFilter == ParameterFilter.WithoutPrimaryKeys) && row.IsConcurrencyColumn(column, out int index))
+                {
+                    row.IsConcurrencyColumn(column, out rowVersionColumn);
+                    object[] values = row.OptimisticLock.GetNewValues(row.Entity);
+
+                    if (rowVersionColumn < values.Length)
+                    {
+                        object value = values[rowVersionColumn];
+
+                        if (value != null)
+                        {
+                            parameter = CreateParameter(command, column, value, false);
+                        }
+                    }
                 }
                 else if (row.Columns.Contains(column))
                 {                    
@@ -258,11 +288,7 @@ namespace FreestyleOrm.Core
         public string FormatSql(QueryOptions queryOptions, Dictionary<string, List<IDbDataParameter>> complexParameters)
         {
             string formatedSql = queryOptions.Sql;
-
-            Dictionary<string, object> formats = new Dictionary<string, object>();            
-            queryOptions.SetFormats(formats);
-
-            foreach (var format in formats) formatedSql = formatedSql.Replace("{{" + format.Key + "}}", format.Value.ToString());
+            
             foreach (var param in complexParameters) formatedSql = formatedSql.Replace(param.Key, string.Join(", ", param.Value.Select(x => x.ParameterName)));
 
             return formatedSql;
