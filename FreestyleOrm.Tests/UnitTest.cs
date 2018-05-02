@@ -8,6 +8,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Linq.Expressions;
+using System.Collections;
 
 namespace FreestyleOrm.Tests
 {
@@ -631,5 +632,374 @@ namespace FreestyleOrm.Tests
                 connection.Close();
             }
         }
+
+        public void TestSpec5()
+        {
+            var filter = new CustomerFilter
+            {
+                Any = false,
+                CustomerIds = new List<int> { 1, 2 },
+                CustomerName = "CustomerName_1",
+                SortColumns = new List<string> { "CustomerId", "CustomerName " },
+                Desc = false
+            };
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var customers = connection
+                    .Query<Customer>($@"
+                        select 
+                            * 
+                        from 
+                            Customer                             
+                        where
+                            ID > 0
+                            {(filter.CustomerIds.Count > 0 ? "and CustomerId in (@CustomerIds)" : string.Empty)}
+                            {(!string.IsNullOrEmpty(filter.CustomerName) ? "and CustomerName = @CustomerName" : string.Empty)}
+                        order by
+                            {(filter.SortColumns.Count > 0 ? string.Join(",", filter.SortColumns) : "CustomerId")}
+                    ")
+                    .Fetch().ToArray();
+
+                Assert.AreEqual(1, customers.Length);
+
+                connection.Close();
+            }
+        }
+
+        public void TestSpec6()
+        {
+            var filter = new CustomerFilter
+            {
+                Any = false,
+                CustomerIds = new List<int> { 1, 2 },
+                CustomerName = "CustomerName_1",
+                SortColumns = new List<string> { "CustomerId", "CustomerName " },
+                Desc = false
+            };
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                Spec spec = null;
+
+                var customers = connection
+                    .Query<Customer>($@"
+                        select 
+                            * 
+                        from 
+                            Customer                             
+                        where
+                            ID > 0
+                            and CustomerId in (@CustomerIds)
+                            {spec.Satisfy("and", "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)}
+                            {spec.Satisfy("and", "CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                            {spec.Satisfy("and", "CustomerId between @CustomerName and @CustomerName", p => { p["@CustomerName"] = filter.CustomerName; p["@CustomerName"] = filter.CustomerName; })}
+                            {spec.Satisfy("and", "CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                            {spec.Satisfy("and", "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)}
+                            {spec.Satisfy("and", "CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                            {spec.Satisfy("and", "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)}
+                            {spec.Satisfy("and", "CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                            {spec.Satisfy("and", innerSpec => 
+                            {
+                                innerSpec
+                                    .Satisfy("and", "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds)
+                                    .Satisfy("and", "CustomerId between @CustomerName and @CustomerName", p => { p["@CustomerName"] = filter.CustomerName; p["@CustomerName"] = filter.CustomerName; })
+                                    .Satisfy("and", inner2Spec =>
+                                    {
+                                        inner2Spec.Satisfy("and", "CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds);
+                                    });
+                            })}
+                        order by
+                            CustomerId                         
+                            
+                    ")                    
+                    .Fetch().ToArray();
+
+                Assert.AreEqual(1, customers.Length);
+
+                connection.Close();
+            }
+        }
+
+        public interface Spec
+        {
+            string Satisfy(string symbol, string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null);
+            string Satisfy(string symbol, Action<InnerSpec> innerSpec);
+        }
+
+        public interface InnerSpec
+        {
+            InnerSpec Satisfy(string symbol, string sql, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultSql = null);
+            InnerSpec Satisfy(string symbol, Action<InnerSpec> innerSpec);
+        }
+
+        public void TestSpec7()
+        {
+            var filter = new CustomerFilter
+            {
+                Any = false,
+                CustomerIds = new List<int> { 1, 2 },
+                CustomerName = "CustomerName_1",
+                SortColumns = new List<string> { "CustomerId", "CustomerName " },
+                Desc = false
+            };
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                ISqlBuilder sqlBuilder = null;
+
+                var customers = connection
+                    .Query<Customer>(sqlBuilder.Write(spec => $@"
+                        select 
+                            * 
+                        from 
+                            {spec.If("Customer")}    
+
+                        {spec.Begin("where")}                            
+                            {spec.If($"CustomerName = {spec.Param(() => filter.CustomerName)}")}
+                            {spec.If("and", $"CustomerName = {spec.Param(() => filter.CustomerName)}")}                            
+
+                            {spec.BeginScpoe("and")}
+                                {spec.If($"CustomerName = {spec.Param(() => filter.CustomerName)}")}
+                                {spec.If("and", $"CustomerName = {spec.Param(() => filter.CustomerName)}")}
+
+                                {spec.BeginScpoe("or")}
+                                    {spec.If($"CustomerName = {spec.Param(() => filter.CustomerName)}")}
+                                    {spec.If("and", $"CustomerName = {spec.Param(() => filter.CustomerName)}")}
+                                {spec.End}                            
+                            {spec.End}                            
+
+                            {spec.If("and", $"CustomerName = {spec.Param(() => filter.CustomerName)}")}
+                            {spec.If("and", $"CustomerName = {spec.Param(() => filter.CustomerName)}")}
+                        {spec.End}
+                        
+                        order by
+                            {spec.Comma(filter.SortColumns, defaultText: "CustomerId")}
+                    "))
+                    .Fetch().ToArray();
+
+                Assert.AreEqual(1, customers.Length);
+
+                connection.Close();
+            }
+        }
+
+        public void TestSpec8()
+        {
+            var filter = new CustomerFilter
+            {
+                Any = false,
+                CustomerIds = new List<int> { 1, 2 },
+                CustomerName = "CustomerName_1",
+                SortColumns = new List<string> { "CustomerId", "CustomerName " },
+                Desc = false
+            };
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                ISqlBuilder sqlBuilder = null;
+
+                var customers = connection
+                    .Query<Customer>(sqlBuilder.Write(spec => $@"
+                        select 
+                            * 
+                        from 
+                            {spec.If("Customer")}    
+
+                        {spec.Begin("where")}                            
+                            {spec.If($"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                            {spec.If("and", $"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                            {spec.If("and", $"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                            {spec.If("and", $"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                            {spec.If("and", $"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                            {spec.If("and", $"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+
+                            {spec.BeginScpoe("and")}
+                                {spec.If($"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                                {spec.If("and", $"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+
+                                {spec.BeginScpoe("or")}
+                                    {spec.If($"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                                    {spec.If("and", $"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                                {spec.End}                            
+                            {spec.End}                            
+
+                            {spec.If($"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                            {spec.If("and", $"CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName)}
+                        {spec.End}
+                        
+                        order by
+                            {spec.Comma(filter.SortColumns, defaultText: "CustomerId")}
+                    "))
+                    .Fetch().ToArray();
+
+                Assert.AreEqual(1, customers.Length);
+
+                connection.Close();
+            }
+        }
+
+        public interface ISqlBuilder
+        {
+            string Write(Func<ISqlSpec, string> text);            
+        }
+
+        public interface ISqlSpec
+        {
+            string If(string split, string text, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultText = null);
+            string If(string text, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultText = null);
+            string Param(Expression<Func<object>> value, Func<bool> validation = null, object defaultValue = null);                        
+            string Begin(string split = null);
+            string BeginScpoe(string split = null);            
+            string End { get; }
+            string Comma(IEnumerable<string> columns, string defaultText = null);
+            
+        }
+
+        //public class TextBuilder : ITextBuilder
+        //{
+        //    public string Write(Func<ITextSpec, string> setText)
+        //    {
+        //        TextSpec textSpec = new TextSpec();
+        //        string text = setText(textSpec);
+        //        return text;
+        //    }
+        //}
+
+        //public class TextSpec : ITextSpec
+        //{
+        //    public TextSpec()
+        //    {
+        //        GetNewLevelComment();
+        //    }
+        //    private Dictionary<int, string> _levelMap = new Dictionary<int, string>();
+        //    private bool _enableSplit = false;
+        //    private Dictionary<string, object> _paramMap = new Dictionary<string, object>();
+        //    private string GetNewLevelComment()
+        //    {
+        //        int level = _levelMap.Count == 0 ? 1 : _levelMap.Keys.Max(x => x) + 1;
+        //        _levelMap[level] = $"---level{level}---{Guid.NewGuid().ToString()}---";
+
+        //        return _levelMap[level];
+        //    }
+        //    private bool TrySetParams(string text, Action<Dictionary<string, object>> setParams, Func<bool> validation, string defaultText, out string formatedText, out Dictionary<string, object> paramMap)
+        //    {
+        //        formatedText = null;
+        //        paramMap = new Dictionary<string, object>();
+
+        //        if (string.IsNullOrEmpty(text) && string.IsNullOrEmpty(defaultText)) return false;
+
+        //        if (string.IsNullOrEmpty(text)) formatedText = defaultText;
+        //        else formatedText = text;            
+
+        //        if (validation != null)
+        //        {
+        //            if (validation()) 
+        //            {
+        //                setParams(paramMap);
+        //                return true;
+        //            }
+        //            else
+        //            {
+        //                return false;
+        //            }
+        //        }
+
+        //        try
+        //        {
+        //            setParams(paramMap);
+
+        //            if (validation != null) return true;
+
+        //            foreach (var entry in paramMap)
+        //            {
+        //                if (entry.Value == null) return false;
+        //                if (entry.Value.GetType() == typeof(string) && entry.Value.ToString() == string.Empty) return false;
+        //                if (entry.Value is IEnumerable elements)
+        //                {
+        //                    bool hasElement = false;
+        //                    foreach (var element in elements)
+        //                    {                                
+        //                        hasElement = true;
+        //                        break;
+        //                    }
+
+        //                    if (!hasElement) return false;
+        //                }
+        //            }
+        //        }
+        //        catch
+        //        {
+        //            return false;
+        //        }
+
+        //        return true;
+        //    }
+        //    public string If(string split, string text, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultText = null)
+        //    {
+        //        if (split == null) throw new Exception("split is required.");
+
+        //        string formattedText = null;
+        //        Dictionary<string, object> paramMap = new Dictionary<string, object>();
+
+        //        if (!TrySetParams(text, setParams, validation, defaultText, out formattedText, out paramMap))                
+        //        {
+        //            return string.Empty;
+        //        }
+
+        //        if (_enableSplit && split != null) return split + formattedText;
+        //        else
+        //        {
+        //            if (split != null) _enableSplit = true;
+        //            return formattedText;
+        //        }
+        //    }
+
+        //    public string If(string text, Action<Dictionary<string, object>> setParams = null, Func<bool> validation = null, string defaultText = null)
+        //    {
+        //        return If(null, text, setParams, validation, defaultText);
+        //    }
+
+        //    public string Begin(string split, string text)
+        //    {
+        //        if (split == null) throw new Exception("split is required.");
+        //        if (text == null) throw new Exception("text is required.");
+
+        //        string levelComment = GetNewLevelComment();
+
+        //        if (_enableSplit && split != null) return levelComment + split + text;
+        //        else
+        //        {
+        //            if (split != null) _enableSplit = true;
+        //            return levelComment + text;
+        //        }
+        //    }
+
+        //    public string Begin(string text = null)
+        //    {
+        //        string levelComment = GetNewLevelComment();
+
+        //        if (string.IsNullOrEmpty(text)) return levelComment;
+        //        else return levelComment + text;
+        //    }
+
+        //    public string End(string text = null)
+        //    {
+        //        int level = _levelMap.Keys.Max(x => x);
+        //        string levelComment = _levelMap[level];
+        //        _levelMap.Remove(level);
+
+        //        if (string.IsNullOrEmpty(text)) return levelComment;
+        //        else return text + levelComment;                
+        //    }
+        //}
     }
 }
