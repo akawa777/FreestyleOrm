@@ -80,7 +80,7 @@ namespace FreestyleOrm.Tests
             public string ColOne { get; set; }
             public string ColTwoOne { get; set; }
         }
-        
+
         [TestMethod]
         public void Test_SnakeToPascal1()
         {
@@ -100,27 +100,27 @@ namespace FreestyleOrm.Tests
 
             using (var connection = _testInitializer.CreateConnection())
             {
-                connection.Open();    
-                
+                connection.Open();
+
                 using (var tran = connection.BeginTransaction())
                 {
                     var query = connection
                         .Query<D_TEST_TABLE>("select * from D_TEST_TABLE where ID = @id")
                         .Map(m => m.ToRoot().Refer(Refer.Write))
-                        .Params(p => p["@id"] = table.ID)                        
+                        .Params(p => p["@id"] = table.ID)
                         .Transaction(tran);
 
                     query.Insert(table);
                     query.Insert(table2);
 
-                    var registerdTable = query.Fetch().Single();   
+                    var registerdTable = query.Fetch().Single();
 
                     Assert.AreEqual("xxx", registerdTable.COL_ONE);
                     Assert.AreEqual("yyy", registerdTable.COL_TWO_ONE);
 
                     tran.Commit();
                 }
-                
+
                 connection.Close();
             }
         }
@@ -137,8 +137,8 @@ namespace FreestyleOrm.Tests
 
             using (var connection = _testInitializer.CreateConnection())
             {
-                connection.Open();    
-                
+                connection.Open();
+
                 using (var tran = connection.BeginTransaction())
                 {
                     var query = connection
@@ -149,14 +149,14 @@ namespace FreestyleOrm.Tests
 
                     query.Insert(table);
 
-                    var registerdTable = query.Fetch().Single();   
+                    var registerdTable = query.Fetch().Single();
 
                     Assert.AreEqual("xxx", registerdTable.ColOne);
                     Assert.AreEqual("yyy", registerdTable.ColTwoOne);
 
                     tran.Commit();
                 }
-                
+
                 connection.Close();
             }
         }
@@ -167,10 +167,10 @@ namespace FreestyleOrm.Tests
             Test_SnakeToPascal1();
             using (var connection = _testInitializer.CreateConnection())
             {
-                connection.Open();    
-                
+                connection.Open();
+
                 var testTables = connection
-                    .Query<D_TEST_TABLE>("select * from D_TEST_TABLE")                         
+                    .Query<D_TEST_TABLE>("select * from D_TEST_TABLE")
                     .Map(m =>
                     {
                         m.ToRoot()
@@ -184,7 +184,7 @@ namespace FreestyleOrm.Tests
 
                 Assert.AreEqual("xxx", testTables[0].COL_ONE);
                 Assert.AreEqual("yyy", testTables[0].COL_TWO_ONE);
-                
+
                 connection.Close();
             }
         }
@@ -199,7 +199,7 @@ namespace FreestyleOrm.Tests
 
                 var testTables = connection
                     .Query("select * from D_TEST_TABLE")
-                    
+
                     .Fetch()
                     .Select(x => new
                     {
@@ -222,11 +222,11 @@ namespace FreestyleOrm.Tests
             public string Name { get; set; }
             public int? ParentId { get; set; }
             public List<Node> Chilrdren { get; set; }
-        }        
+        }
 
         [TestMethod]
         public void Test_Tree1()
-        {            
+        {
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();
@@ -235,7 +235,7 @@ namespace FreestyleOrm.Tests
                     .Query<Node>(@"
                         select * from Node
                     ")
-                    .Map(m => 
+                    .Map(m =>
                     {
                         m.ToRoot()
                             .UniqueKeys("Id, ParentId")
@@ -256,12 +256,12 @@ namespace FreestyleOrm.Tests
             Assert.AreEqual(nodes[0].Id, nodes[0].Chilrdren[0].ParentId);
             Assert.AreEqual(nodes[0].Chilrdren[0].Id, nodes[0].Chilrdren[0].Chilrdren[0].ParentId);
             Assert.AreEqual(nodes[0].Id, nodes[0].Chilrdren[1].ParentId);
-            Assert.AreEqual(nodes[1].Id, nodes[1].Chilrdren[0].ParentId);            
-        }        
+            Assert.AreEqual(nodes[1].Id, nodes[1].Chilrdren[0].ParentId);
+        }
 
         [TestMethod]
         public void Test_Tree2()
-        {            
+        {
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();
@@ -272,7 +272,7 @@ namespace FreestyleOrm.Tests
                     .Query<Customer>(@"
                         select * from Customer, Node order by CustomerId
                     ")
-                    .Map(m => 
+                    .Map(m =>
                     {
                         m.ToRoot()
                             .UniqueKeys("CustomerId");
@@ -284,7 +284,7 @@ namespace FreestyleOrm.Tests
                     .Fetch()
                     .ToArray();
 
-                Assert.AreEqual(customersCount, customers.Count());                
+                Assert.AreEqual(customersCount, customers.Count());
 
                 foreach (var customer in customers)
                 {
@@ -294,11 +294,11 @@ namespace FreestyleOrm.Tests
 
                 connection.Close();
             }
-        }        
+        }
 
         [TestMethod]
         public void Test_Tree3()
-        {            
+        {
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();
@@ -315,7 +315,7 @@ namespace FreestyleOrm.Tests
                         left join Node n on p.NodeId = n.Id
                         left join Node n2 on n.Id = n2.ParentId
                     ")
-                    .Map(m => 
+                    .Map(m =>
                     {
                         m.ToRoot()
                             .UniqueKeys("ProductId");
@@ -375,8 +375,8 @@ namespace FreestyleOrm.Tests
                 Desc = false
             };
 
-            var spec1 = new IfSpec("CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds);            
-            var spec2 = new IfSpec("CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName);            
+            var spec1 = new IfSpec("CustomerId in (@CustomerIds)", p => p["@CustomerIds"] = filter.CustomerIds);
+            var spec2 = new IfSpec("CustomerName = @CustomerName", p => p["@CustomerName"] = filter.CustomerName);
 
             var and1Spec = new AndSpec(spec1, spec2);
             var and2Spec = new AndSpec(spec1, spec2);
@@ -385,7 +385,7 @@ namespace FreestyleOrm.Tests
 
             var whereSpec = new WhereSpec(orSpec);
 
-            var selelctSpec = new CommaSpec(new string[] { "CustomerId", "CustomerName" });            
+            var selelctSpec = new CommaSpec(new string[] { "CustomerId", "CustomerName" });
             var sortSpec = new CommaSpec(filter.SortColumns, defaultPredicate: "CustomerId");
 
             string sql = $@"
@@ -422,7 +422,7 @@ namespace FreestyleOrm.Tests
         {
             var filter = new CustomerFilter
             {
-                Any = false,                
+                Any = false,
                 SortColumns = new List<string> { "CustomerId", "CustomerName " },
                 Desc = false
             };
@@ -535,7 +535,7 @@ namespace FreestyleOrm.Tests
 
                     query.Insert(root);
 
-                    tran.Commit();                                        
+                    tran.Commit();
                 }
 
                 connection.Close();
@@ -641,6 +641,80 @@ namespace FreestyleOrm.Tests
                 });
 
             return query;
+        }
+
+        public class ManyAggregate
+        {
+            public ManyCollection ManyCollection { get; set; }
+        }
+
+        public class ManyCollection
+        {
+            public List<Many> List { get; set; }
+        }
+
+        [TestMethod]
+        public void Test_CustomCollection()
+        {
+            var root = new Root();
+            root.RootId = 1;
+            root.Text = $"{nameof(Root)}";
+
+            for (var i = 0; i < 10; i++)
+            {
+                var many = new Many
+                {
+                    RootId = root.RootId,
+                    ManyId = i + 1,
+                    Text = $"{i + 1}_text"
+                };
+
+                root.ManyList.Add(many);
+            }
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                using (var tran = connection.BeginTransaction())
+                {   
+                    root.Register();
+
+                    var query = CreateQueryOfRoot(root.RootId, connection);
+
+                    query.Transaction(tran);
+
+                    query.Insert(root);
+
+                    tran.Commit();
+                }
+
+                connection.Close();
+            }
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var query = connection.Query<ManyAggregate>(
+                    $@"select * from Many where RootId = @rootId order by ManyId")
+                    .Map(m =>
+                    {
+                        m.ToRoot().UniqueKeys("RootId");
+                        m.ToOne(r => r.ManyCollection).UniqueKeys("RootId");
+                        m.ToMany(r => r.ManyCollection.List).UniqueKeys("RootId, ManyId");
+                    })
+                    .Params(p =>
+                    {
+                        p["@rootId"] = root.RootId;
+                    });
+
+                var manyAggregate = query.Fetch().ToArray();
+
+                Assert.AreEqual(root.ManyList.Count, manyAggregate[0].ManyCollection.List.Count);
+
+                connection.Close();
+            }
         }
     }
 }
