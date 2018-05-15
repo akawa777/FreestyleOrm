@@ -270,6 +270,26 @@ namespace FreestyleOrm.Tests
                 Assert.AreEqual(size * no, page.Items.Last().PurchaseOrderId);
                 Assert.AreEqual(query.Fetch().Count(), page.Total);
 
+                query = CreatePurchaseOrderQuery(connection);
+
+                size = int.MaxValue;
+
+                no = 1;
+
+                page = query.Page(no, size);
+
+                Assert.AreEqual(no, page.PageNo);
+
+                query = CreatePurchaseOrderQuery(connection);
+
+                size = 100000;
+
+                no = 1;
+
+                page = query.Page(no, size);
+
+                Assert.AreEqual(no, page.PageNo);
+
                 connection.Close();
             }            
         }

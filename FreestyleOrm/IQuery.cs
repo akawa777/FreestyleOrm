@@ -65,6 +65,9 @@ namespace FreestyleOrm
             PageSize = size;
             Total = total;
             MaxPageNo = (total + size - 1) / size;
+
+            if (MaxPageNo < 1 && items.Count() > 0) MaxPageNo = 1;
+
             Items = items;
         }
 
