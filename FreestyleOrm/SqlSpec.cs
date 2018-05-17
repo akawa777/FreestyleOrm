@@ -170,7 +170,7 @@ namespace FreestyleOrm
 
     public class WhereSpec : LogicalSpec
     {
-        public WhereSpec(params ISqlSpec[] specs) : base(string.Empty, "where ", string.Empty, specs: specs)
+        public WhereSpec(ISqlSpec spec) : base(string.Empty, "where ", string.Empty, specs: new ISqlSpec[] { spec })
         {
 
         }

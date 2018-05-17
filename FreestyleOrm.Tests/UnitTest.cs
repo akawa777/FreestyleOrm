@@ -385,7 +385,7 @@ namespace FreestyleOrm.Tests
 
             var whereSpec = new WhereSpec(orSpec);
 
-            var selelctSpec = new CommaSpec(new string[] { "CustomerId", "CustomerName" });
+            var selelctSpec = new CommaSpec(new string[] { "CustomerId", "CustomerName", "@param1 as param1" }, p => p["@param1"] = 1);
             var sortSpec = new CommaSpec(filter.SortColumns, defaultPredicate: "CustomerId");
 
             string sql = $@"
@@ -407,7 +407,11 @@ namespace FreestyleOrm.Tests
 
                 var customers = connection
                     .Query<Customer>(sql)
-                    .Params(p => p.AddMap(whereSpec))
+                    .Params(p =>
+                    {
+                        p.AddMap(whereSpec);
+                        p.AddMap(selelctSpec);
+                    })
                     .Fetch()
                     .ToArray();
 
@@ -437,7 +441,7 @@ namespace FreestyleOrm.Tests
 
             var whereSpec = new WhereSpec(orSpec);
 
-            var selelctSpec = new CommaSpec(new string[] { "CustomerId", "CustomerName" });
+            var selelctSpec = new CommaSpec(new string[] { "CustomerId", "CustomerName", "@param1 as param1" }, p => p["@param1"] = 1);
             var sortSpec = new CommaSpec(filter.SortColumns, defaultPredicate: "CustomerId");
 
             string sql = $@"
@@ -459,7 +463,11 @@ namespace FreestyleOrm.Tests
 
                 var customers = connection
                     .Query<Customer>(sql)
-                    .Params(p => p.AddMap(sortSpec))
+                    .Params(p =>
+                    {
+                        p.AddMap(whereSpec);
+                        p.AddMap(selelctSpec);
+                    })
                     .Fetch()
                     .ToArray();
 
