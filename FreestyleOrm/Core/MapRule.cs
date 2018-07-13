@@ -33,7 +33,9 @@ namespace FreestyleOrm.Core
             GetEntity = (row, rootEntity) =>
             {
                 object entity = CreateEntity(row, rootEntity);
-                SetEntity(row, rootEntity, entity);
+                if (rootEntity == null) SetEntity(row, entity, entity);
+                else SetEntity(row, rootEntity, entity);
+
                 return entity;
             };
         }
