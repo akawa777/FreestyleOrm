@@ -383,7 +383,7 @@ namespace FreestyleOrm.Tests
 
             var orSpec = new OrSpec(and1Spec, and2Spec);
 
-            var whereSpec = new WhereSpec(orSpec);
+            var whereSpec = new WhereSpec(orSpec, "                        ");
 
             var selelctSpec = new CommaSpec(new string[] { "CustomerId", "CustomerName", "@param1 as param1" }, p => p["@param1"] = 1);
             var sortSpec = new CommaSpec(filter.SortColumns, defaultPredicate: "CustomerId");

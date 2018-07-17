@@ -144,7 +144,8 @@ namespace FreestyleOrm
         private string _prefixHolder;
         private string _suffixHolder;
         protected ISqlSpec[] Specs { get; set; }
-        private string _predicate;        
+        private string _predicate;   
+        protected string Indent { get; set; }
 
         public override string ToString()
         {
@@ -154,7 +155,7 @@ namespace FreestyleOrm
 
     public class AndSpec : LogicalSpec
     {
-        public AndSpec(params ISqlSpec[] specs) : base("and ", "( ", ") ", specs: specs)
+        public AndSpec(params ISqlSpec[] specs) : base($"and", "( ", ") ", specs: specs)
         {
 
         }
@@ -162,7 +163,7 @@ namespace FreestyleOrm
 
     public class OrSpec : LogicalSpec
     {
-        public OrSpec(params ISqlSpec[] specs) : base("or ", "(", ") ", specs: specs)
+        public OrSpec(params ISqlSpec[] specs) : base($"or", "(", ") ", specs: specs)
         {
 
         }
@@ -170,9 +171,53 @@ namespace FreestyleOrm
 
     public class WhereSpec : LogicalSpec
     {
-        public WhereSpec(ISqlSpec spec) : base(string.Empty, "where ", string.Empty, specs: new ISqlSpec[] { spec })
+        public WhereSpec(ISqlSpec spec, string indent = "") : base(string.Empty, "where ", string.Empty, specs: new ISqlSpec[] { spec })
         {
+            Indent = indent;
+        }
 
+        public override string ToString()
+        {
+            var sql = base.ToString();
+
+            var select = $"select * from target_table ";
+            var query = $"{select}{sql}";
+            var parser = new Microsoft.SqlServer.TransactSql.ScriptDom.TSql120Parser(false);
+            IList<Microsoft.SqlServer.TransactSql.ScriptDom.ParseError> errors;
+            var parsedQuery = parser.Parse(new System.IO.StringReader(query), out errors);
+
+            //if (errors.Count > 0)
+            //{
+            //    foreach (var err in errors)
+            //    {
+            //        Console.ForegroundColor = ConsoleColor.Red;
+            //        Console.WriteLine(err.Message);
+            //        Console.ResetColor();
+            //    }
+            //}
+
+            var generator =  new Microsoft.SqlServer.TransactSql.ScriptDom.Sql120ScriptGenerator(new Microsoft.SqlServer.TransactSql.ScriptDom.SqlScriptGeneratorOptions()
+            {
+                KeywordCasing = Microsoft.SqlServer.TransactSql.ScriptDom.KeywordCasing.Lowercase,
+                IncludeSemicolons = true,
+                NewLineBeforeFromClause = true,
+                NewLineBeforeOrderByClause = true,
+                NewLineBeforeWhereClause = true,
+                AlignClauseBodies = false
+            });
+            string formattedQuery;
+            generator.GenerateScript(parsedQuery, out formattedQuery);
+
+            formattedQuery = formattedQuery.Remove(0, select.Length);
+
+            var reverseSql = string.Join(string.Empty, formattedQuery.Reverse());
+            var index = reverseSql.IndexOf(";");
+
+            reverseSql = reverseSql.Remove(0, index + 1);
+
+            var whereSql = string.Join(string.Empty, reverseSql.Reverse()).Replace(Environment.NewLine, Environment.NewLine + Indent);
+
+            return whereSql;
         }
     }
 
