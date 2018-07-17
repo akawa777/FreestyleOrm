@@ -186,16 +186,6 @@ namespace FreestyleOrm
             IList<Microsoft.SqlServer.TransactSql.ScriptDom.ParseError> errors;
             var parsedQuery = parser.Parse(new System.IO.StringReader(query), out errors);
 
-            //if (errors.Count > 0)
-            //{
-            //    foreach (var err in errors)
-            //    {
-            //        Console.ForegroundColor = ConsoleColor.Red;
-            //        Console.WriteLine(err.Message);
-            //        Console.ResetColor();
-            //    }
-            //}
-
             var generator =  new Microsoft.SqlServer.TransactSql.ScriptDom.Sql120ScriptGenerator(new Microsoft.SqlServer.TransactSql.ScriptDom.SqlScriptGeneratorOptions()
             {
                 KeywordCasing = Microsoft.SqlServer.TransactSql.ScriptDom.KeywordCasing.Lowercase,
