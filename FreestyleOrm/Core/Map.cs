@@ -195,9 +195,9 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        public IMapRule<TRootEntity, TEntity> Refer(Refer refer)
+        public IMapRule<TRootEntity, TEntity> Editable()
         {
-            _mapRule.Refer = refer;
+            _mapRule.Refer = Refer.Write;
 
             return this;
         }

@@ -106,7 +106,7 @@ namespace FreestyleOrm.Tests
                 {
                     var query = connection
                         .Query<D_TEST_TABLE>("select * from D_TEST_TABLE where ID = @id")
-                        .Map(m => m.ToRoot().Refer(Refer.Write))
+                        .Map(m => m.ToRoot().Editable())
                         .Params(p => p["@id"] = table.ID)
                         .Transaction(tran);
 
@@ -143,7 +143,7 @@ namespace FreestyleOrm.Tests
                 {
                     var query = connection
                         .Query<TestTable>("select * from D_TEST_TABLE where ID = @id", new MyQueryDefine())
-                        .Map(m => m.ToRoot().Refer(Refer.Write))
+                        .Map(m => m.ToRoot().Editable())
                         .Params(p => p["@id"] = table.Id)
                         .Transaction(tran);
 
@@ -631,16 +631,16 @@ namespace FreestyleOrm.Tests
                 {
                     m.ToRoot()
                         .UniqueKeys("RootId")
-                        .Refer(Refer.Write);
+                        .Editable();
 
                     m.ToMany(x => x.ManyList)
                         .UniqueKeys("RootId, ManyId")
-                        .Refer(Refer.Write)
+                        .Editable()
                         .IncludePrefix("Many_");
 
                     m.ToOne(x => x.One)
                         .UniqueKeys("RootId, One_Text")
-                        .Refer(Refer.Write)
+                        .Editable()
                         .IncludePrefix("One_");
                 })
                 .Params(p =>

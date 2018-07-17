@@ -226,6 +226,11 @@ namespace FreestyleOrm.Core
                     row.IsConcurrencyColumn(column, out rowVersionColumn);
                     object[] values = row.OptimisticLock.GetCurrentValues(row.Entity);
 
+                    if (values == null || values.Length == 0)
+                    {
+                        throw new InvalidOperationException($"concurrency column value is invalid.");
+                    }
+
                     if (rowVersionColumn < values.Length)
                     {
                         object value = values[rowVersionColumn];

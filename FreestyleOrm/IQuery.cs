@@ -38,7 +38,7 @@ namespace FreestyleOrm
     {
         IMapRule<TRootEntity, TEntity> UniqueKeys(string columns);
         IMapRule<TRootEntity, TEntity> IncludePrefix(string prefix);
-        IMapRule<TRootEntity, TEntity> Refer(Refer refer);
+        IMapRule<TRootEntity, TEntity> Editable();
         IMapRule<TRootEntity, TEntity> CreateEntity(Func<IRow, TRootEntity, TEntity> createEntity);
         IMapRule<TRootEntity, TEntity> SetEntity(Action<IRow, TRootEntity, TEntity> setEntity);
         IMapRule<TRootEntity, TEntity> SetRow(Action<TEntity, TRootEntity, IRow> setRow);
@@ -76,12 +76,6 @@ namespace FreestyleOrm
         public int Total { get; }  
         public int MaxPageNo { get; }
         public IEnumerable<TRootEntity> Items { get; }
-    }
-
-    public enum Refer
-    {
-        Read,
-        Write
     }
 
     public interface IRowBase

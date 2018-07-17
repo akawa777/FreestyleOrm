@@ -21,7 +21,7 @@ namespace FreestyleOrm.Tests
             {
                 m.ToRoot()
                     .UniqueKeys("PurchaseOrderId")    
-                    .Refer(Refer.Write)                
+                    .Editable()                
                     .SetRow((entity, root, row) =>
                     {
                         row.BindRow(entity);
@@ -35,7 +35,7 @@ namespace FreestyleOrm.Tests
 
                 m.ToMany(x => x.PurchaseItems)
                     .UniqueKeys("PurchaseOrderId, PurchaseItemNo")                    
-                    .Refer(Refer.Write)
+                    .Editable()
                     .SetRow((entity, root, row) =>
                     {
                         row.BindRow(entity);
