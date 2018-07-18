@@ -186,15 +186,17 @@ namespace FreestyleOrm
             IList<Microsoft.SqlServer.TransactSql.ScriptDom.ParseError> errors;
             var parsedQuery = parser.Parse(new System.IO.StringReader(query), out errors);
 
-            var generator =  new Microsoft.SqlServer.TransactSql.ScriptDom.Sql120ScriptGenerator(new Microsoft.SqlServer.TransactSql.ScriptDom.SqlScriptGeneratorOptions()
-            {
-                KeywordCasing = Microsoft.SqlServer.TransactSql.ScriptDom.KeywordCasing.Lowercase,
-                IncludeSemicolons = true,
-                NewLineBeforeFromClause = true,
-                NewLineBeforeOrderByClause = true,
-                NewLineBeforeWhereClause = true,
-                AlignClauseBodies = false
-            });
+            var generator =  new Microsoft.SqlServer.TransactSql.ScriptDom.Sql120ScriptGenerator(
+                new Microsoft.SqlServer.TransactSql.ScriptDom.SqlScriptGeneratorOptions
+                {
+                    KeywordCasing = Microsoft.SqlServer.TransactSql.ScriptDom.KeywordCasing.Lowercase,
+                    IncludeSemicolons = true,
+                    NewLineBeforeFromClause = true,
+                    NewLineBeforeOrderByClause = true,
+                    NewLineBeforeWhereClause = true,
+                    AlignClauseBodies = false                    
+                });
+
             string formattedQuery;
             generator.GenerateScript(parsedQuery, out formattedQuery);
 
@@ -206,6 +208,10 @@ namespace FreestyleOrm
             reverseSql = reverseSql.Remove(0, index + 1);
 
             var whereSql = string.Join(string.Empty, reverseSql.Reverse()).Replace(Environment.NewLine, Environment.NewLine + Indent);
+
+            index = whereSql.IndexOf("where");
+
+            whereSql = whereSql.Remove(0, index);            
 
             return whereSql;
         }
