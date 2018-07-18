@@ -171,7 +171,12 @@ namespace FreestyleOrm
 
     public class WhereSpec : LogicalSpec
     {
-        public WhereSpec(ISqlSpec spec, string indent = "") : base(string.Empty, "where ", string.Empty, specs: new ISqlSpec[] { spec })
+        public WhereSpec(ISqlSpec spec) : base(string.Empty, "where ", string.Empty, specs: new ISqlSpec[] { spec })
+        {
+            Indent = string.Empty;
+        }
+
+	    public WhereSpec(ISqlSpec spec, string indent) : this(spec)
         {
             Indent = indent;
         }
@@ -202,12 +207,12 @@ namespace FreestyleOrm
 
             formattedQuery = formattedQuery.Remove(0, select.Length);
 
-            var reverseSql = string.Join(string.Empty, formattedQuery.Reverse());
+            var reverseSql = string.Join(string.Empty, formattedQuery.Reverse().ToArray());
             var index = reverseSql.IndexOf(";");
 
             reverseSql = reverseSql.Remove(0, index + 1);
 
-            var whereSql = string.Join(string.Empty, reverseSql.Reverse()).Replace(Environment.NewLine, Environment.NewLine + Indent);
+            var whereSql = string.Join(string.Empty, reverseSql.Reverse().ToArray()).Replace(Environment.NewLine, Environment.NewLine + Indent);
 
             index = whereSql.IndexOf("where");
 
