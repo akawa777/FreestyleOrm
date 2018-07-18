@@ -582,7 +582,7 @@ namespace FreestyleOrm.Core
 
             if (rootEntity == null) return rows;            
 
-            if (map.RootMapRule.Refer == Refer.Read) throw new InvalidOperationException($"{typeof(TRootEntity).Name} is Refer.Read.");
+            if (map.RootMapRule.Refer == Refer.Read) throw new InvalidOperationException($"{typeof(TRootEntity).Name} is not set Writable.");
 
             using (var reader = _databaseAccessor.CreateTableReader(_queryOptions, map.RootMapRule, out string[] primaryKeys))
             {

@@ -122,7 +122,7 @@ namespace FreestyleOrm.Tests
                     m.ToRoot()
                         .UniqueKeys("PurchaseOrderId")
                         .FormatPropertyName(x => x)
-                        .Editable()      
+                        .Writable()      
                         .CreateEntity((row, rootEntity) => PurchaseOrder.Create(row.Get<int>("PurchaseOrderId")))                  
                         .SetEntity((row, rootEntity, entity) =>
                         {                            
@@ -148,7 +148,7 @@ namespace FreestyleOrm.Tests
                         .UniqueKeys("PurchaseOrderId, PurchaseItemNo")
                         .FormatPropertyName(x => x)
                         .IncludePrefix("PurchaseItems_")
-                        .Editable()
+                        .Writable()
                         .CreateEntity((row, rootEntity) => PurchaseItem.Create(row.Get<int>("PurchaseItemNo")))                  
                         .SetEntity((row, rootEntity, entity) =>
                         {                            
@@ -202,7 +202,7 @@ namespace FreestyleOrm.Tests
                 {
                     var query = connection
                         .Query<Customer>("select * from Customer where CustomerId = @CustomerId")
-                        .Map(m => m.ToRoot().Editable())
+                        .Map(m => m.ToRoot().Writable())
                         .Transaction(transaction);
 
                     var customer = Customer.Create(11);

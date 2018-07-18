@@ -4,7 +4,7 @@ using System.Text;
 
 namespace FreestyleOrm.Core
 {
-    public enum Refer
+    internal enum Refer
     {
         Read,
         Write

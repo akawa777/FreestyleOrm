@@ -233,7 +233,7 @@ namespace FreestyleOrm.Tests
                 {
                     m.ToRoot()
                         .UniqueKeys("CustomerId")
-                        .Editable()
+                        .Writable()
                         .OptimisticLock(o => o.Columns("RecordVersion").CurrentValues(x => new object[] { x.RecordVersion }).NewValues(x => new object[] { x.RecordVersion + 1 }));
                 })
                 .Transaction(_transaction);
@@ -249,7 +249,7 @@ namespace FreestyleOrm.Tests
                 {
                     m.ToRoot()
                         .UniqueKeys("ProductId")
-                        .Editable()
+                        .Writable()
                         .OptimisticLock(o => o.Columns("RecordVersion").CurrentValues(x => new object[] { x.RecordVersion }).NewValues(x => new object[] { x.RecordVersion + 1 }));
                 })
                 .Transaction(_transaction);
