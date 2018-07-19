@@ -185,6 +185,8 @@ namespace FreestyleOrm
         {
             var sql = base.ToString();
 
+            if (string.IsNullOrEmpty(sql)) return sql;
+
             var select = $"select * from target_table ";
             var query = $"{select}{sql}";
             var parser = new Microsoft.SqlServer.TransactSql.ScriptDom.TSql120Parser(false);
