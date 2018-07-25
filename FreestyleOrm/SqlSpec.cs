@@ -207,6 +207,8 @@ namespace FreestyleOrm
             string formattedQuery;
             generator.GenerateScript(parsedQuery, out formattedQuery);
 
+            if (string.IsNullOrEmpty(formattedQuery) || errors.Count > 0) return sql;
+
             formattedQuery = formattedQuery.Remove(0, select.Length);
 
             var reverseSql = string.Join(string.Empty, formattedQuery.Reverse().ToArray());
