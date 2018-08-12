@@ -58,7 +58,7 @@ namespace FreestyleOrm.Core
 
             if (string.IsNullOrEmpty(mapRule.PrimaryKeys))
             {
-                string schema = mapRule.Table.Split('.').Length == 1 ? string.Empty : $"and TABLE_SCHEMA = '{mapRule.Table.Split('.')[0]}'";
+                string schema = mapRule.Table.Split('.').Length == 1 ? string.Empty : mapRule.Table.Split('.')[0];
                 string table = mapRule.Table.Split('.').Length == 1 ? mapRule.Table.Split('.')[0] : mapRule.Table.Split('.')[1];
 
 
@@ -124,7 +124,7 @@ namespace FreestyleOrm.Core
                         reader.Close();
                     }
 
-                    return GetPrimaryKeys(queryOptions, schema, table);
+                    return GetPrimaryKeys(queryOptions, entitySchema, entityTable);
                 }
 
                 command.CommandText = $"select COLUMN_NAME from INFORMATION_SCHEMA.KEY_COLUMN_USAGE where OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + QUOTENAME(CONSTRAINT_NAME)), 'IsPrimaryKey') = 1 and {(string.IsNullOrEmpty(schema) ? string.Empty : $"TABLE_SCHEMA = '{schema}' and ")}TABLE_NAME = '{table}'";
