@@ -54,30 +54,19 @@ namespace FreestyleOrm.Core
 
         public virtual string[] GetPrimaryKeys(QueryOptions queryOptions, MapRule mapRule)
         {
-            List<string> columns = new List<string>();            
+            List<string> columns = new List<string>();
 
             if (string.IsNullOrEmpty(mapRule.PrimaryKeys))
             {
-                using (var command = queryOptions.Connection.CreateCommand())
+                string schema = mapRule.Table.Split('.').Length == 1 ? string.Empty : $"and TABLE_SCHEMA = '{mapRule.Table.Split('.')[0]}'";
+                string table = mapRule.Table.Split('.').Length == 1 ? mapRule.Table.Split('.')[0] : mapRule.Table.Split('.')[1];
+
+
+                string[] primaryKeys = GetPrimaryKeys(queryOptions, schema, table);
+
+                foreach (var primaryKey in primaryKeys)
                 {
-                    command.Transaction = queryOptions.Transaction;               
-
-                    string table = mapRule.Table.Split('.').Length == 1 ? mapRule.Table.Split('.')[0] : mapRule.Table.Split('.')[1];
-                    string schema = mapRule.Table.Split('.').Length == 1 ? string.Empty : $"AND TABLE_SCHEMA = '{mapRule.Table.Split('.')[0]}'";
-
-                    string sql = $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + QUOTENAME(CONSTRAINT_NAME)), 'IsPrimaryKey') = 1 AND TABLE_NAME = '{table}' {schema}";
-
-                    command.CommandText = sql;
-
-                    using (var reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            columns.Add(reader["COLUMN_NAME"].ToString());
-                        }
-
-                        reader.Close();
-                    }
+                    columns.Add(primaryKey);
                 }
             }
             else
@@ -85,8 +74,77 @@ namespace FreestyleOrm.Core
                 columns = mapRule.PrimaryKeys.Split(',').Select(x => x.Trim()).ToList();
             }
 
-            if (columns.Count == 0) throw new InvalidOperationException($"[{mapRule.Table}] primary keys not setted.");       
-            
+            if (columns.Count == 0) throw new InvalidOperationException($"[{mapRule.Table}] primary keys not setted.");
+
+            return columns.ToArray();
+        }
+
+        private string[] GetPrimaryKeys(QueryOptions queryOptions, string schema, string table)
+        {
+            List<string> columns = new List<string>();
+
+            using (var command = queryOptions.Connection.CreateCommand())
+            {
+                command.Transaction = queryOptions.Transaction;
+
+                var tableType = string.Empty;
+
+                command.CommandText = $"select TABLE_TYPE from INFORMATION_SCHEMA.TABLES where {(string.IsNullOrEmpty(schema) ? string.Empty : $"TABLE_SCHEMA = '{schema}' and ")}TABLE_NAME = '{table}'";
+
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        tableType = reader["TABLE_TYPE"].ToString();
+                    }
+
+                    reader.Close();
+                }
+
+                if (string.IsNullOrEmpty(tableType))
+                {
+                    throw new InvalidOperationException($"[{schema}.{table}] is not table or view.");
+                }
+
+                if (tableType.ToUpper() == "VIEW")
+                {
+                    command.CommandText = $"select top 1 TABLE_SCHEMA, TABLE_NAME from INFORMATION_SCHEMA.VIEW_COLUMN_USAGE where {(string.IsNullOrEmpty(schema) ? string.Empty : $"VIEW_SCHEMA = '{schema}' and ")}VIEW_NAME = '{table}'";
+
+                    var entitySchema = string.Empty;
+                    var entityTable = string.Empty;
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            entitySchema = reader["TABLE_SCHEMA"].ToString();
+                            entityTable = reader["TABLE_NAME"].ToString();
+                        }
+
+                        reader.Close();
+                    }
+
+                    return GetPrimaryKeys(queryOptions, schema, table);
+                }
+
+                command.CommandText = $"select COLUMN_NAME from INFORMATION_SCHEMA.KEY_COLUMN_USAGE where OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + QUOTENAME(CONSTRAINT_NAME)), 'IsPrimaryKey') = 1 and {(string.IsNullOrEmpty(schema) ? string.Empty : $"TABLE_SCHEMA = '{schema}' and ")}TABLE_NAME = '{table}'";
+
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        columns.Add(reader["COLUMN_NAME"].ToString());
+                    }
+
+                    reader.Close();
+                }
+
+                if (columns.Count == 0)
+                {
+
+                }
+            }
+
             return columns.ToArray();
         }
 
