@@ -127,11 +127,12 @@ namespace FreestyleOrm.Tests
                 drop table Product;
                 drop table PurchaseOrder;                
                 drop table PurchaseItem;
-                drop table D_TEST_TABLE;
+                drop table D_TEST_TABLE;                
                 drop table Node;
                 drop table Root;
                 drop table Many;
                 drop table One;
+                drop table InternalTable;
             ";
         }
 
@@ -220,6 +221,11 @@ namespace FreestyleOrm.Tests
 	                RootId int primary key,
                     Text nvarchar(100),
                     LastUpdate nvarchar(100)
+                );
+
+                create table InternalTable (
+                    Id int primary key,
+	                Text nvarchar(100)
                 );
                     
             ";

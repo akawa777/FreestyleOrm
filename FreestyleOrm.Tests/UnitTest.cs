@@ -724,5 +724,55 @@ namespace FreestyleOrm.Tests
                 connection.Close();
             }
         }
+
+        internal class InternalTable
+        {
+            public int Id { get; set; }
+            public string Text { get; set; }
+        }
+
+        [TestMethod]
+        public void Test_InternalTableTest()
+        {
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                using (var tran = connection.BeginTransaction())
+                {
+                    var table = new InternalTable();
+                    table.Id = 1;
+                    table.Text = "xxx";
+
+                    var query = connection.Query<InternalTable>(
+                        $@"
+                            select * from InternalTable where Id = 0
+                        ")
+                        .Map(m => m.ToRoot().Writable());
+
+                    query.Transaction(tran);
+
+                    query.Insert(table);
+
+                    tran.Commit();
+                }
+
+                connection.Close();
+            }
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var query = connection.Query<InternalTable>(
+                    $@"
+                        select * from InternalTable 
+                    ");
+
+                var tables = query.Fetch().ToArray();
+
+                connection.Close();
+            }
+        }
     }
 }
