@@ -19,6 +19,7 @@ namespace FreestyleOrm.Core
         IDataReader CreateFetchReader(QueryOptions queryOptions, out Action dispose);
         string[] GetPrimaryKeys(QueryOptions queryOptions, MapRule mapRule);
         void CreateTempTable(QueryOptions queryOptions, List<string> outDorpTempTableSqls);
+        void EndModifingRecord(Row afterRow, string commandName, OrderedDictionary beforeRecord, OrderedDictionary afterRecord, QueryOptions queryOptions);
     }
 
     internal enum ParameterFilter
@@ -178,6 +179,8 @@ namespace FreestyleOrm.Core
                 command.CommandText = sql;
                 foreach (var param in parameters.Values) command.Parameters.Add(param);
 
+                OrderedDictionary beforeRecord = GetCurrentRecord(row, queryOptions);
+
                 int rtn = command.ExecuteNonQuery();
 
                 if (row.AutoId)
@@ -185,6 +188,10 @@ namespace FreestyleOrm.Core
                     lastId = GetLastId(row, queryOptions);
                     _lastIdMap[row.ExpressionPath] = lastId;
                 }
+
+                OrderedDictionary afterRecord = GetCurrentRecord(row, queryOptions);
+
+                EndModifingRecord(row, "insert", beforeRecord, afterRecord, queryOptions);
 
                 return rtn;
             }
@@ -211,11 +218,17 @@ namespace FreestyleOrm.Core
                 foreach (var param in parameters.Values) command.Parameters.Add(param);
                 foreach (var param in whereParameters.Select(x => x.Value)) command.Parameters.Add(param);
 
+                OrderedDictionary beforeRecord = GetCurrentRecord(row, queryOptions);
+
                 int rtn = command.ExecuteNonQuery();
 
                 _lastIdMap.Remove(row.ExpressionPath);
 
                 if (rtn == 0) throw new DBConcurrencyException($"DBConcurrencyException at {row.Table} table.");
+
+                OrderedDictionary afterRecord = GetCurrentRecord(row, queryOptions);
+
+                EndModifingRecord(row, "update", beforeRecord, afterRecord, queryOptions);
 
                 return rtn;
             }
@@ -239,11 +252,17 @@ namespace FreestyleOrm.Core
                 command.CommandText = sql;
                 foreach (var param in whereParameters.Select(x => x.Value)) command.Parameters.Add(param);
 
+                OrderedDictionary beforeRecord = GetCurrentRecord(row, queryOptions);
+
                 int rtn = command.ExecuteNonQuery();
 
                 _lastIdMap.Remove(row.ExpressionPath);
 
                 if (rtn == 0) throw new DBConcurrencyException($"DBConcurrencyException at {row.Table} table.");
+
+                OrderedDictionary afterRecord = GetCurrentRecord(row, queryOptions);
+
+                EndModifingRecord(row, "update", beforeRecord, afterRecord, queryOptions);
 
                 return rtn;
             }
@@ -484,6 +503,57 @@ namespace FreestyleOrm.Core
 
                 return command.ExecuteReader();                
             }
+        }
+
+        private OrderedDictionary GetCurrentRecord(Row row, QueryOptions queryOptions)
+        {
+            IDataReader dataReader = SelectCurrentRecord(row, queryOptions);
+
+            OrderedDictionary currentRecord = new OrderedDictionary();
+
+            while (dataReader.Read())
+            {
+                for (var i = 0; i < dataReader.FieldCount; i++)
+                {
+                    string name = dataReader.GetName(i);
+                    object value = dataReader[i];
+                    currentRecord[name] = value;
+                }
+            }
+
+            return currentRecord;
+        }
+
+        protected virtual IDataReader SelectCurrentRecord(Row row, QueryOptions queryOptions)
+        {
+            IDbCommand command = queryOptions.Connection.CreateCommand();
+            command.Transaction = queryOptions.Transaction;
+
+            Dictionary<string, IDbDataParameter> primaryKeyParameters = GetParameters(row, command, ParameterFilter.PrimaryKeys);
+
+            string where = string.Join(" and ", primaryKeyParameters.Select(x => $"{x.Key} = {x.Value.ParameterName}"));
+            
+            foreach (var param in primaryKeyParameters.Select(x => x.Value)) command.Parameters.Add(param);            
+
+            string sql = $"select * from {row.Table} where {where} ";
+
+            command.CommandText = sql;
+
+            return command.ExecuteReader();
+        }
+
+        public void EndModifingRecord(Row afterRow, string commandName, OrderedDictionary beforeRecord, OrderedDictionary afterRecord, QueryOptions queryOptions)
+        {
+            OrderedDictionary primaryValues = new OrderedDictionary();
+
+            foreach (var key in afterRow.PrimaryKeys)
+            {
+                primaryValues[key] = afterRecord[key];
+            }
+
+            ModifingEntry modifingEntry = new ModifingEntry(queryOptions.Connection, queryOptions.Transaction, afterRow.Table, primaryValues, commandName, beforeRecord, afterRecord);
+
+            queryOptions.QueryDefine.EndModifingRecord(modifingEntry);
         }
     }
 }

@@ -9,13 +9,13 @@ namespace FreestyleOrm.Core
     {
         public QueryOptions(IQueryDefine queryDefine, Type rootEntityType)
         {
-            _queryDefine = queryDefine;
+            QueryDefine = queryDefine;
             _rootEnttiyType = rootEntityType;
 
             _setParams = parameters => { };
         }
 
-        private IQueryDefine _queryDefine;
+        public IQueryDefine QueryDefine { get; }
         private Type _rootEnttiyType;
         private Action<Dictionary<string, object>> _setParams;        
 

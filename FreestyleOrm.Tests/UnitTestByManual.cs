@@ -16,7 +16,7 @@ namespace FreestyleOrm.Tests
         [TestInitialize]
         public void Init()
         {
-            _databaseKind = TestInitializer.DatabaseKinds.SqlServer;
+            _databaseKind = TestInitializer.DatabaseKinds.Sqlite;
             _testInitializer = new TestInitializer(_databaseKind, _purchaseOrderNo);
             Insert();
         }

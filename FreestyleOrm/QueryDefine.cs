@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Reflection;
 using System.Linq;
+using System.Collections.Specialized;
+using System.Data;
 
 namespace FreestyleOrm
 {
@@ -18,7 +20,30 @@ namespace FreestyleOrm
         void SetOptimisticLock(IMapRule mapRule, IOptimisticLock optimisticLock);
         string GetIncludePrefix(IMapRule mapRule);        
         string GetUniqueKeys(IMapRule mapRule);
+        void EndModifingRecord(ModifingEntry modifingEntry);
     }    
+
+    public class ModifingEntry
+    {
+        internal ModifingEntry(IDbConnection connection, IDbTransaction transaction, string tableName, OrderedDictionary primaryValues, string commandName, OrderedDictionary beforeRecords, OrderedDictionary afterRecords)
+        {
+            Connection = connection;
+            Transaction = transaction;            
+            TableName = tableName;
+            PrimaryValues = primaryValues;
+            CommandName = commandName;
+            BeforeRecoreds = beforeRecords;
+            AfterRecoreds = afterRecords;
+        }
+
+        public IDbConnection Connection { get; }
+        public IDbTransaction Transaction { get; }        
+        public string TableName { get; }
+        public OrderedDictionary PrimaryValues { get; }
+        public string CommandName { get; }
+        public OrderedDictionary BeforeRecoreds { get; }
+        public OrderedDictionary AfterRecoreds { get; }
+    }
 
     public class RelationId
     {        
@@ -91,6 +116,11 @@ namespace FreestyleOrm
         public virtual string GetUniqueKeys(IMapRule mapRule)
         {            
             return string.Empty;
+        }
+
+        public virtual void EndModifingRecord(ModifingEntry modifingEntry)
+        {
+            
         }
     }
 }

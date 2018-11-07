@@ -85,7 +85,15 @@ namespace FreestyleOrm.Tests
                 if (_sqliteDatabaseContext == null)
                 {
                     _sqliteDatabaseContext = new SqliteDatabaseContext();
-                    _sqliteDatabaseContext.Database.EnsureCreated();                    
+
+                    try
+                    {
+                        _sqliteDatabaseContext.Database.EnsureCreated();
+                    }
+                    catch
+                    {
+
+                    }
                 }
 
                 connection = new SqliteConnection(_sqliteDatabaseContext.GetConnectionString());

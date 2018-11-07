@@ -72,6 +72,11 @@ namespace FreestyleOrm.Tests
                     return base.GetTable(mapRule);
                 }
             }
+
+            public override void EndModifingRecord(ModifingEntry modifingEntry)
+            {
+                
+            }
         }
 
         public class TestTable
