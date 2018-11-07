@@ -19,7 +19,7 @@ namespace FreestyleOrm
         void SetRow(IMapRule mapRule, object entity, object rootentiy, IRow row);
         void SetOptimisticLock(IMapRule mapRule, IOptimisticLock optimisticLock);
         string GetIncludePrefix(IMapRule mapRule);        
-        string GetUniqueKeys(IMapRule mapRule);
+        string GetUniqueKeys(IMapRule mapRule);        
         void EndModifingRecord(ModifingEntry modifingEntry);
     }    
 

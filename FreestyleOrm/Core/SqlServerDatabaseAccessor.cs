@@ -187,7 +187,8 @@ namespace FreestyleOrm.Core
                 {
                     lastId = GetLastId(row, queryOptions);
                     _lastIdMap[row.ExpressionPath] = lastId;
-                }
+                    row[row.PrimaryKeys.First()] = lastId;
+                }                
 
                 OrderedDictionary afterRecord = GetCurrentRecord(row, queryOptions);
 
@@ -262,7 +263,7 @@ namespace FreestyleOrm.Core
 
                 OrderedDictionary afterRecord = GetCurrentRecord(row, queryOptions);
 
-                EndModifingRecord(row, "update", beforeRecord, afterRecord, queryOptions);
+                EndModifingRecord(row, "delete", beforeRecord, afterRecord, queryOptions);
 
                 return rtn;
             }
@@ -507,21 +508,22 @@ namespace FreestyleOrm.Core
 
         private OrderedDictionary GetCurrentRecord(Row row, QueryOptions queryOptions)
         {
-            IDataReader dataReader = SelectCurrentRecord(row, queryOptions);
-
-            OrderedDictionary currentRecord = new OrderedDictionary();
-
-            while (dataReader.Read())
+            using (IDataReader dataReader = SelectCurrentRecord(row, queryOptions))
             {
-                for (var i = 0; i < dataReader.FieldCount; i++)
-                {
-                    string name = dataReader.GetName(i);
-                    object value = dataReader[i];
-                    currentRecord[name] = value;
-                }
-            }
+                OrderedDictionary currentRecord = new OrderedDictionary();
 
-            return currentRecord;
+                while (dataReader.Read())
+                {
+                    for (var i = 0; i < dataReader.FieldCount; i++)
+                    {
+                        string name = dataReader.GetName(i);
+                        object value = dataReader[i];
+                        currentRecord[name] = value;
+                    }
+                }
+
+                return currentRecord;
+            }
         }
 
         protected virtual IDataReader SelectCurrentRecord(Row row, QueryOptions queryOptions)
@@ -548,7 +550,8 @@ namespace FreestyleOrm.Core
 
             foreach (var key in afterRow.PrimaryKeys)
             {
-                primaryValues[key] = afterRecord[key];
+                OrderedDictionary record = commandName == "insert" ? afterRecord : beforeRecord;
+                primaryValues[key] = record[key];
             }
 
             ModifingEntry modifingEntry = new ModifingEntry(queryOptions.Connection, queryOptions.Transaction, afterRow.Table, primaryValues, commandName, beforeRecord, afterRecord);
