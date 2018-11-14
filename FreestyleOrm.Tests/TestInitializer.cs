@@ -76,7 +76,8 @@ namespace FreestyleOrm.Tests
             if (_databaseKind == DatabaseKinds.SqlServer)
             {
                 //return new SqlConnection(@"Data Source=akirapcwin7\sqlexpress;Initial Catalog=test;Integrated Security=True");
-                return new SqlConnection(@"Data Source=akawawin8\sqlserver2016;Initial Catalog=cplan_demo;Integrated Security=True");
+                //return new SqlConnection(@"Data Source=akawawin8\sqlserver2016;Initial Catalog=cplan_demo;Integrated Security=True");
+                return new SqlConnection(@"Data Source=optimum\sqlexpress;Initial Catalog=cplan_demo;Integrated Security=True");
             }
             else
             {
@@ -140,6 +141,8 @@ namespace FreestyleOrm.Tests
                 drop table Root;
                 drop table Many;
                 drop table One;
+                drop table Many2;
+                drop table Many2One;
                 drop table InternalTable;
             ";
         }
@@ -229,6 +232,30 @@ namespace FreestyleOrm.Tests
 	                RootId int primary key,
                     Text nvarchar(100),
                     LastUpdate nvarchar(100)
+                );
+
+                create table Many2(
+                    RootId int,
+                    Many2Id int,
+                    Text nvarchar(100),
+                    LastUpdate nvarchar(100),
+                    primary key (
+                        RootId,
+                        Many2Id
+                    )
+                );
+
+                create table Many2One (
+                    RootId int,
+	                Many2Id int,
+                    Many2OneId int,
+                    Text nvarchar(100),
+                    LastUpdate nvarchar(100),
+                    primary key (
+                        RootId,
+                        Many2Id,
+                        Many2OneId
+                    )
                 );
 
                 create table InternalTable (

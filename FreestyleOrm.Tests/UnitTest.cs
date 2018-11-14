@@ -503,6 +503,7 @@ namespace FreestyleOrm.Tests
             public int RootId { get; set; }
             public string Text { get; set; }
             public List<Many> ManyList { get; private set; } = new List<Many>();
+            public List<Many2> Many2List { get; private set; } = new List<Many2>();
             public One One { get; set; }
         }
 
@@ -516,6 +517,21 @@ namespace FreestyleOrm.Tests
         public class One : Entity
         {
             public int RootId { get; set; }
+            public string Text { get; set; }
+        }
+
+        public class Many2 : Entity
+        {
+            public int RootId { get; set; }
+            public int Many2Id { get; set; }
+            public string Text { get; set; }
+            //public Many2One Many2One { get; set; }
+        }
+
+        public class Many2One : Entity
+        {
+            public int Many2Id { get; set; }
+            public int Many2OneId { get; set; }
             public string Text { get; set; }
         }
 
@@ -580,8 +596,18 @@ namespace FreestyleOrm.Tests
 
                     var root = query.Fetch().Single();
 
-                    root.ManyList.Add(new Many { RootId = root.RootId, ManyId = 1, Text = $"{nameof(Many)}" });
                     root.One = new One { RootId = root.RootId, Text = $"{nameof(One)}" };
+
+                    for (var i = 0; i < 3; i++)
+                    {
+                        root.ManyList.Add(new Many { RootId = root.RootId, ManyId = i + 1, Text = $"{nameof(Many)}_{i + 1}" });
+                    }
+
+                    for (var i = 0; i < 5; i++)
+                    {
+                        root.Many2List.Add(new Many2 { RootId = root.RootId, Many2Id = i + 1, Text = $"{nameof(Many2)}_{i + 1}" });
+                    }
+                    
 
                     query.Update(root);
 
@@ -599,7 +625,48 @@ namespace FreestyleOrm.Tests
 
                 var root = query.Fetch().Single();
 
-                Assert.AreEqual(1, root.ManyList.Count);
+                Assert.AreEqual(3, root.ManyList.Count);
+                Assert.AreEqual(5, root.Many2List.Count);
+                Assert.AreEqual(false, root.One == null);
+
+                connection.Close();
+            }
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                using (var tran = connection.BeginTransaction())
+                {
+                    var query = CreateQueryOfRoot(1, connection);
+
+                    query.Transaction(tran);
+
+                    var root = query.Fetch().Single();
+
+                    root.ManyList.ForEach(x => x.Text += "_many_update");
+                    root.Many2List.ForEach(x => x.Text += "_many2_update");
+
+                    query.Update(root);
+
+                    tran.Commit();
+                }
+
+                connection.Close();
+            }
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var query = CreateQueryOfRoot(1, connection);
+
+                var root = query.Fetch().Single();
+
+                Assert.AreEqual(3, root.ManyList.Count);
+                Assert.AreEqual(true, root.ManyList.Any(x => x.Text.EndsWith("_many_update")));
+                Assert.AreEqual(5, root.Many2List.Count);
+                Assert.AreEqual(true, root.Many2List.Any(x => x.Text.EndsWith("_many2_update")));
                 Assert.AreEqual(false, root.One == null);
 
                 connection.Close();
@@ -613,11 +680,22 @@ namespace FreestyleOrm.Tests
                 @"
                     select 
                         Root.RootId
-                        ,Root.Text
+                        ,Root.Text Text
                         ,Root.LastUpdate
-                        ,ManyId
+
+                        ,Many.RootId Many_RootId
+                        ,Many.ManyId Many_ManyId 
                         ,Many.Text Many_Text
-                        ,One.Text One_Text                         
+                        ,Many.LastUpdate Many_LastUpdate
+
+                        ,One.RootId One_RootId
+                        ,One.Text One_Text              
+                        ,One.LastUpdate One_LastUpdate
+
+                        ,Many2.RootId Many2_RootId
+                        ,Many2.Many2Id Many2_Many2Id 
+                        ,Many2.Text Many2_Text
+                        ,Many2.LastUpdate Many2_LastUpdate
                     from 
                         Root
                     left join 
@@ -628,6 +706,10 @@ namespace FreestyleOrm.Tests
                         One 
                     on 
                         Root.RootId = One.RootId 
+                    left join 
+                        Many2
+                    on 
+                        Root.RootId = Many2.RootId
                     where 
                         Root.RootId = @RootId",
                 new RelationQueryDefine()
@@ -639,14 +721,21 @@ namespace FreestyleOrm.Tests
                         .Writable();
 
                     m.ToMany(x => x.ManyList)
-                        .UniqueKeys("RootId, ManyId")
+                        .UniqueKeys("Many_RootId, Many_ManyId")
                         .Writable()
                         .IncludePrefix("Many_");
 
                     m.ToOne(x => x.One)
-                        .UniqueKeys("RootId, One_Text")
+                        .UniqueKeys("One_RootId")
                         .Writable()
                         .IncludePrefix("One_");
+
+                    m.ToMany(x => x.Many2List)
+                        .UniqueKeys("Many2_RootId, Many2_Many2Id")
+                        .Writable()
+                        .IncludePrefix("Many2_");
+
+
                 })
                 .Params(p =>
                 {

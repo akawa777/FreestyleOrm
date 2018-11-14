@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Linq;
 using System.Data;
 using System.Collections;
+using System.Text;
 
 namespace FreestyleOrm.Core
 {
@@ -307,6 +308,8 @@ namespace FreestyleOrm.Core
                 int currentPage = 0;
                 int currentSize = 0;
 
+                Dictionary<MapRule, Dictionary<string, bool>> mapUniqueKeyValueCache = new Dictionary<MapRule, Dictionary<string, bool>>();
+
                 while (reader.Read())
                 {
                     MapRule rootMapRule = map.RootMapRule;
@@ -373,6 +376,32 @@ namespace FreestyleOrm.Core
                         }
 
                         uniqueKeys.Merge(currentRow.UniqueKeys);
+
+                        if (mapRule.IsToMany)
+                        {
+                            // 1:NÇ™ï¿óÒÇ≈ï°êîÇ†ÇÈéûÇ…èdï°ÇµÇ»Ç¢ÇΩÇﬂÇÃèàóù
+                            StringBuilder uniqueKeyValuesBuilder = new StringBuilder();
+
+                            foreach (var key in currentRow.UniqueKeys)
+                            {
+                                if (currentRow[key] == DBNull.Value || currentRow[key] == null) continue;
+
+                                uniqueKeyValuesBuilder.Append(currentRow[key].ToString() + ":");
+                            }
+
+                            string uniqueKeyValues = uniqueKeyValuesBuilder.ToString();
+
+                            if (mapUniqueKeyValueCache.TryGetValue(mapRule, out Dictionary<string, bool> values))
+                            {
+                                if (values.ContainsKey(uniqueKeyValues)) continue;
+                            }
+                            else
+                            {
+                                mapUniqueKeyValueCache[mapRule] = new Dictionary<string, bool>();
+                            }
+
+                            mapUniqueKeyValueCache[mapRule][uniqueKeyValues] = true;
+                        }
 
                         object parentEntity = rootEntity;
                         PropertyInfo property = null;
