@@ -167,8 +167,15 @@ namespace FreestyleOrm.Core
                         || (decimal.TryParse(row[row.RelationId.RelationIdColumn].ToString(), out decimal result) && result == 0)
                     ))
                 {
-                    if (_lastIdMap.TryGetValue(row.RelationId.RelationEntityPath, out object id)) parameters[row.RelationId.RelationIdColumn].Value = id;
-                    else throw new InvalidOperationException($"[{row.ExpressionPath}] RelationEntityPath is invalid.");                    
+                    if (_lastIdMap.TryGetValue(row.RelationId.RelationEntityPath, out object id))
+                    {
+                        parameters[row.RelationId.RelationIdColumn].Value = id;
+                        row[row.RelationId.RelationIdColumn] = id;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException($"[{row.ExpressionPath}] RelationEntityPath is invalid.");
+                    }
                 }
 
                 string columnNames = string.Join(", ", parameters.Keys);
