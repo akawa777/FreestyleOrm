@@ -21,7 +21,7 @@ namespace FreestyleOrm.Core
         private QueryOptions _queryOptions;
         private IQueryDefine _queryDefine;
         private Action<IMap<TRootEntity>> _setMap = map => { };
-        private Binder _binder = new Binder();        
+        private Binder _binder = new Binder();
 
         private class TotalCount
         {
@@ -32,8 +32,8 @@ namespace FreestyleOrm.Core
         {
             if (entites == null) Enumerable.Empty<object>();
 
-            Dictionary<string, object> nodeMap = new Dictionary<string, object>();               
-            Dictionary<string, List<string>> parentNodeMap = new Dictionary<string, List<string>>();            
+            Dictionary<string, object> nodeMap = new Dictionary<string, object>();
+            Dictionary<string, List<string>> parentNodeMap = new Dictionary<string, List<string>>();
 
             Dictionary<string, PropertyInfo> propertyMap = null;
 
@@ -99,7 +99,7 @@ namespace FreestyleOrm.Core
                     }
 
                     var property = propertyMap[reNest.NestEntityPath];
-                    
+
                     object parentNode = nodeMap[parentId];
 
                     object list = property.Get(parentNode);
@@ -133,7 +133,7 @@ namespace FreestyleOrm.Core
                         property.Set(parentNode, newArray);
                     }
                     else if (property.PropertyType == typeof(IEnumerable<>).MakeGenericType(node.GetType()))
-                    {                                
+                    {
                         dynamic dynamicList = typeof(List<>).MakeGenericType(node.GetType()).Create();
                         dynamicList.AddRange(list as dynamic);
                         dynamicList.Add(node as dynamic);
@@ -154,7 +154,7 @@ namespace FreestyleOrm.Core
 
         private void SetReNestNodes(Map<TRootEntity> map, object rootEntity)
         {
-            foreach(var mapRule in map.MapRuleListWithoutRoot)
+            foreach (var mapRule in map.MapRuleListWithoutRoot)
             {
                 if (!mapRule.ReNest.Should()) continue;
 
@@ -169,14 +169,14 @@ namespace FreestyleOrm.Core
                     }
                     if (property != null && property.PropertyType.IsList())
                     {
-                        var list = property.Get(parentEntity) as IEnumerable;                                
+                        var list = property.Get(parentEntity) as IEnumerable;
                         foreach (var item in list) parentEntity = item;
                     }
 
                     Dictionary<string, PropertyInfo> propertyMap = parentEntity.GetType().GetPropertyMap(BindingFlags.GetProperty | BindingFlags.SetProperty, PropertyTypeFilters.OnlyClass);
 
                     property = propertyMap[section];
-                }                
+                }
 
                 IEnumerable<object> entities;
 
@@ -225,7 +225,7 @@ namespace FreestyleOrm.Core
                             property.Set(parentEntity, newArray);
                         }
                         else if (property.PropertyType == typeof(IEnumerable<>).MakeGenericType(mapRule.EntityType))
-                        {                                
+                        {
                             dynamic dynamicList = typeof(List<>).MakeGenericType(mapRule.EntityType).Create();
                             dynamicList.AddRange(newList as dynamic);
                             dynamicList.Add(node as dynamic);
@@ -262,7 +262,7 @@ namespace FreestyleOrm.Core
             {
                 return Fetch(1, int.MaxValue, new TotalCount(), map);
             }
-        }        
+        }
 
         public Page<TRootEntity> Page(int no, int size)
         {
@@ -298,9 +298,9 @@ namespace FreestyleOrm.Core
         }
 
         private IEnumerable<TRootEntity> Fetch(int page, int size, TotalCount totalCount, Map<TRootEntity> map)
-        {            
+        {
             totalCount.Value = 0;
-            
+
             using (var reader = _databaseAccessor.CreateFetchReader(_queryOptions, out Action dispose))
             {
                 TRootEntity rootEntity = null;
@@ -362,46 +362,41 @@ namespace FreestyleOrm.Core
                         continue;
                     }
 
-                    uniqueKeys.AddRange(currentRow.UniqueKeys);
+                    uniqueKeys.AddRange(currentRow.UniqueKeys);                    
 
                     foreach (var mapRule in map.MapRuleListWithoutRoot)
-                    {
+                    {                        
                         currentRow.SetMapRule(mapRule);
 
-                        if (!currentRow.CanCreate(prevRow, uniqueKeys))
-                        {
-                            uniqueKeys.Merge(currentRow.UniqueKeys);
+                        // ユニークキーの値がNULL、または、依然と重複している場合は、処理をしない >>
 
-                            continue;
+                        StringBuilder uniqueKeyValuesBuilder = new StringBuilder();
+
+                        bool canContinue = true;
+
+                        foreach (var key in currentRow.UniqueKeys)
+                        {
+                            if (currentRow[key] == DBNull.Value) canContinue = false;
+
+                            uniqueKeyValuesBuilder.Append(currentRow[key].ToString() + ":");
                         }
 
-                        uniqueKeys.Merge(currentRow.UniqueKeys);
+                        string uniqueKeyValues = uniqueKeyValuesBuilder.ToString();
 
-                        if (mapRule.IsToMany)
+                        if (mapUniqueKeyValueCache.TryGetValue(mapRule, out Dictionary<string, bool> values))
                         {
-                            // 1:Nが並列で複数ある時に重複しないための処理
-                            StringBuilder uniqueKeyValuesBuilder = new StringBuilder();
-
-                            foreach (var key in currentRow.UniqueKeys)
-                            {
-                                if (currentRow[key] == DBNull.Value || currentRow[key] == null) continue;
-
-                                uniqueKeyValuesBuilder.Append(currentRow[key].ToString() + ":");
-                            }
-
-                            string uniqueKeyValues = uniqueKeyValuesBuilder.ToString();
-
-                            if (mapUniqueKeyValueCache.TryGetValue(mapRule, out Dictionary<string, bool> values))
-                            {
-                                if (values.ContainsKey(uniqueKeyValues)) continue;
-                            }
-                            else
-                            {
-                                mapUniqueKeyValueCache[mapRule] = new Dictionary<string, bool>();
-                            }
-
-                            mapUniqueKeyValueCache[mapRule][uniqueKeyValues] = true;
+                            if (values.ContainsKey(uniqueKeyValues)) canContinue = false; ;
                         }
+                        else
+                        {
+                            mapUniqueKeyValueCache[mapRule] = new Dictionary<string, bool>();
+                        }
+
+                        mapUniqueKeyValueCache[mapRule][uniqueKeyValues] = true;
+
+                        if (!canContinue) continue;
+
+                        // ユニークキーが重複している場合は、処理をしない <<
 
                         object parentEntity = rootEntity;
                         PropertyInfo property = null;
@@ -467,9 +462,8 @@ namespace FreestyleOrm.Core
                             }
                             else
                             {
-                                dynamic dynamicList = list;
-                                dynamic dynamicEntity = entity;
-                                dynamicList.Add(dynamicEntity);
+                                MethodInfo method = list.GetType().GetMethod("Add", new Type[] { mapRule.EntityType });
+                                method.Invoke(list, new object[] { entity });
                             }
                         }
                         else
@@ -533,10 +527,10 @@ namespace FreestyleOrm.Core
             if (_queryOptions.Transaction == null) throw new InvalidOperationException("Transaction is null.");
 
             Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
-            _setMap(map);            
+            _setMap(map);
 
             lastId = default(TId);
-            _databaseAccessor.BeginSave();            
+            _databaseAccessor.BeginSave();
 
             List<Row> updateRows = GetRows(rootEntity, map);
 
@@ -609,7 +603,7 @@ namespace FreestyleOrm.Core
         {
             List<Row> rows = new List<Row>();
 
-            if (rootEntity == null) return rows;            
+            if (rootEntity == null) return rows;
 
             if (map.RootMapRule.Refer == Refer.Read) throw new InvalidOperationException($"{typeof(TRootEntity).Name} is not set Writable.");
 
@@ -617,7 +611,7 @@ namespace FreestyleOrm.Core
             {
                 Row row = Row.CreateWriteRow(reader, map.RootMapRule, primaryKeys, rootEntity);
                 map.RootMapRule.SetRow(rootEntity, rootEntity, row);
-                
+
                 rows.Add(row);
 
                 reader.Close();
@@ -627,64 +621,63 @@ namespace FreestyleOrm.Core
             {
                 if (mapRule.Refer == Refer.Read) continue;
 
-                object parentEntity = rootEntity;
-                PropertyInfo property = null;                
+                List<object> entities = GetEntities(rootEntity, mapRule);
 
-                foreach (var section in mapRule.ExpressionSections)
+                using (var reader = _databaseAccessor.CreateTableReader(_queryOptions, mapRule, out string[] primaryKeys))
                 {
-                    if (property != null && !property.PropertyType.IsList())
-                    {
-                        if (property.PropertyType.IsList())
-                        {
-                            dynamic list = property.Get(parentEntity);
-                            parentEntity = list.Last();
-                        }
-                        else
-                        {
-                            parentEntity = property.Get(parentEntity);
-                        }
-                    }
-
-                    Dictionary<string, PropertyInfo> propertyMap = parentEntity.GetType().GetPropertyMap(BindingFlags.GetProperty | BindingFlags.SetProperty, PropertyTypeFilters.OnlyClass);
-
-                    property = propertyMap[section];
-                }                
-
-                if (mapRule.IsToMany)
-                {
-                    object list = property.Get(parentEntity);
-                    if (list == null) continue;
-
-                    using (var reader = _databaseAccessor.CreateTableReader(_queryOptions, mapRule, out string[] primaryKeys))
-                    {
-                        foreach (object entity in list as IEnumerable)
-                        {
-                            Row row = Row.CreateWriteRow(reader, mapRule, primaryKeys, entity);
-                            mapRule.SetRow(entity, rootEntity, row);
-                            rows.Add(row);
-                        }
-
-                        reader.Close();
-                    }
-                }
-                else
-                {
-                    object entity = property.Get(parentEntity);
-                    if (entity == null) continue;
-
-                    using (var reader = _databaseAccessor.CreateTableReader(_queryOptions, mapRule, out string[] primaryKeys))
+                    foreach (object entity in entities)
                     {
                         Row row = Row.CreateWriteRow(reader, mapRule, primaryKeys, entity);
                         mapRule.SetRow(entity, rootEntity, row);
                         rows.Add(row);
-
-                        reader.Close();
                     }
+
+                    reader.Close();
                 }
             }
 
             return rows;
         }
+
+        private List<object> GetEntities(TRootEntity rootEntity, MapRule mapRule)
+        {
+            List<object> entities = new List<object>();
+
+            List<object> parentEntities = new List<object>();
+            parentEntities.Add(rootEntity);
+
+            PropertyInfo property = null;
+
+            foreach (var section in mapRule.ExpressionSections)
+            {
+                entities = new List<object>();
+
+                foreach (var parentEntity in parentEntities)
+                {
+                    Dictionary<string, PropertyInfo> propertyMap = parentEntity.GetType().GetPropertyMap(BindingFlags.GetProperty | BindingFlags.SetProperty, PropertyTypeFilters.OnlyClass);
+
+                    property = propertyMap[section];
+
+                    if (property.PropertyType.IsList())
+                    {
+                        dynamic list = property.Get(parentEntity);
+
+                        if (list != null) entities.AddRange(list);
+                    }
+                    else
+                    {
+                        object entity = property.Get(parentEntity);
+
+                        if (entity != null) entities.Add(entity);
+                    }
+                }
+
+                parentEntities = entities;                
+            }
+
+            return entities;
+        }
+    
 
         public IQuery<TRootEntity> Connection(IDbConnection connection)
         {

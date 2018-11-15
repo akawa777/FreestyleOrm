@@ -77,6 +77,7 @@ namespace FreestyleOrm.Tests
         public string Title { get; set; }
 
         private List<PurchaseItem> _purchaseItemList = new List<PurchaseItem>();
+        private List<PurchaseItem> _purchaseItemList2 = new List<PurchaseItem>();
 
         public IEnumerable<PurchaseItem> PurchaseItems
         {

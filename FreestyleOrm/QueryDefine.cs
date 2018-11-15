@@ -109,8 +109,7 @@ namespace FreestyleOrm
 
         public virtual string GetIncludePrefix(IMapRule mapRule)
         {
-            if (mapRule.Property == null) return null;
-            return mapRule.Property.Name + "_";
+            return null;            
         }
 
         public virtual string GetUniqueKeys(IMapRule mapRule)

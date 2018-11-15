@@ -64,7 +64,7 @@ namespace FreestyleOrm.Core
                     else
                     {
                         prefixPath = string.Join(".", mapRule.ExpressionSections.Take(level - 1));
-                    }                    
+                    }
 
                     if (level > prevLevel)
                     {
@@ -84,7 +84,7 @@ namespace FreestyleOrm.Core
                     if (!valid)
                     {
                         throw new InvalidOperationException($"map order is invalid. [{string.Join(", ", paths)}]");
-                    }                    
+                    }
 
                     prevLevel = level;
                     prevPrefixPath = prefixPath;

@@ -73,7 +73,7 @@ namespace FreestyleOrm.Tests
         [TestCleanup]
         public void Cleanup()
         {
-            _testInitializer.Dispose();
+            //_testInitializer.Dispose();
         }
 
         protected TestInitializer.DatabaseKinds _databaseKind;
@@ -168,7 +168,7 @@ namespace FreestyleOrm.Tests
                         .OptimisticLock(o => o.Columns("RecordVersion").CurrentValues(x => new object[] { x.RecordVersion }).NewValues(x => new object[] { x.RecordVersion + 1 }));
 
                     m.ToOne(x => x.PurchaseItems.First().Product)
-                        .UniqueKeys("ProductId")
+                        .UniqueKeys("PurchaseOrderId, PurchaseItemNo, ProductId")
                         .IncludePrefix("Product_");
                 })
                 .Transaction(transaction);

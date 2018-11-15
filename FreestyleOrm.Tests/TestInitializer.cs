@@ -130,7 +130,7 @@ namespace FreestyleOrm.Tests
         }
 
         private string GetDropTableSql()
-        {
+        {   
             return @"
                 drop table Customer;
                 drop table Product;
@@ -142,7 +142,8 @@ namespace FreestyleOrm.Tests
                 drop table Many;
                 drop table One;
                 drop table Many2;
-                drop table Many2One;
+                drop table Many2One;                
+                drop table Attr;                
                 drop table InternalTable;
             ";
         }
@@ -221,6 +222,7 @@ namespace FreestyleOrm.Tests
                     RootId int,
                     ManyId int,
                     Text nvarchar(100),
+                    AttrFlg int,
                     LastUpdate nvarchar(100),
                     primary key (
                         RootId,
@@ -238,6 +240,7 @@ namespace FreestyleOrm.Tests
                     RootId int,
                     Many2Id int,
                     Text nvarchar(100),
+                    AttrFlg int,                    
                     LastUpdate nvarchar(100),
                     primary key (
                         RootId,
@@ -247,17 +250,29 @@ namespace FreestyleOrm.Tests
 
                 create table Many2One (
                     RootId int,
-	                Many2Id int,
-                    Many2OneId int,
+	                Many2Id int,                     
                     Text nvarchar(100),
                     LastUpdate nvarchar(100),
                     primary key (
                         RootId,
-                        Many2Id,
-                        Many2OneId
+                        Many2Id
                     )
                 );
 
+                create table Attr (
+                    AttrId int,
+	                AttrFlg int,                                         
+                    LastUpdate nvarchar(100),
+                    primary key (
+                        AttrId
+                    )
+                );
+
+                insert into Attr values(1, 1, null);
+                insert into Attr values(2, 1, null);
+                insert into Attr values(3, 2, null);
+                insert into Attr values(4, 2, null);
+               
                 create table InternalTable (
                     Id int primary key,
 	                Text nvarchar(100)
