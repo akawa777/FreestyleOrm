@@ -249,7 +249,10 @@ namespace FreestyleOrm.Core
 
                     if (targetSection.IndexOf("(") != -1) continue;
                     int arrayHolderIndex = targetSection.IndexOf("[");
-                    if (arrayHolderIndex != -1) targetSection = targetSection.Substring(0, arrayHolderIndex + 1);
+                    if (arrayHolderIndex != -1)
+                    {
+                        targetSection = targetSection.Substring(0, arrayHolderIndex);
+                    }
 
                     if (propertyMap.TryGetValue(targetSection, out property))
                     {
