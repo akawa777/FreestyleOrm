@@ -2,22 +2,41 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
+using System.Collections;
+using System.Collections.Specialized;
 
 namespace FreestyleOrm.Core
 {
     internal class Binder
     {
+        public Binder(bool isFlatFormat)
+        {
+            _isFlatFormat = isFlatFormat;
+        }
+
+        private bool _isFlatFormat;
+
         public void Bind(Row row, object entity)
         {
             if (entity == null) return;
 
-            Dictionary<string, PropertyInfo> propertyMap = entity.GetType().GetPropertyMap(BindingFlags.SetProperty, PropertyTypeFilters.IgonreClass);
-
-            Dictionary<string, string> formatedPropertyNameMap = GetFormatedPropertyNameMap(row);
-
-            foreach (var formatedPropertyName in formatedPropertyNameMap)
+            if (_isFlatFormat && entity is IDictionary dictionary)
             {
-                if (propertyMap.TryGetValue(formatedPropertyName.Key, out PropertyInfo property)) property.Set(entity, row[formatedPropertyName.Value]);
+                foreach (var column in row.Columns)
+                {
+                    dictionary[column] = row[column];
+                }
+            }
+            else
+            {
+                Dictionary<string, PropertyInfo> propertyMap = entity.GetType().GetPropertyMap(BindingFlags.SetProperty, PropertyTypeFilters.IgonreClass);
+
+                Dictionary<string, string> formatedPropertyNameMap = GetFormatedPropertyNameMap(row);
+
+                foreach (var formatedPropertyName in formatedPropertyNameMap)
+                {
+                    if (propertyMap.TryGetValue(formatedPropertyName.Key, out PropertyInfo property)) property.Set(entity, row[formatedPropertyName.Value]);
+                }
             }
         }
 
@@ -55,21 +74,34 @@ namespace FreestyleOrm.Core
         {
             if (entity == null) return;
 
-            Dictionary<string, PropertyInfo> propertyMap = entity.GetType().GetPropertyMap(BindingFlags.GetProperty, PropertyTypeFilters.IgonreClass);
-            Dictionary<string, string> formatedPropertyNameMap = GetFormatedPropertyNameMap(row);
-
-            foreach (var formatedPropertyName in formatedPropertyNameMap)
+            if (_isFlatFormat && entity is IDictionary dictionary)
             {
-                if (propertyMap.TryGetValue(formatedPropertyName.Key, out PropertyInfo property))
+                foreach (string column in row.Columns)
                 {
-                    if (property.PropertyType == typeof(bool))
+                    if (dictionary.Contains(column))
                     {
-                        if ((bool)property.Get(entity) == true) row[formatedPropertyName.Value] = 1;
-                        else row[formatedPropertyName.Value] = 0;
+                        row[column] = dictionary[column];
                     }
-                    else
+                }
+            }
+            else
+            {
+                Dictionary<string, PropertyInfo> propertyMap = entity.GetType().GetPropertyMap(BindingFlags.GetProperty, PropertyTypeFilters.IgonreClass);
+                Dictionary<string, string> formatedPropertyNameMap = GetFormatedPropertyNameMap(row);
+
+                foreach (var formatedPropertyName in formatedPropertyNameMap)
+                {
+                    if (propertyMap.TryGetValue(formatedPropertyName.Key, out PropertyInfo property))
                     {
-                        row[formatedPropertyName.Value] = property.Get(entity);
+                        if (property.PropertyType == typeof(bool))
+                        {
+                            if ((bool)property.Get(entity) == true) row[formatedPropertyName.Value] = 1;
+                            else row[formatedPropertyName.Value] = 0;
+                        }
+                        else
+                        {
+                            row[formatedPropertyName.Value] = property.Get(entity);
+                        }
                     }
                 }
             }

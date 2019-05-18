@@ -200,7 +200,7 @@ namespace FreestyleOrm.Core
         public TValue Get<TValue>(string column)
         {
             // return (TValue)Convert.ChangeType(this[column], typeof(TValue));
-	    return (TValue)Convert.ChangeType(this[column], Type.GetType(typeof(TValue).FullName));
+	        return (TValue)Convert.ChangeType(this[column], Type.GetType(typeof(TValue).FullName));
         }
     }
 }

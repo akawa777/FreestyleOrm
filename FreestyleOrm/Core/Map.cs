@@ -7,14 +7,14 @@ using System.Linq;
 namespace FreestyleOrm.Core
 {
 
-    internal class Map<TRootEntity> : IMap<TRootEntity> where TRootEntity : class
+    internal class Map<TRootEntity> : IMap<TRootEntity>, IMapFlat<TRootEntity> where TRootEntity : class
     {
-        public Map(IQueryDefine queryDefine)
+        public Map(QueryOptions queryOptions)
         {
-            _queryDefine = queryDefine;
+            _queryOptions = queryOptions;
         }
 
-        private IQueryDefine _queryDefine;
+        private QueryOptions _queryOptions;
         private List<MapRule> _mapRuleList = new List<MapRule>();     
 
         public MapRule RootMapRule
@@ -34,7 +34,7 @@ namespace FreestyleOrm.Core
                     return mapRule;
                 }
 
-                mapRule = new MapRule(_queryDefine, typeof(TRootEntity));
+                mapRule = new MapRule(_queryOptions, typeof(TRootEntity));
 
                 _mapRuleList.Insert(0, mapRule);
 
@@ -95,22 +95,27 @@ namespace FreestyleOrm.Core
                 }
             }
         }
-        
 
-        public IMapRule<TRootEntity, TRootEntity> ToRoot()
+        private MapRule<TRootEntity, TRootEntity> CreateMapRule()
         {
-            MapRule<TRootEntity, TRootEntity> mapRule = new MapRule<TRootEntity, TRootEntity>(_queryDefine, x => x);
+            MapRule<TRootEntity, TRootEntity> mapRule = new MapRule<TRootEntity, TRootEntity>(_queryOptions, x => x);
 
             _mapRuleList.Add(mapRule.GetMapRule());
 
             return mapRule;
+        }
+        
+
+        public IMapRule<TRootEntity, TRootEntity> ToRoot()
+        {
+            return CreateMapRule();
         }
 
         public IMapRule<TRootEntity, TEntity> ToMany<TEntity>(Expression<Func<TRootEntity, IEnumerable<TEntity>>> target) where TEntity : class
         {
             if (target == null) throw new ArgumentException($"[Expression<Func<{typeof(TRootEntity).Name}, IEnumerable<{typeof(TRootEntity).Name}>>>] {nameof(target)} is null.");
 
-            MapRule<TRootEntity, TEntity> mapRule = new MapRule<TRootEntity, TEntity>(_queryDefine, target);
+            MapRule<TRootEntity, TEntity> mapRule = new MapRule<TRootEntity, TEntity>(_queryOptions, target);
 
             _mapRuleList.Add(mapRule.GetMapRule());
 
@@ -121,24 +126,28 @@ namespace FreestyleOrm.Core
         {
             if (target == null) throw new ArgumentException($"[Expression<Func<{typeof(TRootEntity).Name}, {typeof(TRootEntity).Name}>>>] {nameof(target)} is null.");
 
-            MapRule<TRootEntity, TEntity> mapRule = new MapRule<TRootEntity, TEntity>(_queryDefine, target);
+            MapRule<TRootEntity, TEntity> mapRule = new MapRule<TRootEntity, TEntity>(_queryOptions, target);
 
             _mapRuleList.Add(mapRule.GetMapRule());
 
             return mapRule;
         }
+
+        IMapRuleFlat<TRootEntity, TRootEntity> IMapFlat<TRootEntity>.ToRoot()
+        {
+            return CreateMapRule();
+        }
     }
 
-    internal class MapRule<TRootEntity, TEntity> : IMapRule<TRootEntity, TEntity> where TRootEntity : class where TEntity : class
+    internal class MapRule<TRootEntity, TEntity> : IMapRule<TRootEntity, TEntity>, IMapRuleFlat<TRootEntity, TEntity> where TRootEntity : class where TEntity : class
     {
-        public MapRule(IQueryDefine queryDefine, Expression<Func<TRootEntity, TEntity>> target)
-        {   
-            _mapRule = new MapRule(queryDefine, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property).First(), property, false);
+        public MapRule(QueryOptions queryOptions, Expression<Func<TRootEntity, TEntity>> target)
+        {               _mapRule = new MapRule(queryOptions, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property).First(), property, false);
         }
 
-        public MapRule(IQueryDefine queryDefine, Expression<Func<TRootEntity, IEnumerable<TEntity>>> target)
+        public MapRule(QueryOptions queryOptions, Expression<Func<TRootEntity, IEnumerable<TEntity>>> target)
         {
-            _mapRule = new MapRule(queryDefine, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property).First(), property, true);
+            _mapRule = new MapRule(queryOptions, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property).First(), property, true);
         }
 
         private MapRule _mapRule;
@@ -262,6 +271,41 @@ namespace FreestyleOrm.Core
         {
             string name = methodName(this);
             _mapRule.InitRule(name);
+
+            return this;
+        }
+
+        IMapRuleFlat<TRootEntity, TEntity> IMapRuleFlat<TRootEntity, TEntity>.Writable()
+        {
+            this.Writable();
+
+            return this;
+        }
+
+        IMapRuleFlat<TRootEntity, TEntity> IMapRuleFlat<TRootEntity, TEntity>.Table(string table, string primaryKeys)
+        {
+            this.Table(table, primaryKeys);
+
+            return this;
+        }
+
+        IMapRuleFlat<TRootEntity, TEntity> IMapRuleFlat<TRootEntity, TEntity>.AutoId()
+        {
+            this.AutoId();
+
+            return this;
+        }
+
+        IMapRuleFlat<TRootEntity, TEntity> IMapRuleFlat<TRootEntity, TEntity>.OptimisticLock(Action<IOptimisticLock<TEntity>> setOptimisticLock)
+        {
+            this.OptimisticLock(setOptimisticLock);
+
+            return this;
+        }
+
+        IMapRuleFlat<TRootEntity, TEntity> IMapRuleFlat<TRootEntity, TEntity>.ClearRule(Func<IMapRule<TRootEntity, TEntity>, string> methodName)
+        {
+            this.ClearRule(methodName);
 
             return this;
         }

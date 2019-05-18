@@ -15,7 +15,7 @@ namespace FreestyleOrm.Tests
 {
 
     [TestClass]
-    public class UnitTest : UnitTestByManual
+    public class UnitTest : UnitTestBase
     {
         public class D_TEST_TABLE
         {
@@ -199,18 +199,17 @@ namespace FreestyleOrm.Tests
         {
             Test_SnakeToPascal1();
             using (var connection = _testInitializer.CreateConnection())
-            {
+            {                
                 connection.Open();
 
                 var testTables = connection
                     .Query("select * from D_TEST_TABLE")
-
                     .Fetch()
                     .Select(x => new
                     {
-                        Id = x.Get<int>("ID"),
-                        ColOne = x.Get<string>("COL_ONE"),
-                        ColTwoOne = x.Get<string>("COL_TWO_ONE")
+                        Id = x["ID"].ToString(),
+                        ColOne = x["COL_ONE"].ToString(),
+                        ColTwoOne = x["COL_TWO_ONE"].ToString()
                     })
                     .ToArray();
 

@@ -4,12 +4,18 @@ using System.Text;
 using System.Linq;
 using System.Data;
 using FreestyleOrm.Core;
+using System.Collections.Specialized;
 
 namespace FreestyleOrm
 {
     public static class Extensions
     {
         public static IQuery<TRootEntity> Query<TRootEntity>(this IDbConnection connection, string sql, IQueryDefine queryDefine = null) where TRootEntity : class
+        {
+            return CreateQuery<TRootEntity>(connection, sql, queryDefine, false);
+        }
+
+        private static Query<TRootEntity> CreateQuery<TRootEntity>(this IDbConnection connection, string sql, IQueryDefine queryDefine, bool isDictionaryFormat) where TRootEntity : class
         {
             if (connection == null) throw new AggregateException("connection is null.");
             if (string.IsNullOrEmpty(sql)) throw new AggregateException("sql is null or empty.");
@@ -31,16 +37,16 @@ namespace FreestyleOrm
 
             if (queryDefine == null) queryDefine = new QueryDefine();
 
-            QueryOptions queryOptions = new QueryOptions(queryDefine, typeof(TRootEntity));
+            QueryOptions queryOptions = new QueryOptions(queryDefine, typeof(TRootEntity), isDictionaryFormat);
             queryOptions.Connection = connection;
-            queryOptions.Sql = sql; 
+            queryOptions.Sql = sql;
 
-            return new Query<TRootEntity>(databaseAccessor, queryOptions, queryDefine);
+            return new Query<TRootEntity>(databaseAccessor, queryOptions);
         }
 
-        public static IQueryBase<IRowBase> Query(this IDbConnection connection, string sql, IQueryDefine queryDefine = null) 
+        public static IQueryFlat<OrderedDictionary> Query(this IDbConnection connection, string sql, IQueryDefine queryDefine = null) 
         {
-            return Query<IRowBase>(connection, sql, queryDefine);
+            return CreateQuery<OrderedDictionary>(connection, sql, queryDefine, true);
         }
 
         public static void AddMap<TKey, TValue>(this IDictionary<string, object> self, IDictionary<TKey, TValue> map)

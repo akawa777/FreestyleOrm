@@ -4,6 +4,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Collections;
 
 namespace FreestyleOrm.Core
 {
@@ -174,12 +176,92 @@ namespace FreestyleOrm.Core
 
             return false;
         }
+        //public internal class EntryPropertyInfo : PropertyInfo
+        //{
+        //    public EntryPropertyInfo(DictionaryEntry dictionaryEntry, IDictionary dictionary)
+        //    {                
+        //        _dictionaryEntry = dictionaryEntry;                
+        //        _dictionary = dictionary;
+        //    }
+
+        //    private DictionaryEntry _dictionaryEntry;            
+        //    private IDictionary _dictionary;
+
+        //    public override PropertyAttributes Attributes => PropertyAttributes.None;
+
+        //    public override bool CanRead => true;
+
+        //    public override bool CanWrite => true;
+
+        //    public override Type PropertyType => _dictionaryEntry.Value == null ? typeof(object) : _dictionaryEntry.Value.GetType();
+
+        //    public override Type DeclaringType => _dictionary.GetType();
+
+        //    public override string Name => _dictionaryEntry.Key.ToString();
+
+        //    public override Type ReflectedType => DeclaringType;            
+
+        //    public override MethodInfo[] GetAccessors(bool nonPublic)
+        //    {
+        //        return this.GetType().GetMethods().Where(x => x.Name.StartsWith("GetValue") || x.Name.StartsWith("SetValue")).ToArray();                
+        //    }
+
+        //    public override object[] GetCustomAttributes(bool inherit)
+        //    {
+        //        return new object[0];
+        //    }
+
+        //    public override object[] GetCustomAttributes(Type attributeType, bool inherit)
+        //    {
+        //        return new object[0];
+        //    }
+
+        //    public override MethodInfo GetGetMethod(bool nonPublic)
+        //    {
+        //        return this.GetType().GetMethod("GetValue");
+        //    }
+
+        //    public override ParameterInfo[] GetIndexParameters()
+        //    {
+        //        return new ParameterInfo[0];
+        //    }
+
+        //    public override MethodInfo GetSetMethod(bool nonPublic)
+        //    {
+        //        return this.GetType().GetMethod("SetValue");
+        //    }
+
+        //    public override object GetValue(object obj, BindingFlags invokeAttr, System.Reflection.Binder binder, object[] index, CultureInfo culture)
+        //    {
+        //        return (obj as IDictionary)[_dictionaryEntry.Key];
+        //    }
+
+        //    public override bool IsDefined(Type attributeType, bool inherit)
+        //    {
+        //        return false;
+        //    }
+
+        //    public override void SetValue(object obj, object value, BindingFlags invokeAttr, System.Reflection.Binder binder, object[] index, CultureInfo culture)
+        //    {
+        //        (obj as IDictionary)[_dictionaryEntry.Key] = value;
+        //    }
+        //}
 
         public static Dictionary<string, PropertyInfo> GetPropertyMap(this Type type, BindingFlags bindingFlags, PropertyTypeFilters propertyTypeFilters)
         {
             PropertyInfo[] properties = type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | bindingFlags);
 
-            IEnumerable<PropertyInfo> dclaringProperties = properties.Select(x => x.DeclaringType.GetProperty(x.Name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | bindingFlags)).ToArray();
+            IEnumerable<PropertyInfo> dclaringProperties = properties.Select(x =>
+            {
+                try
+                {
+                    return x.DeclaringType.GetProperty(x.Name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | bindingFlags);
+                }
+                catch (System.Reflection.AmbiguousMatchException e)
+                {
+                    return x;
+                }
+            }).ToArray();
 
             Dictionary<string, PropertyInfo> map = new Dictionary<string, PropertyInfo>();
 
@@ -187,11 +269,11 @@ namespace FreestyleOrm.Core
             {
                 if (propertyTypeFilters == PropertyTypeFilters.IgonreClass)
                 {
-                    if (property.PropertyType != typeof(string) && property.PropertyType.IsClass) continue;                    
+                    if (property.PropertyType != typeof(string) && property.PropertyType.IsClass) continue;
                 }
                 else if (propertyTypeFilters == PropertyTypeFilters.OnlyClass)
                 {
-                    if (property.PropertyType == typeof(string) || property.PropertyType.IsPrimitive || property.PropertyType.IsValueType) continue;                    
+                    if (property.PropertyType == typeof(string) || property.PropertyType.IsPrimitive || property.PropertyType.IsValueType) continue;
                 }
 
                 map[property.Name] = property;

@@ -4,24 +4,24 @@ using System.Reflection;
 using System.Linq;
 using System.Data;
 using System.Collections;
+using System.Collections.Specialized;
 using System.Text;
 
 namespace FreestyleOrm.Core
 {
-    internal class Query<TRootEntity> : IQuery<TRootEntity> where TRootEntity : class
+    internal class Query<TRootEntity> : IQueryFlat<TRootEntity>, IQuery<TRootEntity> where TRootEntity : class
     {
-        public Query(IDatabaseAccessor databaseAccessor, QueryOptions queryOptions, IQueryDefine queryDefine)
+        public Query(IDatabaseAccessor databaseAccessor, QueryOptions queryOptions)
         {
             _databaseAccessor = databaseAccessor;
             _queryOptions = queryOptions;
-            _queryDefine = queryDefine;
+            _binder = new Binder(queryOptions.IsFlatFormat);
         }
 
         private IDatabaseAccessor _databaseAccessor;
-        private QueryOptions _queryOptions;
-        private IQueryDefine _queryDefine;
-        private Action<IMap<TRootEntity>> _setMap = map => { };
-        private Binder _binder = new Binder();
+        private QueryOptions _queryOptions;        
+        private Action<Map<TRootEntity>> _setMap = map => { };
+        private Binder _binder;
 
         private class TotalCount
         {
@@ -290,7 +290,7 @@ namespace FreestyleOrm.Core
 
         private Map<TRootEntity> CreateMap()
         {
-            Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
+            Map<TRootEntity> map = new Map<TRootEntity>(_queryOptions);
 
             _setMap(map);
 
@@ -340,14 +340,7 @@ namespace FreestyleOrm.Core
 
                         if (currentPage == page)
                         {
-                            if (typeof(TRootEntity) == typeof(IRowBase))
-                            {
-                                rootEntity = currentRow as TRootEntity;
-                            }
-                            else
-                            {
-                                rootEntity = rootMapRule.GetEntity(currentRow, rootEntity) as TRootEntity;
-                            }
+                            rootEntity = rootMapRule.GetEntity(currentRow, rootEntity) as TRootEntity;
                         }
                     }
 
@@ -357,7 +350,7 @@ namespace FreestyleOrm.Core
                         continue;
                     }
 
-                    if (typeof(TRootEntity) == typeof(IRowBase))
+                    if (_queryOptions.IsFlatFormat)
                     {
                         continue;
                     }
@@ -524,9 +517,9 @@ namespace FreestyleOrm.Core
         private void Save<TId>(TRootEntity rootEntity, out TId lastId, SaveMode saveMode)
         {
             if (rootEntity == null) throw new ArgumentException("rootEntity is null.");
-            if (_queryOptions.Transaction == null) throw new InvalidOperationException("Transaction is null.");
+            if (_queryOptions.Transaction == null) throw new InvalidOperationException("Transaction is null.");            
 
-            Map<TRootEntity> map = new Map<TRootEntity>(_queryDefine);
+            Map<TRootEntity> map = new Map<TRootEntity>(_queryOptions);
             _setMap(map);
 
             lastId = default(TId);
@@ -692,5 +685,40 @@ namespace FreestyleOrm.Core
 
             return this;
         }
+
+        IQueryFlat<TRootEntity> IQueryFlat<TRootEntity>.Params(Action<Dictionary<string, object>> setParams)
+        {
+            this.Params(setParams);
+
+            return this;
+        }
+
+        IQueryFlat<TRootEntity> IQueryFlat<TRootEntity>.TempTables(Action<ITempTableSet> setTempTables)
+        {
+            this.TempTables(setTempTables);
+
+            return this;
+        }
+
+        IQueryFlat<TRootEntity> IQueryFlat<TRootEntity>.Connection(IDbConnection connection)
+        {
+            this.Connection(connection);
+
+            return this;
+        }
+
+        IQueryFlat<TRootEntity> IQueryFlat<TRootEntity>.Transaction(IDbTransaction transaction)
+        {
+            this.Transaction(transaction);
+
+            return this;
+        }
+
+        IQueryFlat<TRootEntity> IQueryFlat<TRootEntity>.Map(Action<IMapFlat<TRootEntity>> setMap)
+        {
+            _setMap = setMap ?? throw new AggregateException($"{setMap} is null.");
+
+            return this;
+        }        
     }
 }

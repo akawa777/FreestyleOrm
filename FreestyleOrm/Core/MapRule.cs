@@ -8,27 +8,26 @@ namespace FreestyleOrm.Core
 {
     internal class MapRule : IMapRule
     {
-        public MapRule(IQueryDefine queryDefine, Type rootEntityType): this(queryDefine, rootEntityType, rootEntityType, null, null, false)
+        public MapRule(QueryOptions queryOptions, Type rootEntityType): this(queryOptions, rootEntityType, rootEntityType, null, null, false)
         {
             
         }
 
-        public MapRule(IQueryDefine queryDefine, Type rootEntityType, Type entityType, string expressionPath, PropertyInfo property, bool isToMany)
+        public MapRule(QueryOptions queryOptions, Type rootEntityType, Type entityType, string expressionPath, PropertyInfo property, bool isToMany)
         {
-            _queryDefine = queryDefine;
+            _queryDefine = queryOptions.QueryDefine;
 
             RootEntityType = rootEntityType;
             ExpressionPath = expressionPath ?? string.Empty;
             EntityType = property == null ? rootEntityType : entityType;
             Property = property;
-            IsToMany = isToMany;            
-            Binder binder = new Binder();
+            IsToMany = isToMany;
+            Binder binder = new Binder(queryOptions.IsFlatFormat);
             BindEntity = binder.Bind;
             BindRow = binder.Bind;
             Refer = Refer.Read;
 
-            IEnumerable<MethodInfo> initMethods = typeof(MapRule).GetMethods().Where(x => x.Name.StartsWith("Init"));
-            foreach (var methodInfo in initMethods) if (methodInfo.Name != nameof(this.InitRule)) methodInfo.Invoke(this, new object[0]);
+            InvokeInitMethods();
 
             GetEntity = (row, rootEntity) =>
             {
@@ -38,6 +37,20 @@ namespace FreestyleOrm.Core
 
                 return entity;
             };
+        }
+
+        public void InvokeInitMethods()
+        {
+            InitUniqueKeys();
+            InitIncludePrefix();
+            InitCreateEntity();
+            InitSetEntity();
+            InitSetRow();
+            InitFormatPropertyName();
+            InitAutoId();
+            InitTable();
+            InitRelationId();
+            InitOptimisticLock();
         }
 
         private IQueryDefine _queryDefine;
