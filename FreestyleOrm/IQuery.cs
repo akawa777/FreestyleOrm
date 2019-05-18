@@ -131,6 +131,7 @@ namespace FreestyleOrm
         PropertyInfo Property { get; }
         string Table { get; }
         string PrimaryKeys { get; }
+        bool IsFlatFormat { get; }
     }
 
     public enum SaveMode

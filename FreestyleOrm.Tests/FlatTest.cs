@@ -223,7 +223,17 @@ namespace FreestyleOrm.Tests
                                 {
                                     o.Columns("RecordVersion")
                                         .CurrentValues(x => new object[] { x["RecordVersion"].ToString() })
-                                        .NewValues((x => new object[] { int.Parse(x["RecordVersion"].ToString()) + 1 }));
+                                        .NewValues(x =>
+                                        {
+                                            if (x.Contains("RecordVersion"))
+                                            {
+                                                return new object[] { int.Parse(x["RecordVersion"].ToString()) + 1 };
+                                            }
+                                            else
+                                            {
+                                                return new object[] { 1 };
+                                            }
+                                        });
                                 });
                         })
                         .Params(p => p["@purchaseOrderId"] = 0);
@@ -232,8 +242,7 @@ namespace FreestyleOrm.Tests
 
                 int purchaseOrderId = 0;
                 purchaseOrder["Title"] = $"new_purchase_order";
-                purchaseOrder["CustomerId"] = 1;
-                purchaseOrder["RecordVersion"] = 0;
+                purchaseOrder["CustomerId"] = 1;                
 
                 using (var transaction = connection.BeginTransaction())
                 {
