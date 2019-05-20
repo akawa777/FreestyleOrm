@@ -11,17 +11,17 @@ namespace FreestyleOrm.Core
 {
     internal class MySqlDatabaseAccessor : SqliteDatabaseAccessor
     {
-        public override string[] GetPrimaryKeys(QueryOptions queryOptions, MapRule mapRule)
+        public override string[] GetPrimaryKeys(QueryOptions queryOptions, MapRuleBasic mapRuleBasic)
         {
             List<string> columns = new List<string>();            
 
-            if (string.IsNullOrEmpty(mapRule.PrimaryKeys))
+            if (string.IsNullOrEmpty(mapRuleBasic.PrimaryKeys))
             {
                 using (var command = queryOptions.Connection.CreateCommand())
                 {
                     command.Transaction = queryOptions.Transaction;            
 
-                    string sql = $"show keys from {mapRule.Table} where Key_name = 'PRIMARY'";
+                    string sql = $"show keys from {mapRuleBasic.Table} where Key_name = 'PRIMARY'";
 
                     command.CommandText = sql;
 
@@ -38,10 +38,10 @@ namespace FreestyleOrm.Core
             }
             else
             {
-                columns = mapRule.PrimaryKeys.Split(',').Select(x => x.Trim()).ToList();
+                columns = mapRuleBasic.PrimaryKeys.Split(',').Select(x => x.Trim()).ToList();
             }
 
-            if (columns.Count == 0) throw new InvalidOperationException($"[{mapRule.Table}] primary keys not setted.");       
+            if (columns.Count == 0) throw new InvalidOperationException($"[{mapRuleBasic.Table}] primary keys not setted.");       
             
             return columns.ToArray();
         }

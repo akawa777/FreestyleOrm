@@ -8,19 +8,19 @@ namespace FreestyleOrm.Core
 {
     internal class Row : IRow
     {
-        public static Row CreateReadRow(IDataRecord dataRecord, MapRule mapRule)
+        public static Row CreateReadRow(IDataRecord dataRecord, MapRuleBasic mapRuleBasic)
         {
-            return new Row(dataRecord, mapRule, false, new string[0], null);
+            return new Row(dataRecord, mapRuleBasic, false, new string[0], null);
         }
 
-        public static Row CreateWriteRow(IDataRecord dataRecord, MapRule mapRule, string[] primaryKeys, object entity)
+        public static Row CreateWriteRow(IDataRecord dataRecord, MapRuleBasic mapRuleBasic, string[] primaryKeys, object entity)
         {
-            return new Row(dataRecord, mapRule, true, primaryKeys, entity);
+            return new Row(dataRecord, mapRuleBasic, true, primaryKeys, entity);
         }
 
-        protected Row(IDataRecord dataRecord, MapRule mapRule, bool noSetValue, string[] primaryKeys, object entity)
+        protected Row(IDataRecord dataRecord, MapRuleBasic mapRuleBasic, bool noSetValue, string[] primaryKeys, object entity)
         {
-            SetMapRule(mapRule);            
+            SetMapRuleBasic(mapRuleBasic);            
 
             for (int i = 0; i < dataRecord.FieldCount; i++)
             {
@@ -37,10 +37,10 @@ namespace FreestyleOrm.Core
         
         private Dictionary<string, object> _valueMap = new Dictionary<string, object>();
         private List<string> _columns = new List<string>();
-        private MapRule _mapRule;
+        private MapRuleBasic _mapRuleBasic;
         public object Entity { get; set; }
 
-        public bool StartWithPrefix(string column) => string.IsNullOrEmpty(_mapRule.IncludePrefix) ? false : column.StartsWith(_mapRule.IncludePrefix);
+        public bool StartWithPrefix(string column) => string.IsNullOrEmpty(_mapRuleBasic.IncludePrefix) ? false : column.StartsWith(_mapRuleBasic.IncludePrefix);
 
         public bool IsConcurrencyColumn(string column, out int index)
         {
@@ -71,16 +71,16 @@ namespace FreestyleOrm.Core
 
         private string GetRealName(string column)
         {
-            if (StartWithPrefix(column)) return column.Substring(_mapRule.IncludePrefix.Length, column.Length - _mapRule.IncludePrefix.Length);
+            if (StartWithPrefix(column)) return column.Substring(_mapRuleBasic.IncludePrefix.Length, column.Length - _mapRuleBasic.IncludePrefix.Length);
             else return column;
         }
 
-        public void SetMapRule(MapRule mapRule)
+        public void SetMapRuleBasic(MapRuleBasic mapRuleBasic)
         {
-            _mapRule = mapRule;
+            _mapRuleBasic = mapRuleBasic;
         }
 
-        public string ExpressionPath => _mapRule.ExpressionPath;                
+        public string ExpressionPath => _mapRuleBasic.ExpressionPath;                
 
         public object this[string column] 
         {
@@ -98,18 +98,18 @@ namespace FreestyleOrm.Core
             set { _valueMap[column] = value; }
         }
 
-        public string IncludePrefix => _mapRule.IncludePrefix;
+        public string IncludePrefix => _mapRuleBasic.IncludePrefix;
 
-        public Func<string, string> FormatPropertyName => _mapRule.FormatPropertyName;
+        public Func<string, string> FormatPropertyName => _mapRuleBasic.FormatPropertyName;
 
         public void BindEntity(object entity)
         {
-            _mapRule.BindEntity(this, entity);            
+            _mapRuleBasic.BindEntity(this, entity);            
         }
 
         public void BindRow(object entity)
         {
-            _mapRule.BindRow(entity, this);
+            _mapRuleBasic.BindRow(entity, this);
         }
 
         public IEnumerable<string> Columns => _columns;        
@@ -118,9 +118,9 @@ namespace FreestyleOrm.Core
         {
             get
             {
-                if (!string.IsNullOrEmpty(_mapRule.UniqueKeys))
+                if (!string.IsNullOrEmpty(_mapRuleBasic.UniqueKeys))
                 {
-                    foreach (var column in _mapRule.UniqueKeys.Split(',').Select(x => x.Trim()))
+                    foreach (var column in _mapRuleBasic.UniqueKeys.Split(',').Select(x => x.Trim()))
                     {
                         yield return column;
                     }
@@ -141,10 +141,10 @@ namespace FreestyleOrm.Core
                 return column;
             }
 
-            return column.Substring(_mapRule.IncludePrefix.Length, column.Length - _mapRule.IncludePrefix.Length);
+            return column.Substring(_mapRuleBasic.IncludePrefix.Length, column.Length - _mapRuleBasic.IncludePrefix.Length);
         }
 
-        public bool AutoId => _mapRule.AutoId;        
+        public bool AutoId => _mapRuleBasic.AutoId;        
 
         public bool CanCreate(IRow prevRow, IEnumerable<string> prevUniqueKeys)
         {            
@@ -189,13 +189,13 @@ namespace FreestyleOrm.Core
             }
         }
 
-        public string Table => _mapRule.Table;
+        public string Table => _mapRuleBasic.Table;
 
-        public RelationId RelationId => _mapRule.RelationId;
+        public RelationId RelationId => _mapRuleBasic.RelationId;
 
-        public  OptimisticLock OptimisticLock => _mapRule.OptimisticLock;
+        public  OptimisticLock OptimisticLock => _mapRuleBasic.OptimisticLock;
 
-        public bool IsRootRow => _mapRule.IsRootOptions;
+        public bool IsRootRow => _mapRuleBasic.IsRootOptions;
 
         public TValue Get<TValue>(string column)
         {

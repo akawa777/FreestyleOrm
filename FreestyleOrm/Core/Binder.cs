@@ -9,34 +9,27 @@ namespace FreestyleOrm.Core
 {
     internal class Binder
     {
-        public Binder(bool isFlatFormat)
+        public void BindFlat(Row row, object entity)
         {
-            _isFlatFormat = isFlatFormat;
-        }
+            if (entity == null) return;
 
-        private bool _isFlatFormat;
+            foreach (var column in row.Columns)
+            {
+                (entity as IDictionary)[column] = row[column];
+            }
+        }
 
         public void Bind(Row row, object entity)
         {
             if (entity == null) return;
 
-            if (_isFlatFormat && entity is IDictionary dictionary)
-            {
-                foreach (var column in row.Columns)
-                {
-                    dictionary[column] = row[column];
-                }
-            }
-            else
-            {
-                Dictionary<string, PropertyInfo> propertyMap = entity.GetType().GetPropertyMap(BindingFlags.SetProperty, PropertyTypeFilters.IgonreClass);
+            Dictionary<string, PropertyInfo> propertyMap = entity.GetType().GetPropertyMap(BindingFlags.SetProperty, PropertyTypeFilters.IgonreClass);
 
-                Dictionary<string, string> formatedPropertyNameMap = GetFormatedPropertyNameMap(row);
+            Dictionary<string, string> formatedPropertyNameMap = GetFormatedPropertyNameMap(row);
 
-                foreach (var formatedPropertyName in formatedPropertyNameMap)
-                {
-                    if (propertyMap.TryGetValue(formatedPropertyName.Key, out PropertyInfo property)) property.Set(entity, row[formatedPropertyName.Value]);
-                }
+            foreach (var formatedPropertyName in formatedPropertyNameMap)
+            {
+                if (propertyMap.TryGetValue(formatedPropertyName.Key, out PropertyInfo property)) property.Set(entity, row[formatedPropertyName.Value]);
             }
         }
 
@@ -70,38 +63,38 @@ namespace FreestyleOrm.Core
             return map;
         }
 
+        public void BindFlat(object entity, Row row)
+        {
+            if (entity == null) return;
+
+            foreach (string column in row.Columns)
+            {
+                if ((entity as IDictionary).Contains(column))
+                {
+                    row[column] = (entity as IDictionary)[column];
+                }
+            }
+        }
+
         public void Bind(object entity, Row row)
         {
             if (entity == null) return;
 
-            if (_isFlatFormat && entity is IDictionary dictionary)
-            {
-                foreach (string column in row.Columns)
-                {
-                    if (dictionary.Contains(column))
-                    {
-                        row[column] = dictionary[column];
-                    }
-                }
-            }
-            else
-            {
-                Dictionary<string, PropertyInfo> propertyMap = entity.GetType().GetPropertyMap(BindingFlags.GetProperty, PropertyTypeFilters.IgonreClass);
-                Dictionary<string, string> formatedPropertyNameMap = GetFormatedPropertyNameMap(row);
+            Dictionary<string, PropertyInfo> propertyMap = entity.GetType().GetPropertyMap(BindingFlags.GetProperty, PropertyTypeFilters.IgonreClass);
+            Dictionary<string, string> formatedPropertyNameMap = GetFormatedPropertyNameMap(row);
 
-                foreach (var formatedPropertyName in formatedPropertyNameMap)
+            foreach (var formatedPropertyName in formatedPropertyNameMap)
+            {
+                if (propertyMap.TryGetValue(formatedPropertyName.Key, out PropertyInfo property))
                 {
-                    if (propertyMap.TryGetValue(formatedPropertyName.Key, out PropertyInfo property))
+                    if (property.PropertyType == typeof(bool))
                     {
-                        if (property.PropertyType == typeof(bool))
-                        {
-                            if ((bool)property.Get(entity) == true) row[formatedPropertyName.Value] = 1;
-                            else row[formatedPropertyName.Value] = 0;
-                        }
-                        else
-                        {
-                            row[formatedPropertyName.Value] = property.Get(entity);
-                        }
+                        if ((bool)property.Get(entity) == true) row[formatedPropertyName.Value] = 1;
+                        else row[formatedPropertyName.Value] = 0;
+                    }
+                    else
+                    {
+                        row[formatedPropertyName.Value] = property.Get(entity);
                     }
                 }
             }

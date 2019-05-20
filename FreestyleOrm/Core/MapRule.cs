@@ -3,17 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Reflection;
+using System.Collections.Specialized;
 
 namespace FreestyleOrm.Core
 {
-    internal class MapRule : IMapRule
+    internal class MapRuleBasic : IMapRuleBasic
     {
-        public MapRule(QueryOptions queryOptions, Type rootEntityType): this(queryOptions, rootEntityType, rootEntityType, null, null, false)
+        public MapRuleBasic(QueryOptions queryOptions, Type rootEntityType): this(queryOptions, rootEntityType, rootEntityType, null, null, false)
         {
             
         }
 
-        public MapRule(QueryOptions queryOptions, Type rootEntityType, Type entityType, string expressionPath, PropertyInfo property, bool isToMany)
+        public MapRuleBasic(QueryOptions queryOptions, Type rootEntityType, Type entityType, string expressionPath, PropertyInfo property, bool isToMany)
         {
             _queryOptions = queryOptions;
 
@@ -22,9 +23,9 @@ namespace FreestyleOrm.Core
             EntityType = property == null ? rootEntityType : entityType;
             Property = property;
             IsToMany = isToMany;
-            Binder binder = new Binder(queryOptions.IsFlatFormat);
-            BindEntity = binder.Bind;
-            BindRow = binder.Bind;
+            Binder binder = new Binder();
+            BindEntity = _queryOptions.IsFlatFormat ? (Action<Row, object>)binder.BindFlat : binder.Bind;
+            BindRow = _queryOptions.IsFlatFormat ? (Action<object, Row>)binder.BindFlat : binder.Bind;
             Refer = Refer.Read;
 
             InvokeInitMethods();
@@ -90,7 +91,7 @@ namespace FreestyleOrm.Core
         {
             if (string.IsNullOrEmpty(methodName)) throw new ArgumentException($"{methodName} is required.");
 
-            MethodInfo method = typeof(MapRule).GetMethod($"Init{methodName}", Type.EmptyTypes);
+            MethodInfo method = typeof(MapRuleBasic).GetMethod($"Init{methodName}", Type.EmptyTypes);
 
             if (method == null) throw new ArgumentException($"{methodName} is not exists in MapRules.");
 

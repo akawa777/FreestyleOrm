@@ -47,29 +47,29 @@ namespace FreestyleOrm.Tests
                     match => $"_{match.Value.ToUpper()}").ToUpper();
             }
 
-            public override string GetFormatPropertyName(IMapRule mapRule, string column)
+            public override string GetFormatPropertyName(IMapRuleBasic mapRuleBasic, string column)
             {
-                if (mapRule.EntityType == typeof(TestTable))
+                if (mapRuleBasic.EntityType == typeof(TestTable))
                 {
                     var pascalColumn = ToPascal(column);
                     return pascalColumn;
                 }
                 else
                 {
-                    return base.GetFormatPropertyName(mapRule, column);
+                    return base.GetFormatPropertyName(mapRuleBasic, column);
                 }
             }
 
-            public override string GetTable(IMapRule mapRule)
+            public override string GetTable(IMapRuleBasic mapRuleBasic)
             {
-                if (mapRule.EntityType == typeof(TestTable))
+                if (mapRuleBasic.EntityType == typeof(TestTable))
                 {
-                    var snakeTable = ToSnake(mapRule.EntityType.Name);
+                    var snakeTable = ToSnake(mapRuleBasic.EntityType.Name);
                     return snakeTable;
                 }
                 else
                 {
-                    return base.GetTable(mapRule);
+                    return base.GetTable(mapRuleBasic);
                 }
             }
 
@@ -546,9 +546,9 @@ namespace FreestyleOrm.Tests
 
         public class RelationQueryDefine : QueryDefine
         {
-            public override void SetRow(IMapRule mapRule, object entity, object rootEntity, IRow row)
+            public override void SetRow(IMapRuleBasic mapRuleBasic, object entity, object rootEntity, IRow row)
             {
-                base.SetRow(mapRule, entity, rootEntity, row);
+                base.SetRow(mapRuleBasic, entity, rootEntity, row);
                 row["LastUpdate"] = (rootEntity as AggregateRoot).LastUpdate;
             }
         }

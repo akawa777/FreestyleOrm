@@ -6,9 +6,20 @@ using System.Data;
 using System.Reflection;
 using FreestyleOrm.Core;
 using System.Collections;
+using System.Collections.Specialized;
 
 namespace FreestyleOrm
 {
+    public interface IAction
+    {
+        IEnumerable<OrderedDictionary> Fetch();
+        Page<OrderedDictionary> Page(int no, int size);
+        void Insert<TId>(OrderedDictionary rootEntity, out TId lastId);
+        void Insert(OrderedDictionary rootEntity);
+        void Update(OrderedDictionary rootEntity);
+        void Delete(OrderedDictionary rootEntity);
+    }
+
     public interface IAction<TRootEntity> where TRootEntity : class
     {
         IEnumerable<TRootEntity> Fetch();
@@ -19,15 +30,15 @@ namespace FreestyleOrm
         void Delete(TRootEntity rootEntity);
     }
 
-    public interface IQueryFlat<TRootEntity> : IAction<TRootEntity> where TRootEntity : class
+    public interface IQuery : IAction
     {
-        IQueryFlat<TRootEntity> Params(Action<Dictionary<string, object>> setParams);
-        IQueryFlat<TRootEntity> TempTables(Action<ITempTableSet> setTempTables);
-        IQueryFlat<TRootEntity> Connection(IDbConnection connection);
-        IQueryFlat<TRootEntity> Transaction(IDbTransaction transaction);
-        IQueryFlat<TRootEntity> Map(Action<IMapFlat<TRootEntity>> setMap);
+        IQuery Params(Action<Dictionary<string, object>> setParams);
+        IQuery TempTables(Action<ITempTableSet> setTempTables);
+        IQuery Connection(IDbConnection connection);
+        IQuery Transaction(IDbTransaction transaction);
+        IQuery Map(Action<IMap> setMap);
     }
-    
+        
     public interface IQuery<TRootEntity> : IAction<TRootEntity> where TRootEntity : class
     {
         IQuery<TRootEntity> Params(Action<Dictionary<string, object>> setParams);
@@ -37,9 +48,9 @@ namespace FreestyleOrm
         IQuery<TRootEntity> Map(Action<IMap<TRootEntity>> setMap);
     }
 
-    public interface IMapFlat<TRootEntity> where TRootEntity : class
+    public interface IMap
     {
-        IMapRuleFlat<TRootEntity, TRootEntity> ToRoot();
+        IMapRule ToRoot();
     }
 
     public interface IMap<TRootEntity> where TRootEntity : class
@@ -49,13 +60,15 @@ namespace FreestyleOrm
         IMapRule<TRootEntity, TEntity> ToMany<TEntity>(Expression<Func<TRootEntity, IEnumerable<TEntity>>> target) where TEntity : class;
     }
 
-    public interface IMapRuleFlat<TRootEntity, TEntity> where TEntity : class where TRootEntity : class
+    public interface IMapRule
     {
-        IMapRuleFlat<TRootEntity, TEntity> Writable();
-        IMapRuleFlat<TRootEntity, TEntity> Table(string table, string primaryKeys = null);
-        IMapRuleFlat<TRootEntity, TEntity> AutoId();
-        IMapRuleFlat<TRootEntity, TEntity> OptimisticLock(Action<IOptimisticLock<TEntity>> setOptimisticLock);
-        IMapRuleFlat<TRootEntity, TEntity> ClearRule(Func<IMapRule<TRootEntity, TEntity>, string> methodName);
+        IMapRule Writable();
+        IMapRule SetEntity(Action<IRow, OrderedDictionary> setEntity);
+        IMapRule SetRow(Action<OrderedDictionary,IRow> setRow);
+        IMapRule Table(string table, string primaryKeys = null);
+        IMapRule AutoId();
+        IMapRule OptimisticLock(Action<IOptimisticLock<OrderedDictionary>> setOptimisticLock);
+        IMapRule ClearRule(Func<IMapRule<OrderedDictionary, OrderedDictionary>, string> methodName);
     }
 
     public interface IMapRule<TRootEntity, TEntity> where TEntity : class where TRootEntity : class
@@ -123,7 +136,7 @@ namespace FreestyleOrm
     }
 
 
-    public interface IMapRule
+    public interface IMapRuleBasic
     {
         Type RootEntityType { get; }
         string ExpressionPath { get; }

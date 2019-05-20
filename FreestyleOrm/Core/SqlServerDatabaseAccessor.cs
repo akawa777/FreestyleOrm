@@ -15,9 +15,9 @@ namespace FreestyleOrm.Core
         int Insert(Row row, QueryOptions queryOptions, out object lastId);
         int Update(Row row, QueryOptions queryOptions);
         int Delete(Row row, QueryOptions queryOptions);        
-        IDataReader CreateTableReader(QueryOptions queryOptions, MapRule mapRule, out string[] primaryKeys);
+        IDataReader CreateTableReader(QueryOptions queryOptions, MapRuleBasic mapRuleBasic, out string[] primaryKeys);
         IDataReader CreateFetchReader(QueryOptions queryOptions, out Action dispose);
-        string[] GetPrimaryKeys(QueryOptions queryOptions, MapRule mapRule);
+        string[] GetPrimaryKeys(QueryOptions queryOptions, MapRuleBasic mapRuleBasic);
         void CreateTempTable(QueryOptions queryOptions, List<string> outDorpTempTableSqls);
         void EndModifingRecord(Row afterRow, string commandName, OrderedDictionary beforeRecord, OrderedDictionary afterRecord, QueryOptions queryOptions);
     }
@@ -39,28 +39,28 @@ namespace FreestyleOrm.Core
             _lastIdMap.Clear();
         }
 
-        public IDataReader CreateTableReader(QueryOptions queryOptions, MapRule mapRule, out string[] primaryKeys)
+        public IDataReader CreateTableReader(QueryOptions queryOptions, MapRuleBasic mapRuleBasic, out string[] primaryKeys)
         {
-            primaryKeys = GetPrimaryKeys(queryOptions, mapRule);
+            primaryKeys = GetPrimaryKeys(queryOptions, mapRuleBasic);
 
             IDbCommand command = queryOptions.Connection.CreateCommand();
             command.Transaction = queryOptions.Transaction;
 
-            string sql = $"select * from {mapRule.Table} where 1 = 0";
+            string sql = $"select * from {mapRuleBasic.Table} where 1 = 0";
 
             command.CommandText = sql;
 
             return command.ExecuteReader();
         }
 
-        public virtual string[] GetPrimaryKeys(QueryOptions queryOptions, MapRule mapRule)
+        public virtual string[] GetPrimaryKeys(QueryOptions queryOptions, MapRuleBasic mapRuleBasic)
         {
             List<string> columns = new List<string>();
 
-            if (string.IsNullOrEmpty(mapRule.PrimaryKeys))
+            if (string.IsNullOrEmpty(mapRuleBasic.PrimaryKeys))
             {
-                string schema = mapRule.Table.Split('.').Length == 1 ? string.Empty : mapRule.Table.Split('.')[0];
-                string table = mapRule.Table.Split('.').Length == 1 ? mapRule.Table.Split('.')[0] : mapRule.Table.Split('.')[1];
+                string schema = mapRuleBasic.Table.Split('.').Length == 1 ? string.Empty : mapRuleBasic.Table.Split('.')[0];
+                string table = mapRuleBasic.Table.Split('.').Length == 1 ? mapRuleBasic.Table.Split('.')[0] : mapRuleBasic.Table.Split('.')[1];
 
 
                 string[] primaryKeys = GetPrimaryKeys(queryOptions, schema, table);
@@ -72,10 +72,10 @@ namespace FreestyleOrm.Core
             }
             else
             {
-                columns = mapRule.PrimaryKeys.Split(',').Select(x => x.Trim()).ToList();
+                columns = mapRuleBasic.PrimaryKeys.Split(',').Select(x => x.Trim()).ToList();
             }
 
-            if (columns.Count == 0) throw new InvalidOperationException($"[{mapRule.Table}] primary keys not setted.");
+            if (columns.Count == 0) throw new InvalidOperationException($"[{mapRuleBasic.Table}] primary keys not setted.");
 
             return columns.ToArray();
         }

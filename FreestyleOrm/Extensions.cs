@@ -44,7 +44,7 @@ namespace FreestyleOrm
             return new Query<TRootEntity>(databaseAccessor, queryOptions);
         }
 
-        public static IQueryFlat<OrderedDictionary> Query(this IDbConnection connection, string sql, IQueryDefine queryDefine = null) 
+        public static IQuery Query(this IDbConnection connection, string sql, IQueryDefine queryDefine = null) 
         {
             return CreateQuery<OrderedDictionary>(connection, sql, queryDefine, true);
         }

@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Linq;
+using System.Collections.Specialized;
 
 namespace FreestyleOrm.Core
 {
 
-    internal class Map<TRootEntity> : IMap<TRootEntity>, IMapFlat<TRootEntity> where TRootEntity : class
+    internal class Map<TRootEntity> : IMap<TRootEntity>, IMap where TRootEntity : class
     {
         public Map(QueryOptions queryOptions)
         {
@@ -15,34 +16,34 @@ namespace FreestyleOrm.Core
         }
 
         private QueryOptions _queryOptions;
-        private List<MapRule> _mapRuleList = new List<MapRule>();     
+        private List<MapRuleBasic> _mapRuleBasicList = new List<MapRuleBasic>();     
 
-        public MapRule RootMapRule
+        public MapRuleBasic RootMapRuleBasic
         {
             get
             {
-                MapRule mapRule = _mapRuleList.FirstOrDefault(x => string.IsNullOrEmpty(x.ExpressionPath));
+                MapRuleBasic mapRuleBasic = _mapRuleBasicList.FirstOrDefault(x => string.IsNullOrEmpty(x.ExpressionPath));
 
-                if ((mapRule == null) && _mapRuleList.Count() > 0)
+                if ((mapRuleBasic == null) && _mapRuleBasicList.Count() > 0)
                 {
                     throw new InvalidOperationException("root map is not setted.");
                 }
 
-                if (mapRule != null)
+                if (mapRuleBasic != null)
                 {
-                    if (_mapRuleList.Count() > 1 && string.IsNullOrEmpty(mapRule.UniqueKeys)) throw new InvalidOperationException("root map UniqueKeys is not setted.");
-                    return mapRule;
+                    if (_mapRuleBasicList.Count() > 1 && string.IsNullOrEmpty(mapRuleBasic.UniqueKeys)) throw new InvalidOperationException("root map UniqueKeys is not setted.");
+                    return mapRuleBasic;
                 }
 
-                mapRule = new MapRule(_queryOptions, typeof(TRootEntity));
+                mapRuleBasic = new MapRuleBasic(_queryOptions, typeof(TRootEntity));
 
-                _mapRuleList.Insert(0, mapRule);
+                _mapRuleBasicList.Insert(0, mapRuleBasic);
 
-                return RootMapRule;
+                return RootMapRuleBasic;
             }
         }
 
-        public IEnumerable<MapRule> MapRuleListWithoutRoot
+        public IEnumerable<MapRuleBasic> MapRuleBasicListWithoutRoot
         {
             get
             {
@@ -50,20 +51,20 @@ namespace FreestyleOrm.Core
                 string prevPrefixPath = string.Empty;
                 List<string> paths = new List<string>();
 
-                foreach (var mapRule in _mapRuleList.Where(x => x != RootMapRule))
+                foreach (var mapRuleBasic in _mapRuleBasicList.Where(x => x != RootMapRuleBasic))
                 {
                     bool valid = false;
 
-                    int level = mapRule.ExpressionSections.Length;
+                    int level = mapRuleBasic.ExpressionSections.Length;
 
                     string prefixPath;
                     if (level == 1)
                     {
-                        prefixPath = string.Join(".", mapRule.ExpressionSections);
+                        prefixPath = string.Join(".", mapRuleBasic.ExpressionSections);
                     }
                     else
                     {
-                        prefixPath = string.Join(".", mapRule.ExpressionSections.Take(level - 1));
+                        prefixPath = string.Join(".", mapRuleBasic.ExpressionSections.Take(level - 1));
                     }
 
                     if (level > prevLevel)
@@ -79,7 +80,7 @@ namespace FreestyleOrm.Core
                         valid = true;
                     }
 
-                    paths.Add(mapRule.ExpressionPath);
+                    paths.Add(mapRuleBasic.ExpressionPath);
 
                     if (!valid)
                     {
@@ -89,9 +90,9 @@ namespace FreestyleOrm.Core
                     prevLevel = level;
                     prevPrefixPath = prefixPath;
 
-                    if (string.IsNullOrEmpty(mapRule.UniqueKeys)) throw new InvalidOperationException($"[{mapRule.ExpressionPath}] map UniqueKeys is not setted.");                    
+                    if (string.IsNullOrEmpty(mapRuleBasic.UniqueKeys)) throw new InvalidOperationException($"[{mapRuleBasic.ExpressionPath}] map UniqueKeys is not setted.");                    
 
-                    yield return mapRule;
+                    yield return mapRuleBasic;
                 }
             }
         }
@@ -100,7 +101,7 @@ namespace FreestyleOrm.Core
         {
             MapRule<TRootEntity, TRootEntity> mapRule = new MapRule<TRootEntity, TRootEntity>(_queryOptions, x => x);
 
-            _mapRuleList.Add(mapRule.GetMapRule());
+            _mapRuleBasicList.Add(mapRule.GetMapRuleBasic());
 
             return mapRule;
         }
@@ -117,7 +118,7 @@ namespace FreestyleOrm.Core
 
             MapRule<TRootEntity, TEntity> mapRule = new MapRule<TRootEntity, TEntity>(_queryOptions, target);
 
-            _mapRuleList.Add(mapRule.GetMapRule());
+            _mapRuleBasicList.Add(mapRule.GetMapRuleBasic());
 
             return mapRule;
         }
@@ -128,35 +129,36 @@ namespace FreestyleOrm.Core
 
             MapRule<TRootEntity, TEntity> mapRule = new MapRule<TRootEntity, TEntity>(_queryOptions, target);
 
-            _mapRuleList.Add(mapRule.GetMapRule());
+            _mapRuleBasicList.Add(mapRule.GetMapRuleBasic());
 
             return mapRule;
         }
 
-        IMapRuleFlat<TRootEntity, TRootEntity> IMapFlat<TRootEntity>.ToRoot()
+        IMapRule IMap.ToRoot()
         {
             return CreateMapRule();
         }
     }
 
-    internal class MapRule<TRootEntity, TEntity> : IMapRule<TRootEntity, TEntity>, IMapRuleFlat<TRootEntity, TEntity> where TRootEntity : class where TEntity : class
+    internal class MapRule<TRootEntity, TEntity> : IMapRule<TRootEntity, TEntity>, IMapRule where TRootEntity : class where TEntity : class
     {
         public MapRule(QueryOptions queryOptions, Expression<Func<TRootEntity, TEntity>> target)
-        {               _mapRule = new MapRule(queryOptions, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property).First(), property, false);
+        {
+            _mapRuleBasic = new MapRuleBasic(queryOptions, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property).First(), property, false);
         }
 
         public MapRule(QueryOptions queryOptions, Expression<Func<TRootEntity, IEnumerable<TEntity>>> target)
         {
-            _mapRule = new MapRule(queryOptions, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property).First(), property, true);
+            _mapRuleBasic = new MapRuleBasic(queryOptions, typeof(TRootEntity), typeof(TEntity), target.GetExpressionPath(out PropertyInfo property).First(), property, true);
         }
 
-        private MapRule _mapRule;
+        private MapRuleBasic _mapRuleBasic;
 
-        public MapRule GetMapRule() => _mapRule;
+        public MapRuleBasic GetMapRuleBasic() => _mapRuleBasic;
 
         public IMapRule<TRootEntity, TEntity> AutoId()
         {
-            _mapRule.AutoId = true;
+            _mapRuleBasic.AutoId = true;
 
             return this;
         }
@@ -165,7 +167,7 @@ namespace FreestyleOrm.Core
         {
             if (createEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(createEntity)} is null.");
 
-            _mapRule.CreateEntity = (row, rootEntity) => createEntity(row, rootEntity as TRootEntity);
+            _mapRuleBasic.CreateEntity = (row, rootEntity) => createEntity(row, rootEntity as TRootEntity);
 
             return this;
         }
@@ -174,7 +176,7 @@ namespace FreestyleOrm.Core
         {
             if (setEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(setEntity)} is null.");
 
-            _mapRule.SetEntity = (row, rootEntity, entity) => setEntity(row, rootEntity as TRootEntity, entity as TEntity);
+            _mapRuleBasic.SetEntity = (row, rootEntity, entity) => setEntity(row, rootEntity as TRootEntity, entity as TEntity);
 
             return this;
         }
@@ -183,7 +185,7 @@ namespace FreestyleOrm.Core
         {
             if (setRow == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(setRow)} is null.");
 
-            _mapRule.SetRow = (entity, rootEntity, row) => setRow(entity as TEntity, rootEntity as TRootEntity, row);
+            _mapRuleBasic.SetRow = (entity, rootEntity, row) => setRow(entity as TEntity, rootEntity as TRootEntity, row);
 
             return this;
         }
@@ -192,21 +194,21 @@ namespace FreestyleOrm.Core
         {
             if (formatPropertyName == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(formatPropertyName)} is null.");
 
-            _mapRule.FormatPropertyName = formatPropertyName;
+            _mapRuleBasic.FormatPropertyName = formatPropertyName;
 
             return this;
         }
 
         public IMapRule<TRootEntity, TEntity> IncludePrefix(string prefix)
         {
-            _mapRule.IncludePrefix = prefix;
+            _mapRuleBasic.IncludePrefix = prefix;
 
             return this;
         }
 
         public IMapRule<TRootEntity, TEntity> Writable()
         {
-            _mapRule.Refer = Refer.Write;
+            _mapRuleBasic.Refer = Refer.Write;
 
             return this;
         }
@@ -215,19 +217,19 @@ namespace FreestyleOrm.Core
         {
             if (string.IsNullOrEmpty(table)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(table)} is null or empty.");
 
-            _mapRule.Table = table;
+            _mapRuleBasic.Table = table;
 
             return this;
         }
 
         public IMapRule<TRootEntity, TEntity> RelationId<TRelationEntity>(string relationIdColumn, Expression<Func<TRootEntity, TRelationEntity>> relationEntity) where TRelationEntity : class
         {
-            if (_mapRule.IsRootOptions) throw new InvalidOperationException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] root entity can not set {nameof(relationIdColumn)}.");
+            if (_mapRuleBasic.IsRootOptions) throw new InvalidOperationException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] root entity can not set {nameof(relationIdColumn)}.");
             if (string.IsNullOrEmpty(relationIdColumn)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(relationIdColumn)} is null or empty.");
-            if (relationEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(relationEntity)} is null.");            
+            if (relationEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(relationEntity)} is null.");
 
-            _mapRule.RelationId.RelationIdColumn = relationIdColumn;
-            _mapRule.RelationId.RelationEntityPath = relationEntity.GetExpressionPath().First();
+            _mapRuleBasic.RelationId.RelationIdColumn = relationIdColumn;
+            _mapRuleBasic.RelationId.RelationEntityPath = relationEntity.GetExpressionPath().First();
 
             return this;
         }
@@ -236,7 +238,7 @@ namespace FreestyleOrm.Core
         {
             if (string.IsNullOrEmpty(columns)) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(columns)} is null or empty.");
 
-            _mapRule.UniqueKeys = columns;
+            _mapRuleBasic.UniqueKeys = columns;
 
             return this;
         }
@@ -248,21 +250,21 @@ namespace FreestyleOrm.Core
             OptimisticLock<TEntity> optimisticLock = new OptimisticLock<TEntity>();
             setOptimisticLock(optimisticLock);
 
-            _mapRule.OptimisticLock = optimisticLock;
+            _mapRuleBasic.OptimisticLock = optimisticLock;
 
             return this;
         }  
 
         public IMapRule<TRootEntity, TEntity> ReNest<TProperty, TId, TParentId>(Expression<Func<TEntity, IEnumerable<TProperty>>> nestEntity, Expression<Func<TEntity, TId>> idPropertiy, Expression<Func<TEntity, TParentId>> parentProperty) where  TProperty : TEntity
         {
-            if (!_mapRule.IsRootOptions && !_mapRule.IsToMany) throw new InvalidOperationException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(ReNest)} is valid only for ToMany.");    
+            if (!_mapRuleBasic.IsRootOptions && !_mapRuleBasic.IsToMany) throw new InvalidOperationException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(ReNest)} is valid only for ToMany.");    
             if (nestEntity == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(nestEntity)} is null.");    
             if (idPropertiy == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(idPropertiy)} is null.");        
-            if (parentProperty == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(parentProperty)} is null.");        
+            if (parentProperty == null) throw new ArgumentException($"[IMapRule<{typeof(TRootEntity).Name}, {typeof(TEntity).Name}>] {nameof(parentProperty)} is null.");
 
-            _mapRule.ReNest.NestEntityPath = nestEntity.GetExpressionPath().First();
-            _mapRule.ReNest.IdProperties = idPropertiy.GetExpressionPath();
-            _mapRule.ReNest.ParentProperties = parentProperty.GetExpressionPath();
+            _mapRuleBasic.ReNest.NestEntityPath = nestEntity.GetExpressionPath().First();
+            _mapRuleBasic.ReNest.IdProperties = idPropertiy.GetExpressionPath();
+            _mapRuleBasic.ReNest.ParentProperties = parentProperty.GetExpressionPath();
 
             return this;
         }    
@@ -270,42 +272,60 @@ namespace FreestyleOrm.Core
         public IMapRule<TRootEntity, TEntity> ClearRule(Func<IMapRule<TRootEntity, TEntity>, string> methodName)
         {
             string name = methodName(this);
-            _mapRule.InitRule(name);
+            _mapRuleBasic.InitRule(name);
 
             return this;
         }
 
-        IMapRuleFlat<TRootEntity, TEntity> IMapRuleFlat<TRootEntity, TEntity>.Writable()
+        IMapRule IMapRule.Writable()
         {
-            this.Writable();
+            Writable();
 
             return this;
         }
 
-        IMapRuleFlat<TRootEntity, TEntity> IMapRuleFlat<TRootEntity, TEntity>.Table(string table, string primaryKeys)
+
+        IMapRule IMapRule.SetEntity(Action<IRow, OrderedDictionary> setEntity)
         {
-            this.Table(table, primaryKeys);
+            Action<IRow, TRootEntity, TEntity> setEntityAction = (row, root, entity) =>
+            {
+                setEntity(row, entity as OrderedDictionary);
+            };
+
+            SetEntity(setEntityAction);
 
             return this;
         }
 
-        IMapRuleFlat<TRootEntity, TEntity> IMapRuleFlat<TRootEntity, TEntity>.AutoId()
+        IMapRule IMapRule.SetRow(Action<OrderedDictionary, IRow> setRow)
         {
-            this.AutoId();
+            throw new NotImplementedException();
+        }
+
+        IMapRule IMapRule.Table(string table, string primaryKeys)
+        {
+            Table(table, primaryKeys);
 
             return this;
         }
 
-        IMapRuleFlat<TRootEntity, TEntity> IMapRuleFlat<TRootEntity, TEntity>.OptimisticLock(Action<IOptimisticLock<TEntity>> setOptimisticLock)
+        IMapRule IMapRule.AutoId()
         {
-            this.OptimisticLock(setOptimisticLock);
+            AutoId();
 
             return this;
         }
 
-        IMapRuleFlat<TRootEntity, TEntity> IMapRuleFlat<TRootEntity, TEntity>.ClearRule(Func<IMapRule<TRootEntity, TEntity>, string> methodName)
+        IMapRule IMapRule.OptimisticLock(Action<IOptimisticLock<OrderedDictionary>> setOptimisticLock)
         {
-            this.ClearRule(methodName);
+            OptimisticLock(setOptimisticLock as Action<IOptimisticLock<TEntity>>);
+
+            return this;
+        }
+
+        IMapRule IMapRule.ClearRule(Func<IMapRule<OrderedDictionary, OrderedDictionary>, string> methodName)
+        {
+            ClearRule(methodName as Func<IMapRule<TRootEntity, TEntity>, string>);
 
             return this;
         }

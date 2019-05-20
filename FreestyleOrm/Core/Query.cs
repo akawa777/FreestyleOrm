@@ -9,19 +9,17 @@ using System.Text;
 
 namespace FreestyleOrm.Core
 {
-    internal class Query<TRootEntity> : IQueryFlat<TRootEntity>, IQuery<TRootEntity> where TRootEntity : class
+    internal class Query<TRootEntity> : IQuery, IQuery<TRootEntity> where TRootEntity : class
     {
         public Query(IDatabaseAccessor databaseAccessor, QueryOptions queryOptions)
         {
             _databaseAccessor = databaseAccessor;
             _queryOptions = queryOptions;
-            _binder = new Binder(queryOptions.IsFlatFormat);
         }
 
         private IDatabaseAccessor _databaseAccessor;
         private QueryOptions _queryOptions;        
         private Action<Map<TRootEntity>> _setMap = map => { };
-        private Binder _binder;
 
         private class TotalCount
         {
@@ -154,7 +152,7 @@ namespace FreestyleOrm.Core
 
         private void SetReNestNodes(Map<TRootEntity> map, object rootEntity)
         {
-            foreach (var mapRule in map.MapRuleListWithoutRoot)
+            foreach (var mapRule in map.MapRuleBasicListWithoutRoot)
             {
                 if (!mapRule.ReNest.Should()) continue;
 
@@ -251,10 +249,10 @@ namespace FreestyleOrm.Core
         {
             Map<TRootEntity> map = CreateMap();
 
-            if (map.RootMapRule.ReNest.Should())
+            if (map.RootMapRuleBasic.ReNest.Should())
             {
                 var list = Fetch(1, int.MaxValue, new TotalCount(), map);
-                var nodes = CreateNodes(list, map.RootMapRule.ReNest);
+                var nodes = CreateNodes(list, map.RootMapRuleBasic.ReNest);
 
                 return nodes.Select(x => x as TRootEntity);
             }
@@ -274,7 +272,7 @@ namespace FreestyleOrm.Core
             TotalCount totalCount = new TotalCount();
             IEnumerable<TRootEntity> list;
 
-            if (map.RootMapRule.ReNest.Should())
+            if (map.RootMapRuleBasic.ReNest.Should())
             {
                 var nodes = Fetch();
                 totalCount.Value = nodes.Count();
@@ -308,13 +306,13 @@ namespace FreestyleOrm.Core
                 int currentPage = 0;
                 int currentSize = 0;
 
-                Dictionary<MapRule, Dictionary<string, bool>> mapUniqueKeyValueCache = new Dictionary<MapRule, Dictionary<string, bool>>();
+                Dictionary<MapRuleBasic, Dictionary<string, bool>> mapUniqueKeyValueCache = new Dictionary<MapRuleBasic, Dictionary<string, bool>>();
 
                 while (reader.Read())
                 {
-                    MapRule rootMapRule = map.RootMapRule;
+                    MapRuleBasic rootMapRuleBasic = map.RootMapRuleBasic;
 
-                    Row currentRow = Row.CreateReadRow(reader, rootMapRule);
+                    Row currentRow = Row.CreateReadRow(reader, rootMapRuleBasic);
 
                     List<string> uniqueKeys = new List<string>();
 
@@ -340,7 +338,7 @@ namespace FreestyleOrm.Core
 
                         if (currentPage == page)
                         {
-                            rootEntity = rootMapRule.GetEntity(currentRow, rootEntity) as TRootEntity;
+                            rootEntity = rootMapRuleBasic.GetEntity(currentRow, rootEntity) as TRootEntity;
                         }
                     }
 
@@ -357,9 +355,9 @@ namespace FreestyleOrm.Core
 
                     uniqueKeys.AddRange(currentRow.UniqueKeys);                    
 
-                    foreach (var mapRule in map.MapRuleListWithoutRoot)
+                    foreach (var mapRuleBasic in map.MapRuleBasicListWithoutRoot)
                     {                        
-                        currentRow.SetMapRule(mapRule);
+                        currentRow.SetMapRuleBasic(mapRuleBasic);
 
                         // ユニークキーの値がNULL、または、依然と重複している場合は、処理をしない >>
 
@@ -376,16 +374,16 @@ namespace FreestyleOrm.Core
 
                         string uniqueKeyValues = uniqueKeyValuesBuilder.ToString();
 
-                        if (mapUniqueKeyValueCache.TryGetValue(mapRule, out Dictionary<string, bool> values))
+                        if (mapUniqueKeyValueCache.TryGetValue(mapRuleBasic, out Dictionary<string, bool> values))
                         {
                             if (values.ContainsKey(uniqueKeyValues)) canContinue = false; ;
                         }
                         else
                         {
-                            mapUniqueKeyValueCache[mapRule] = new Dictionary<string, bool>();
+                            mapUniqueKeyValueCache[mapRuleBasic] = new Dictionary<string, bool>();
                         }
 
-                        mapUniqueKeyValueCache[mapRule][uniqueKeyValues] = true;
+                        mapUniqueKeyValueCache[mapRuleBasic][uniqueKeyValues] = true;
 
                         if (!canContinue) continue;
 
@@ -394,7 +392,7 @@ namespace FreestyleOrm.Core
                         object parentEntity = rootEntity;
                         PropertyInfo property = null;
 
-                        foreach (var section in mapRule.ExpressionSections)
+                        foreach (var section in mapRuleBasic.ExpressionSections)
                         {
                             if (property != null && !property.PropertyType.IsList())
                             {
@@ -411,7 +409,7 @@ namespace FreestyleOrm.Core
                             property = propertyMap[section];
                         }
 
-                        if (mapRule.IsToMany)
+                        if (mapRuleBasic.IsToMany)
                         {
                             object list = property.Get(parentEntity);
 
@@ -419,11 +417,11 @@ namespace FreestyleOrm.Core
                             {
                                 if (property.PropertyType.IsArray)
                                 {
-                                    list = Array.CreateInstance(mapRule.EntityType, 0);
+                                    list = Array.CreateInstance(mapRuleBasic.EntityType, 0);
                                 }
-                                else if (property.PropertyType == typeof(IEnumerable<>).MakeGenericType(mapRule.EntityType))
+                                else if (property.PropertyType == typeof(IEnumerable<>).MakeGenericType(mapRuleBasic.EntityType))
                                 {
-                                    list = typeof(List<>).MakeGenericType(mapRule.EntityType).Create();
+                                    list = typeof(List<>).MakeGenericType(mapRuleBasic.EntityType).Create();
                                 }
                                 else
                                 {
@@ -433,21 +431,21 @@ namespace FreestyleOrm.Core
                                 property.Set(parentEntity, list);
                             }
 
-                            object entity = mapRule.GetEntity(currentRow, rootEntity);
+                            object entity = mapRuleBasic.GetEntity(currentRow, rootEntity);
 
                             if (property.PropertyType.IsArray)
                             {
                                 Array array = (Array)list;
-                                Array newArray = Array.CreateInstance(mapRule.EntityType, array.Length + 1);
+                                Array newArray = Array.CreateInstance(mapRuleBasic.EntityType, array.Length + 1);
 
                                 array.CopyTo(newArray, 0);
                                 newArray.SetValue(entity, array.Length);
 
                                 property.Set(parentEntity, newArray);
                             }
-                            else if (property.PropertyType == typeof(IEnumerable<>).MakeGenericType(mapRule.EntityType))
+                            else if (property.PropertyType == typeof(IEnumerable<>).MakeGenericType(mapRuleBasic.EntityType))
                             {
-                                dynamic dynamicList = typeof(List<>).MakeGenericType(mapRule.EntityType).Create();
+                                dynamic dynamicList = typeof(List<>).MakeGenericType(mapRuleBasic.EntityType).Create();
                                 dynamicList.AddRange(list as dynamic);
                                 dynamicList.Add(entity as dynamic);
 
@@ -455,13 +453,13 @@ namespace FreestyleOrm.Core
                             }
                             else
                             {
-                                MethodInfo method = list.GetType().GetMethod("Add", new Type[] { mapRule.EntityType });
+                                MethodInfo method = list.GetType().GetMethod("Add", new Type[] { mapRuleBasic.EntityType });
                                 method.Invoke(list, new object[] { entity });
                             }
                         }
                         else
                         {
-                            object entity = mapRule.GetEntity(currentRow, rootEntity);
+                            object entity = mapRuleBasic.GetEntity(currentRow, rootEntity);
                             property.Set(parentEntity, entity);
                         }
                     }
@@ -598,19 +596,19 @@ namespace FreestyleOrm.Core
 
             if (rootEntity == null) return rows;
 
-            if (map.RootMapRule.Refer == Refer.Read) throw new InvalidOperationException($"{typeof(TRootEntity).Name} is not set Writable.");
+            if (map.RootMapRuleBasic.Refer == Refer.Read) throw new InvalidOperationException($"{typeof(TRootEntity).Name} is not set Writable.");
 
-            using (var reader = _databaseAccessor.CreateTableReader(_queryOptions, map.RootMapRule, out string[] primaryKeys))
+            using (var reader = _databaseAccessor.CreateTableReader(_queryOptions, map.RootMapRuleBasic, out string[] primaryKeys))
             {
-                Row row = Row.CreateWriteRow(reader, map.RootMapRule, primaryKeys, rootEntity);
-                map.RootMapRule.SetRow(rootEntity, rootEntity, row);
+                Row row = Row.CreateWriteRow(reader, map.RootMapRuleBasic, primaryKeys, rootEntity);
+                map.RootMapRuleBasic.SetRow(rootEntity, rootEntity, row);
 
                 rows.Add(row);
 
                 reader.Close();
             }
 
-            foreach (var mapRule in map.MapRuleListWithoutRoot)
+            foreach (var mapRule in map.MapRuleBasicListWithoutRoot)
             {
                 if (mapRule.Refer == Refer.Read) continue;
 
@@ -632,7 +630,7 @@ namespace FreestyleOrm.Core
             return rows;
         }
 
-        private List<object> GetEntities(TRootEntity rootEntity, MapRule mapRule)
+        private List<object> GetEntities(TRootEntity rootEntity, MapRuleBasic mapRuleBasic)
         {
             List<object> entities = new List<object>();
 
@@ -641,7 +639,7 @@ namespace FreestyleOrm.Core
 
             PropertyInfo property = null;
 
-            foreach (var section in mapRule.ExpressionSections)
+            foreach (var section in mapRuleBasic.ExpressionSections)
             {
                 entities = new List<object>();
 
@@ -686,39 +684,76 @@ namespace FreestyleOrm.Core
             return this;
         }
 
-        IQueryFlat<TRootEntity> IQueryFlat<TRootEntity>.Params(Action<Dictionary<string, object>> setParams)
+        IQuery IQuery.Params(Action<Dictionary<string, object>> setParams)
         {
-            this.Params(setParams);
+            Params(setParams);
 
             return this;
         }
 
-        IQueryFlat<TRootEntity> IQueryFlat<TRootEntity>.TempTables(Action<ITempTableSet> setTempTables)
+        IQuery IQuery.TempTables(Action<ITempTableSet> setTempTables)
         {
-            this.TempTables(setTempTables);
+            TempTables(setTempTables);
 
             return this;
         }
 
-        IQueryFlat<TRootEntity> IQueryFlat<TRootEntity>.Connection(IDbConnection connection)
+        IQuery IQuery.Connection(IDbConnection connection)
         {
-            this.Connection(connection);
+            Connection(connection);
 
             return this;
         }
 
-        IQueryFlat<TRootEntity> IQueryFlat<TRootEntity>.Transaction(IDbTransaction transaction)
+        IQuery IQuery.Transaction(IDbTransaction transaction)
         {
-            this.Transaction(transaction);
+            Transaction(transaction);
 
             return this;
         }
 
-        IQueryFlat<TRootEntity> IQueryFlat<TRootEntity>.Map(Action<IMapFlat<TRootEntity>> setMap)
+        IQuery IQuery.Map(Action<IMap> setMap)
         {
-            _setMap = setMap ?? throw new AggregateException($"{setMap} is null.");
+            if (setMap == null) throw new AggregateException($"{setMap} is null.");
+
+            Action<Map<TRootEntity>> setMapAction = map =>
+            {
+                setMap(map);
+            };
+
+            _setMap = setMapAction;
 
             return this;
-        }        
+        }
+
+        IEnumerable<OrderedDictionary> IAction.Fetch()
+        {
+            return Fetch() as IEnumerable<OrderedDictionary>;
+        }
+
+        Page<OrderedDictionary> IAction.Page(int no, int size)
+        {
+            return Page(no, size) as Page<OrderedDictionary>;
+        }
+
+        void IAction.Insert<TId>(OrderedDictionary rootEntity, out TId lastId)
+        {
+            Insert(rootEntity as TRootEntity, out lastId);
+        }
+
+        void IAction.Insert(OrderedDictionary rootEntity)
+        {
+            Insert(rootEntity as TRootEntity);
+        }
+
+        void IAction.Update(OrderedDictionary rootEntity)
+        {
+            Update(rootEntity as TRootEntity);
+        }
+
+        void IAction.Delete(OrderedDictionary rootEntity)
+        {
+            Delete(rootEntity as TRootEntity);
+        }
     }
 }
