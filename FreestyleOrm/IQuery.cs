@@ -133,6 +133,7 @@ namespace FreestyleOrm
     {
         ITempTable Indexes(params string[] indexes);
         ITempTable Values(params object[] values);
+        ITempTable Values(IDictionary<string, object>[] values);
     }
 
 

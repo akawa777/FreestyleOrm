@@ -46,5 +46,13 @@ namespace FreestyleOrm.Core
             ValueList = values;
             return this;
         }
+
+        public ITempTable Values(params IDictionary<string, object>[] values)
+        {
+            if (values == null) throw new ArgumentException($"{values} is null");
+
+            ValueList = values;
+            return this;
+        }
     }
 }

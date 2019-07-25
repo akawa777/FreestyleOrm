@@ -95,5 +95,54 @@ namespace FreestyleOrm.Tests
                 connection.Close();
             }
         }
+
+        [TestMethod]
+        public void Test_Fetch_By_TempTable()
+        {
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var query = base.CreatePurchaseOrderQuery(connection, null, "where PurchaseOrder.PurchaseOrderId not in (@PurchaseOrderIds)");
+
+                query
+                    .Params(p => p["@PurchaseOrderIds"] = new object[] { _purchaseOrderNo + 1, _purchaseOrderNo + 2 });
+
+                var ordersByManual = query.Fetch().ToList();
+
+                query = this.CreatePurchaseOrderQuery(connection);
+
+                string tempTable = _databaseKind == TestInitializer.DatabaseKinds.Sqlite ? "OrderIds" : "#OrderIds";
+
+                query = base.CreatePurchaseOrderQuery(connection, null, $"where PurchaseOrder.PurchaseOrderId not in (select OrderId from {tempTable})");
+                
+                var value1 = new Dictionary<string, object>();
+                value1["OrderId"] = _purchaseOrderNo + 1;
+                value1["KeyWord"] = "xxx";
+
+                var value2 = new Dictionary<string, object>();
+                value2["OrderId"] = _purchaseOrderNo + 2;
+                value2["KeyWord"] = "yyy";
+
+                var values = new List<Dictionary<string, object>>();
+                values.Add(value1);
+                values.Add(value2);
+
+                query
+                    .TempTables(t =>
+                    {
+                        t.Table($"{tempTable}", "OrderId int, KeyWord nvarchar(100)")
+                            .Indexes("OrderId", "OrderId, KeyWord")
+                            .Values(values.ToArray());
+                    });
+
+                var ordersByAuto = query.Fetch().ToList();
+
+                Assert.AreEqual(_purchaseOrderNo, ordersByManual.Count);
+                for (int i = 0; i < ordersByManual.Count; i++) AssertEqualPurchaseOrder(ordersByManual[i], ordersByAuto[i], false);
+
+                connection.Close();
+            }
+        }
     }
 }

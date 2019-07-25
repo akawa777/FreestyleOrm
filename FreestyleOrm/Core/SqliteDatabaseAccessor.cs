@@ -104,11 +104,24 @@ namespace FreestyleOrm.Core
                         List<string> parameterNames = new List<string>();
                         List<IDbDataParameter> parameters = new List<IDbDataParameter>();
 
-                        foreach (var property in value.GetType().GetPropertyMap(BindingFlags.GetProperty, PropertyTypeFilters.IgonreClass))
+                        if (value is IDictionary<string, object> entries)
                         {
-                            IDbDataParameter parameter = CreateParameter(command, property.Key, property.Value.Get(value), false);
-                            parameterNames.Add(property.Key);
-                            parameters.Add(parameter);
+                            foreach (var entry in entries)
+                            {
+                                IDbDataParameter parameter = CreateParameter(command, entry.Key, entry.Value, false);
+                                parameterNames.Add(entry.Key);
+                                parameters.Add(parameter);
+                            }
+
+                        }
+                        else
+                        {
+                            foreach (var property in value.GetType().GetPropertyMap(BindingFlags.GetProperty, PropertyTypeFilters.IgonreClass))
+                            {
+                                IDbDataParameter parameter = CreateParameter(command, property.Key, property.Value.Get(value), false);
+                                parameterNames.Add(property.Key);
+                                parameters.Add(parameter);
+                            }
                         }
 
                         string columnNames = string.Join(", ", parameterNames.Select(x => x));
