@@ -77,7 +77,7 @@ namespace FreestyleOrm.Tests
             {
                 //return new SqlConnection(@"Data Source=akirapcwin7\sqlexpress;Initial Catalog=test;Integrated Security=True");
                 //return new SqlConnection(@"Data Source=akawawin8\sqlserver2016;Initial Catalog=cplan_demo;Integrated Security=True");
-                return new SqlConnection(@"Data Source=workbench\sql2017;Initial Catalog=cplan_1000U;Integrated Security=True");
+                return new SqlConnection(@"Data Source=localhost\sql2019;Initial Catalog=cplan_1000U;Integrated Security=True");
             }
             else
             {

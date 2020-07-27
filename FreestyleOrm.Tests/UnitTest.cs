@@ -228,123 +228,123 @@ namespace FreestyleOrm.Tests
             public List<Node> Chilrdren { get; set; }
         }
 
-        [TestMethod]
-        public void Test_Tree1()
-        {
-            using (var connection = _testInitializer.CreateConnection())
-            {
-                connection.Open();
+        //[TestMethod]
+        //public void Test_Tree1()
+        //{
+        //    using (var connection = _testInitializer.CreateConnection())
+        //    {
+        //        connection.Open();
 
-                var nodes = connection
-                    .Query<Node>(@"
-                        select * from Node
-                    ")
-                    .Map(m =>
-                    {
-                        m.ToRoot()
-                            .UniqueKeys("Id, ParentId")
-                            .ReNest(x => x.Chilrdren, x => new { x.Id }, x => new { x.ParentId });
-                    })
-                    .Fetch()
-                    .ToArray();
+        //        var nodes = connection
+        //            .Query<Node>(@"
+        //                select * from Node
+        //            ")
+        //            .Map(m =>
+        //            {
+        //                m.ToRoot()
+        //                    .UniqueKeys("Id, ParentId")
+        //                    .ReNest(x => x.Chilrdren, x => new { x.Id }, x => new { x.ParentId });
+        //            })
+        //            .Fetch()
+        //            .ToArray();
 
-                ValidationNodes(nodes);
+        //        ValidationNodes(nodes);
 
-                connection.Close();
-            }
-        }
+        //        connection.Close();
+        //    }
+        //}
 
-        private void ValidationNodes(Node[] nodes)
-        {
-            Assert.AreEqual(2, nodes.Count());
-            Assert.AreEqual(nodes[0].Id, nodes[0].Chilrdren[0].ParentId);
-            Assert.AreEqual(nodes[0].Chilrdren[0].Id, nodes[0].Chilrdren[0].Chilrdren[0].ParentId);
-            Assert.AreEqual(nodes[0].Id, nodes[0].Chilrdren[1].ParentId);
-            Assert.AreEqual(nodes[1].Id, nodes[1].Chilrdren[0].ParentId);
-        }
+        //private void ValidationNodes(Node[] nodes)
+        //{
+        //    Assert.AreEqual(2, nodes.Count());
+        //    Assert.AreEqual(nodes[0].Id, nodes[0].Chilrdren[0].ParentId);
+        //    Assert.AreEqual(nodes[0].Chilrdren[0].Id, nodes[0].Chilrdren[0].Chilrdren[0].ParentId);
+        //    Assert.AreEqual(nodes[0].Id, nodes[0].Chilrdren[1].ParentId);
+        //    Assert.AreEqual(nodes[1].Id, nodes[1].Chilrdren[0].ParentId);
+        //}
 
-        [TestMethod]
-        public void Test_Tree2()
-        {
-            using (var connection = _testInitializer.CreateConnection())
-            {
-                connection.Open();
+        //[TestMethod]
+        //public void Test_Tree2()
+        //{
+        //    using (var connection = _testInitializer.CreateConnection())
+        //    {
+        //        connection.Open();
 
-                var customersCount = connection.Query("select * from Customer").Fetch().Count();
+        //        var customersCount = connection.Query("select * from Customer").Fetch().Count();
 
-                var customers = connection
-                    .Query<Customer>(@"
-                        select * from Customer, Node order by CustomerId
-                    ")
-                    .Map(m =>
-                    {
-                        m.ToRoot()
-                            .UniqueKeys("CustomerId");
+        //        var customers = connection
+        //            .Query<Customer>(@"
+        //                select * from Customer, Node order by CustomerId
+        //            ")
+        //            .Map(m =>
+        //            {
+        //                m.ToRoot()
+        //                    .UniqueKeys("CustomerId");
 
-                        m.ToMany(x => x.Nodes)
-                            .UniqueKeys("Id, ParentId")
-                            .ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId);
-                    })
-                    .Fetch()
-                    .ToArray();
+        //                m.ToMany(x => x.Nodes)
+        //                    .UniqueKeys("Id, ParentId")
+        //                    .ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId);
+        //            })
+        //            .Fetch()
+        //            .ToArray();
 
-                Assert.AreEqual(customersCount, customers.Count());
+        //        Assert.AreEqual(customersCount, customers.Count());
 
-                foreach (var customer in customers)
-                {
-                    var nodes = customer.Nodes;
-                    ValidationNodes(nodes.ToArray());
-                }
+        //        foreach (var customer in customers)
+        //        {
+        //            var nodes = customer.Nodes;
+        //            ValidationNodes(nodes.ToArray());
+        //        }
 
-                connection.Close();
-            }
-        }
+        //        connection.Close();
+        //    }
+        //}
 
-        [TestMethod]
-        public void Test_Tree3()
-        {
-            using (var connection = _testInitializer.CreateConnection())
-            {
-                connection.Open();
+        //[TestMethod]
+        //public void Test_Tree3()
+        //{
+        //    using (var connection = _testInitializer.CreateConnection())
+        //    {
+        //        connection.Open();
 
-                var customers = connection
-                    .Query<Product>(@"                    
-                        select 
-                            p.*, 
-                            n.*,
-                            n2.Id n2_Id, 
-                            n2.Name n2_Name, 
-                            n2.ParentId n2_ParentId                            
-                        from (select *, 1000 NodeId from Product) p
-                        left join Node n on p.NodeId = n.Id
-                        left join Node n2 on n.Id = n2.ParentId
-                    ")
-                    .Map(m =>
-                    {
-                        m.ToRoot()
-                            .UniqueKeys("ProductId");
+        //        var customers = connection
+        //            .Query<Product>(@"                    
+        //                select 
+        //                    p.*, 
+        //                    n.*,
+        //                    n2.Id n2_Id, 
+        //                    n2.Name n2_Name, 
+        //                    n2.ParentId n2_ParentId                            
+        //                from (select *, 1000 NodeId from Product) p
+        //                left join Node n on p.NodeId = n.Id
+        //                left join Node n2 on n.Id = n2.ParentId
+        //            ")
+        //            .Map(m =>
+        //            {
+        //                m.ToRoot()
+        //                    .UniqueKeys("ProductId");
 
-                        m.ToOne(x => x.Node)
-                            .UniqueKeys("Id");
+        //                m.ToOne(x => x.Node)
+        //                    .UniqueKeys("Id");
 
-                        m.ToMany(x => x.Node.Chilrdren)
-                            .UniqueKeys("n2_Id, n2_ParentId")
-                            .IncludePrefix("n2_")
-                            .ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId);
-                    })
-                    .Fetch()
-                    .ToArray();
+        //                m.ToMany(x => x.Node.Chilrdren)
+        //                    .UniqueKeys("n2_Id, n2_ParentId")
+        //                    .IncludePrefix("n2_")
+        //                    .ReNest(x => x.Chilrdren, x => x.Id, x => x.ParentId);
+        //            })
+        //            .Fetch()
+        //            .ToArray();
 
-                Assert.AreEqual(1000, customers[0].Node.Id);
+        //        Assert.AreEqual(1000, customers[0].Node.Id);
 
-                foreach (var node in customers[0].Node.Chilrdren)
-                {
-                    Assert.AreEqual(customers[0].Node.Id, node.ParentId);
-                }
+        //        foreach (var node in customers[0].Node.Chilrdren)
+        //        {
+        //            Assert.AreEqual(customers[0].Node.Id, node.ParentId);
+        //        }
 
-                connection.Close();
-            }
-        }
+        //        connection.Close();
+        //    }
+        //}
 
         public class Customer
         {

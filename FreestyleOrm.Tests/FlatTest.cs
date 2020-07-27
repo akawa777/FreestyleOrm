@@ -161,6 +161,9 @@ namespace FreestyleOrm.Tests
         [TestMethod]
         public void AutoId()
         {
+            var purchaseOrderId = 0;
+            var purchaseOrder = new OrderedDictionary();
+
             using (var connection = _testInitializer.CreateConnection())
             {
                 connection.Open();
@@ -177,27 +180,33 @@ namespace FreestyleOrm.Tests
                                     .AutoId();
                             })
                             .Params(p => p["@purchaseOrderId"] = 0)
-                            .Transaction(transaction);
-
-                    var purchaseOrder = new OrderedDictionary();
+                            .Transaction(transaction);                    
 
                     purchaseOrder["Title"] = $"new_purchase_order";
                     purchaseOrder["CustomerId"] = 1;
                     purchaseOrder["RecordVersion"] = 1;
 
-                    query.Insert(purchaseOrder, out int purchaseOrderId);
+                    query.Insert(purchaseOrder, out purchaseOrderId);
 
-                    transaction.Commit();
-
-                    var storedCustomer = query
-                            .Params(p => p["@purchaseOrderId"] = purchaseOrderId)
-                            .Fetch()
-                            .Single();
-
-                    Assert.AreEqual(purchaseOrder["Title"], storedCustomer["Title"]);
-                    Assert.AreEqual(purchaseOrder["CustomerId"].ToString(), storedCustomer["CustomerId"].ToString());
-                    Assert.AreEqual(purchaseOrder["RecordVersion"].ToString(), storedCustomer["RecordVersion"].ToString());                    
+                   transaction.Commit();
                 }
+
+                connection.Close();
+            }
+
+            using (var connection = _testInitializer.CreateConnection())
+            {
+                connection.Open();
+
+                var storedCustomer = connection
+                        .Query(_purchaseOrderSql)                        
+                        .Params(p => p["@purchaseOrderId"] = purchaseOrderId)
+                        .Fetch()
+                        .Single();
+
+                Assert.AreEqual(purchaseOrder["Title"], storedCustomer["Title"]);
+                Assert.AreEqual(purchaseOrder["CustomerId"].ToString(), storedCustomer["CustomerId"].ToString());
+                Assert.AreEqual(purchaseOrder["RecordVersion"].ToString(), storedCustomer["RecordVersion"].ToString());
 
                 connection.Close();
             }

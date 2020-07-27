@@ -217,8 +217,18 @@ namespace FreestyleOrm.Core
 
                 IEnumerable<KeyValuePair<string, IDbDataParameter>> whereParameters = primaryKeyParameters.Concat(rowVersionParameters);
 
-                string set = string.Join(", ", parameters.Select(x => $"{x.Key} = {x.Value.ParameterName}"));
-                string where = string.Join(" and ", whereParameters.Select(x => $"{x.Key} = {x.Value.ParameterName}"));
+                string set = string.Join(", ", parameters.Select(x => $"{x.Key} = {x.Value.ParameterName}"));                
+                string where = string.Join(" and ", whereParameters.Select(x =>
+                {
+                    if (x.Value.Value == DBNull.Value)
+                    {
+                        return $"{x.Key} is null";
+                    }
+                    else
+                    {
+                        return $"{x.Key} = {x.Value.ParameterName}";
+                    }
+                }));
 
                 string sql = $"update {row.Table} set {set} where {where}";
 
@@ -253,7 +263,17 @@ namespace FreestyleOrm.Core
 
                 IEnumerable<KeyValuePair<string, IDbDataParameter>> whereParameters = primaryKeyParameters.Concat(rowVersionParameters);
 
-                string where = string.Join(" and ", whereParameters.Select(x => $"{x.Key} = {x.Value.ParameterName}"));
+                string where = string.Join(" and ", whereParameters.Select(x =>
+                {
+                    if (x.Value.Value == DBNull.Value)
+                    {
+                        return $"{x.Key} is null";
+                    }
+                    else
+                    {
+                        return $"{x.Key} = {x.Value.ParameterName}";
+                    }
+                }));
 
                 string sql = $"delete from {row.Table} where {where}";
 
@@ -320,10 +340,7 @@ namespace FreestyleOrm.Core
                     {
                         object value = values[rowVersionColumn];
 
-                        if (value != null)
-                        {
-                            parameter = CreateParameter(command, $"row_version_{column}", value, false);
-                        }
+                        parameter = CreateParameter(command, $"row_version_{column}", value, false);
                     }
                 }
                 else if ((parameterFilter == ParameterFilter.All || parameterFilter == ParameterFilter.WithoutPrimaryKeys) && row.IsConcurrencyColumn(column, out int index))
@@ -335,10 +352,7 @@ namespace FreestyleOrm.Core
                     {
                         object value = values[rowVersionColumn];
 
-                        if (value != null)
-                        {
-                            parameter = CreateParameter(command, column, value, false);
-                        }
+                        parameter = CreateParameter(command, column, value, false);
                     }
                 }
                 else if (row.Columns.Contains(column))
@@ -396,7 +410,9 @@ namespace FreestyleOrm.Core
                 queryOptions.SetTempTables(tempTableSet);
 
                 foreach (var tempTable in tempTableSet.TempTableList)
-                {
+                {   
+                    command.Parameters.Clear();
+
                     string sql = $"if object_id(N'tempdb..{tempTable.Table}', N'U') IS NOT NULL begin drop table {tempTable.Table} end";
 
                     command.CommandText = sql;
